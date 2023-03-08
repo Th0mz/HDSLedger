@@ -1,4 +1,11 @@
-package group13.channel;
+package group13.channel.perfectLInk;
+
+import group13.channel.bestEffortBroadcast.events.BEBDeliver;
+import group13.channel.perfectLInk.events.Pp2pDeliver;
+import group13.channel.perfectLInk.events.Pp2pSend;
+import group13.channel.primitives.Address;
+import group13.channel.primitives.Event;
+import group13.channel.primitives.EventListener;
 
 import java.io.IOException;
 import java.net.*;
@@ -6,14 +13,12 @@ import java.util.*;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.lang.model.util.ElementScanner6;
-
 /**
  * PerfectLink implements both the functionality for client and server
  * of a perfect link.
  * Constructor takes the port at which it should listen for incoming connections.
  */
-public class PerfectLink {
+public class PerfectLink implements EventListener {
 
     private DatagramSocket socket;
     private Random random;
@@ -26,6 +31,8 @@ public class PerfectLink {
     private HashSet<Integer> usedSeqNum;
     private Map<Integer, DatagramPacket> toBeSentPackets;
     private HashSet<Integer> deliveredRecPkts;
+
+    private PLEventHandler eventHandler = new PLEventHandler();
 
 
     public PerfectLink(int port, int processId) throws Exception {
@@ -64,7 +71,28 @@ public class PerfectLink {
     }
 
 
-    
+    // handle received events
+    public void update(Event event) {
+        String eventName = event.getEventName();
+        if (eventName == Pp2pSend.EVENT_NAME) {
+            Pp2pSend typed_event = (Pp2pSend) event;
+            Address destination = typed_event.getDestination();
+            byte[] payload = typed_event.getPayload().getBytes();
+
+            try {
+                this.send(destination.getAddress().getHostAddress(), destination.getPort(), payload);
+            } catch (Exception e) {
+                // TODO : what to do if the send method raises error?
+                //   - what must happen for the send method to raise an error?
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void subscribeDelivery(EventListener listener) {
+        eventHandler.subscribe(BEBDeliver.EVENT_NAME, listener);
+    }
+
     public void send(String destHost, int destPort, byte[] data) throws Exception {
 
         byte[] packetData = new byte[data.length + 5];
@@ -113,15 +141,22 @@ public class PerfectLink {
                     // Needs to send ack
                     // Needs to deliver if hasnt done so
                     if (!deliveredRecPkts.contains(sequenceNumber)) {
-                        //TODO deliver() functionality
 
                         // mark it as delivered
                         deliveredRecPkts.add(sequenceNumber);
 
+                        // deliver the message to the above module
+                        InetAddress address = packet.getAddress();
+                        int port = packet.getPort();
+                        Address source = new Address(address, port);
+
+                        // TODO : need to make a function that extracts the payload
+                        //        from the packet byte stream
+                        Pp2pDeliver deliver_event = new Pp2pDeliver(source, "teste");
+                        eventHandler.trigger(deliver_event);
+
                         // send 'ack' message
                         buffer[0] = (byte) 0xff; //simply change type to ack and send
-                        int port = packet.getPort();
-                        InetAddress address = packet.getAddress();
                         packet = new DatagramPacket(buffer, buffer.length, address, port);
                         _socket.send(packet);
                     }
