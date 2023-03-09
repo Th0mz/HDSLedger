@@ -1,4 +1,4 @@
-package group13.channel.perfectLInk;
+package group13.channel.perfectLink;
 
 import group13.channel.primitives.Event;
 import group13.channel.primitives.EventListener;

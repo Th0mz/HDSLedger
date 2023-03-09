@@ -1,9 +1,7 @@
-package group13.channel.perfectLInk.events;
+package group13.channel.perfectLink.events;
 
 import group13.channel.primitives.Address;
 import group13.channel.primitives.Event;
-
-import javax.swing.*;
 
 public class Pp2pDeliver extends Event {
 

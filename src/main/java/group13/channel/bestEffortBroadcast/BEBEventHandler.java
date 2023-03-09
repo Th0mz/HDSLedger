@@ -9,6 +9,7 @@ import java.util.List;
 
 public class BEBEventHandler {
     private HashMap<String, List<EventListener>> listners = new HashMap<String, List<EventListener>>();
+
     public void subscribe(String eventType, EventListener listener) {
         if (! this.listners.containsKey(eventType)) {
             this.listners.put(eventType, new ArrayList());
