@@ -29,6 +29,11 @@ public class PLEventHandler {
 
     public void trigger(Event event) {
 
+        String eventType = event.getEventName();
+        if (! this.listners.containsKey(eventType)) {
+            return;
+        }
+
         String eventName = event.getEventName();
         List<EventListener> listeners = this.listners.get(eventName);
 

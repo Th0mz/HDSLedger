@@ -17,7 +17,7 @@ public class BEBroadcast implements EventListener {
 
     public BEBroadcast (int processId, Address address) {
         // create perfect link
-        PerfectLinkIn in_link = new PerfectLinkIn(processId, address);
+        PerfectLinkIn in_link = new PerfectLinkIn(address);
         in_link.subscribeDelivery(this);
     }
 

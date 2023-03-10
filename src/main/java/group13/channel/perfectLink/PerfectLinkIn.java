@@ -14,15 +14,14 @@ import java.net.SocketException;
 public class PerfectLinkIn extends Thread {
 
     // Process definition
-    private int processId;
+    // TODO : (needed?) private int processId;
     private Address address;
 
     private DatagramSocket recv_socket;
     private PLEventHandler eventHandler;
 
-    public PerfectLinkIn(int processId, Address address) {
+    public PerfectLinkIn(Address address) {
         this.address = address;
-        this.processId = processId;
 
         try {
             recv_socket = new DatagramSocket(address.getPort(), address.getInet_address());
@@ -34,6 +33,10 @@ public class PerfectLinkIn extends Thread {
 
         eventHandler = new PLEventHandler();
         this.start();
+    }
+
+    public Address getAddress() {
+        return address;
     }
 
     @Override
@@ -55,7 +58,10 @@ public class PerfectLinkIn extends Thread {
                 int port = packet.getPort();
                 Address source = new Address(hostname, port);
 
-                Pp2pDeliver deliver_event = new Pp2pDeliver(source, "teste");
+                String message = new String(buffer);
+                System.out.println(message);
+
+                Pp2pDeliver deliver_event = new Pp2pDeliver(source, message);
                 eventHandler.trigger(deliver_event);
             } catch (IOException e) {
                 System.out.println("Error : Couldn't read or write to socket");

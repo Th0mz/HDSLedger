@@ -8,10 +8,8 @@ import group13.channel.primitives.EventListener;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Objects;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class PerfectLinkOut implements EventListener {
 
@@ -45,7 +43,7 @@ public class PerfectLinkOut implements EventListener {
     public void send(byte[] data) {
 
         // TODO : send method must include the process id in the paccket sent
-        byte[] packetData = new byte[data.length + 5];
+        //byte[] packetData = new byte[data.length + 5];
         int seqNum;
 
         // seqNum = r * 10 + processId;
@@ -53,14 +51,14 @@ public class PerfectLinkOut implements EventListener {
         // TODO : usedSeqNum.add(seqNum);
 
         // prepend type_of_message + sequence_number to message
-        packetData[0] = (byte) 0x00; //0x0 indicates that the message is original send
-        packetData[1] = (byte) (seqNum >> 24);
-        packetData[2] = (byte) (seqNum >> 16);
-        packetData[3] = (byte) (seqNum >> 8);
-        packetData[4] = (byte) seqNum;
+        //packetData[0] = (byte) 0x00; //0x0 indicates that the message is original send
+        //packetData[1] = (byte) (seqNum >> 24);
+        //packetData[2] = (byte) (seqNum >> 16);
+        //packetData[3] = (byte) (seqNum >> 8);
+        //packetData[4] = (byte) seqNum;
 
-        System.arraycopy(data, 0, packetData, 4, data.length);
-        DatagramPacket packet = new DatagramPacket(packetData, packetData.length, this.destination.getInet_address(), this.destination.getPort());
+        //System.arraycopy(data, 0, packetData, 4, data.length);
+        DatagramPacket packet = new DatagramPacket(data, data.length, this.destination.getInet_address(), this.destination.getPort());
         // TODO : toBeSentPackets.put(seqNum, packet);
 
         try {

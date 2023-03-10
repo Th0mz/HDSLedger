@@ -8,7 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 
 public class BEBEventHandler {
-    private HashMap<String, List<EventListener>> listners = new HashMap<String, List<EventListener>>();
+    private HashMap<String, List<EventListener>> listners = new HashMap<>();
+
 
     public void subscribe(String eventType, EventListener listener) {
         if (! this.listners.containsKey(eventType)) {
@@ -27,6 +28,11 @@ public class BEBEventHandler {
     }
 
     public void trigger(Event event) {
+
+        String eventType = event.getEventName();
+        if (! this.listners.containsKey(eventType)) {
+            return;
+        }
 
         String eventName = event.getEventName();
         List<EventListener> listeners = this.listners.get(eventName);
