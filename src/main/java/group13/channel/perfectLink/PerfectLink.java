@@ -5,29 +5,33 @@ import group13.primitives.Address;
 import group13.primitives.EventHandler;
 import group13.primitives.EventListener;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 
 public class PerfectLink {
-
+    // packet definitions
     public static int HEADER_SIZE = 9;
+
     private int processId;
     private PerfectLinkIn in_link;
-    private List<PerfectLinkOut> out_links;
+    private HashMap<Integer, PerfectLinkOut> out_links;
 
     private EventHandler plEventHandler;
 
     public PerfectLink (int processId, Address address) {
         this.plEventHandler = new EventHandler();
 
-        this.in_link = new PerfectLinkIn(address, this.plEventHandler);
-        this.out_links = new ArrayList<>();
+        this.out_links = new HashMap<>();
         this.processId = processId;
+
+        this.in_link = new PerfectLinkIn(processId, address, this.plEventHandler, this.out_links);
+        this.in_link.start();
+
     }
 
-    public PerfectLinkOut createLink (Address destination) {
+    public PerfectLinkOut createLink (int processId, Address destination) {
         PerfectLinkOut out_link = new PerfectLinkOut(this.processId, destination);
-        out_links.add(out_link);
+        out_links.put(processId, out_link);
+        this.in_link.addSender(processId);
 
         return out_link;
     }
@@ -47,8 +51,8 @@ public class PerfectLink {
     public void close () {
         this.in_link.interrupt();
         this.in_link.close();
-        for (PerfectLinkOut out_link : this.out_links) {
-            out_link.close();
+        for (int out_link_id : this.out_links.keySet()) {
+            this.out_links.get(out_link_id).close();
         }
     }
 

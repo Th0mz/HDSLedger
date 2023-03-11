@@ -2,25 +2,34 @@ package group13.channel.perfectLink;
 
 import group13.channel.perfectLink.events.Pp2pDeliver;
 import group13.primitives.Address;
+import group13.primitives.Event;
 import group13.primitives.EventHandler;
 import group13.primitives.EventListener;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.HashMap;
 
 public class PerfectLinkIn extends Thread {
 
     // Process definition
+    private int processId;
     private Address address;
 
     private DatagramSocket recv_socket;
+
+    private HashMap<Integer, PerfectLinkOut> out_links;
     private EventHandler plEventHandler;
 
-    public PerfectLinkIn(Address address, EventHandler plEventHandler) {
+    private HashMap<Integer, Integer> delivered_messages;
+
+    public PerfectLinkIn(int processId, Address address, EventHandler plEventHandler, HashMap<Integer, PerfectLinkOut> out_links) {
+        this.processId = processId;
         this.address = address;
+        this.delivered_messages = new HashMap<>();
+        this.out_links = out_links;
 
         try {
             recv_socket = new DatagramSocket(address.getPort(), address.getInet_address());
@@ -31,7 +40,6 @@ public class PerfectLinkIn extends Thread {
         }
 
         this.plEventHandler = plEventHandler;
-        this.start();
     }
 
     public Address getAddress() {
@@ -59,14 +67,42 @@ public class PerfectLinkIn extends Thread {
                 // send message received, it is needed to :
                 //   - send ack
                 //   - deliver the message if it wasn't already
-                if (message_type == 0) {
-
-                    String message = new String(packet_data, PerfectLink.HEADER_SIZE, packet.getLength() - PerfectLink.HEADER_SIZE);
-
-                    Pp2pDeliver deliver_event = new Pp2pDeliver(process_id, message);
-                    plEventHandler.trigger(deliver_event);
+                if (! this.delivered_messages.containsKey(process_id)) {
+                    System.out.println("Error : Received message from unknown process id");
+                    return;
                 }
 
+                if (message_type == 0 ) {
+                    // DEBUG :
+                    System.out.println("message received [pid = " + this.processId + "] : ");
+                    System.out.println(" - process id : " + process_id);
+                    System.out.println(" - sequence number : " + sequence_number);
+
+                    int current_sequence_number = this.delivered_messages.get(process_id);
+
+                    // deliver message
+                    if (current_sequence_number == sequence_number) {
+                        String message = new String(packet_data, PerfectLink.HEADER_SIZE, packet.getLength() - PerfectLink.HEADER_SIZE);
+                        Pp2pDeliver deliver_event = new Pp2pDeliver(process_id, message);
+                        plEventHandler.trigger(deliver_event);
+                        this.delivered_messages.put(process_id, current_sequence_number + 1);
+                    }
+
+                    // ack all messages that were already received
+                    if (current_sequence_number >= sequence_number) {
+                        // send ack
+                        this.out_links.get(process_id).send_ack(sequence_number);
+                    }
+
+                } else if (message_type == 1) {
+                    // must notify the respective perfect link out that the message was
+                    // already received
+                    // DEBUG :
+                    System.out.println("ACK received [pid = " + this.processId + "] :" );
+                    System.out.println(" - process id : " + process_id);
+                    System.out.println(" - sequence number : " + sequence_number);
+                    this.out_links.get(process_id).acked_packet(sequence_number);
+                }
 
             } catch (SocketException e) {
                 // socket closed
@@ -74,54 +110,16 @@ public class PerfectLinkIn extends Thread {
                 System.out.println("Error : Couldn't read or write to socket");
                 throw new RuntimeException(e);
             }
-
-            /*
-            try {
-                recv_socket.receive(packet);
-                int typeOfMessage = getMessageType(packet.getData());
-                int sequenceNumber = getSeqNum(packet.getData());
-                if (typeOfMessage == 0) {
-                    // Means it's a 'send' message
-                    // Needs to send ack
-                    // Needs to deliver if hasnt done so
-                    if (!deliveredRecPkts.contains(sequenceNumber)) {
-
-                        // mark it as delivered
-                        deliveredRecPkts.add(sequenceNumber);
-
-                        // deliver the message to the above module
-                        InetAddress address = packet.getAddress();
-                        String hostname = address.getHostAddress();
-                        int port = packet.getPort();
-                        Address source = new Address(hostname, port);
-
-                        // TODO : need to make a function that extracts the payload
-                        //        from the packet byte stream
-                        Pp2pDeliver deliver_event = new Pp2pDeliver(source, "teste");
-                        eventHandler.trigger(deliver_event);
-
-                        // send 'ack' message
-                        buffer[0] = (byte) 0xff; //simply change type to ack and send
-                        packet = new DatagramPacket(buffer, buffer.length, address, port);
-                        recv_socket.send(packet);
-                    }
-                } else if (typeOfMessage == 1) {
-                    // Means it's an 'ack' message
-                    // Needs to remove from toBeSent
-                    if (toBeSentPackets.containsKey(sequenceNumber)) {
-                        toBeSentPackets.remove(sequenceNumber);
-                    } else {
-                        // byzantine behavior ?
-                        // do nothing
-                    }
-                }
-            } catch (IOException e) {
-                System.out.println("Error reading/writing socket");
-                System.exit(-1);
-            }
-            */
-
         }
+    }
+
+    public void addSender (int processId) {
+        if (this.delivered_messages.containsKey(processId)) {
+            System.out.println("Error : Multiple senders with the same process id");
+            System.exit(-1);
+        }
+
+        this.delivered_messages.put(processId, 0);
     }
 
     public int getSeqNum(byte[] ackData) {
@@ -133,9 +131,10 @@ public class PerfectLinkIn extends Thread {
     }
 
     public int getMessageType(byte[] data) {
+
         if(data[0] == 0x00)
             return 0; // it's a 'send' message
-        else if (data[0] == 0xff)
+        else if (data[0] == 0x01)
             return 1; // it's an 'ack' message
 
         return -1; //unknown type

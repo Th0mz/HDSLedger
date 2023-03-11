@@ -37,12 +37,14 @@ class BEBroadcastTest {
         BEBroadcast process2 = new BEBroadcast(3, new Address(5002));
         BEBroadcast process3 = new BEBroadcast(4, new Address(5003));
 
-        sender.addServers(List.of(
-                sender.getAddress(),
-                process1.getAddress(),
-                process2.getAddress(),
-                process3.getAddress())
-        );
+        List<BEBroadcast> broadcast_modules = new ArrayList<>(List.of(sender, process1, process2, process3));
+
+        for (BEBroadcast sender_module : broadcast_modules) {
+            sender_module.addServer(1, sender.getAddress());
+            sender_module.addServer(2, process1.getAddress());
+            sender_module.addServer(3, process2.getAddress());
+            sender_module.addServer(4, process3.getAddress());
+        }
 
         // above module (am) specifications of the sender process
         EventHandler amEventHandler = new EventHandler();

@@ -31,8 +31,8 @@ class PerfectLinkTest {
         PerfectLink process1 = new PerfectLink(1, p1_addr);
         PerfectLink process2 = new PerfectLink(2, p2_addr);
 
-        PerfectLinkOut out_process1 = process1.createLink(p2_addr);
-        PerfectLinkOut out_process2 = process2.createLink(p1_addr);
+        PerfectLinkOut out_process1 = process1.createLink(2, p2_addr);
+        PerfectLinkOut out_process2 = process2.createLink(1, p1_addr);
 
         // above module process 1
         AboveModule am_process1 = new AboveModule();
@@ -51,7 +51,7 @@ class PerfectLinkTest {
 
         // wait for messages to be received
         try {
-            Thread.sleep(200);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
