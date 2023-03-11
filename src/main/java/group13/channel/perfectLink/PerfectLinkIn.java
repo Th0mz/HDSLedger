@@ -1,9 +1,9 @@
 package group13.channel.perfectLink;
 
-import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.perfectLink.events.Pp2pDeliver;
-import group13.channel.primitives.Address;
-import group13.channel.primitives.EventListener;
+import group13.primitives.Address;
+import group13.primitives.EventHandler;
+import group13.primitives.EventListener;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -18,7 +18,7 @@ public class PerfectLinkIn extends Thread {
     private Address address;
 
     private DatagramSocket recv_socket;
-    private PLEventHandler eventHandler;
+    private EventHandler plEventHandler;
 
     public PerfectLinkIn(Address address) {
         this.address = address;
@@ -31,7 +31,7 @@ public class PerfectLinkIn extends Thread {
             throw new RuntimeException(e);
         }
 
-        eventHandler = new PLEventHandler();
+        plEventHandler = new EventHandler();
         this.start();
     }
 
@@ -58,11 +58,13 @@ public class PerfectLinkIn extends Thread {
                 int port = packet.getPort();
                 Address source = new Address(hostname, port);
 
-                String message = new String(buffer);
-                System.out.println(message);
+                String message = new String(packet.getData(), 0, packet.getLength());
 
                 Pp2pDeliver deliver_event = new Pp2pDeliver(source, message);
-                eventHandler.trigger(deliver_event);
+                plEventHandler.trigger(deliver_event);
+
+            } catch (SocketException e) {
+                // socket closed
             } catch (IOException e) {
                 System.out.println("Error : Couldn't read or write to socket");
                 throw new RuntimeException(e);
@@ -118,7 +120,7 @@ public class PerfectLinkIn extends Thread {
     }
 
     public void subscribeDelivery(EventListener listener) {
-        eventHandler.subscribe(BEBDeliver.EVENT_NAME, listener);
+        plEventHandler.subscribe(Pp2pDeliver.EVENT_NAME, listener);
     }
 
     public int getSeqNum(byte[] ackData) {
@@ -131,5 +133,9 @@ public class PerfectLinkIn extends Thread {
         else if (data[0] == 0xff)
             return 1; // it's an 'ack' message
         return -1; //unknown type
+    }
+
+    public void close () {
+        this.recv_socket.close();
     }
 }

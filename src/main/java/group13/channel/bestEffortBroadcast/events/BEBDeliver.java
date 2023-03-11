@@ -1,7 +1,7 @@
 package group13.channel.bestEffortBroadcast.events;
 
-import group13.channel.primitives.Address;
-import group13.channel.primitives.Event;
+import group13.primitives.Address;
+import group13.primitives.Event;
 
 public class BEBDeliver extends Event {
     public static final String EVENT_NAME = "bebDeliver";

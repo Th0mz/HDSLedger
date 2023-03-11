@@ -1,4 +1,4 @@
-package group13.channel.primitives;
+package group13.primitives;
 
 public class Event {
 

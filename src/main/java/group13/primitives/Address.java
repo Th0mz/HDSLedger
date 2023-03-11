@@ -1,4 +1,4 @@
-package group13.channel.primitives;
+package group13.primitives;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -7,6 +7,10 @@ public class Address {
     private String hostname;
     private int port;
     InetAddress inet_address;
+
+    public Address(int port) {
+        this("localhost", port);
+    }
 
     public Address(String hostname, int port) {
         this.hostname = hostname;

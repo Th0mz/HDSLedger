@@ -1,7 +1,6 @@
 package group13.channel.perfectLink.events;
 
-import group13.channel.primitives.Address;
-import group13.channel.primitives.Event;
+import group13.primitives.Event;
 
 public class Pp2pSend extends Event {
     public static final String EVENT_NAME = "pp2pSend";

@@ -1,9 +1,9 @@
 package group13.channel.perfectLink;
 
 import group13.channel.perfectLink.events.Pp2pSend;
-import group13.channel.primitives.Address;
-import group13.channel.primitives.Event;
-import group13.channel.primitives.EventListener;
+import group13.primitives.Address;
+import group13.primitives.Event;
+import group13.primitives.EventListener;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -13,11 +13,13 @@ import java.util.Objects;
 
 public class PerfectLinkOut implements EventListener {
 
+    private int processId;
     private Address destination;
     private DatagramSocket send_socket;
 
 
-    public PerfectLinkOut (Address destination) {
+    public PerfectLinkOut (int processId, Address destination) {
+        this.processId = processId;
         this.destination = destination;
 
         // create socket with any port number
@@ -44,10 +46,10 @@ public class PerfectLinkOut implements EventListener {
 
         // TODO : send method must include the process id in the paccket sent
         //byte[] packetData = new byte[data.length + 5];
-        int seqNum;
+        // int seqNum;
 
         // seqNum = r * 10 + processId;
-        seqNum = 1;
+        // seqNum = 1;
         // TODO : usedSeqNum.add(seqNum);
 
         // prepend type_of_message + sequence_number to message
@@ -85,6 +87,10 @@ public class PerfectLinkOut implements EventListener {
 
         return object_address.getHostname().equals(this.destination.getHostname()) &&
                 object_address.getPort() == this.destination.getPort();
+    }
+
+    public void close() {
+        this.send_socket.close();
     }
 
     @Override
