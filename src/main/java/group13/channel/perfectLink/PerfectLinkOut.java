@@ -16,11 +16,13 @@ public class PerfectLinkOut implements EventListener {
     private int processId;
     private Address destination;
     private DatagramSocket send_socket;
+    private int sequence_number;
 
 
     public PerfectLinkOut (int processId, Address destination) {
         this.processId = processId;
         this.destination = destination;
+        this.sequence_number = 3;
 
         // create socket with any port number
         try {
@@ -44,24 +46,26 @@ public class PerfectLinkOut implements EventListener {
 
     public void send(byte[] data) {
 
-        // TODO : send method must include the process id in the paccket sent
-        //byte[] packetData = new byte[data.length + 5];
-        // int seqNum;
+        byte[] packetData = new byte[data.length + PerfectLink.HEADER_SIZE];
 
-        // seqNum = r * 10 + processId;
-        // seqNum = 1;
-        // TODO : usedSeqNum.add(seqNum);
+        // prepend type_of_message + sequence_number + process_id
+        // original id being sent
+        packetData[0] = (byte) 0x00;
 
-        // prepend type_of_message + sequence_number to message
-        //packetData[0] = (byte) 0x00; //0x0 indicates that the message is original send
-        //packetData[1] = (byte) (seqNum >> 24);
-        //packetData[2] = (byte) (seqNum >> 16);
-        //packetData[3] = (byte) (seqNum >> 8);
-        //packetData[4] = (byte) seqNum;
+        // sequence number
+        packetData[1] = (byte) (this.sequence_number >> 24);
+        packetData[2] = (byte) (this.sequence_number >> 16);
+        packetData[3] = (byte) (this.sequence_number >> 8);
+        packetData[4] = (byte) this.sequence_number;
 
-        //System.arraycopy(data, 0, packetData, 4, data.length);
-        DatagramPacket packet = new DatagramPacket(data, data.length, this.destination.getInet_address(), this.destination.getPort());
-        // TODO : toBeSentPackets.put(seqNum, packet);
+        // process id
+        packetData[5] = (byte) (this.processId >> 24);
+        packetData[6] = (byte) (this.processId >> 16);
+        packetData[7] = (byte) (this.processId >> 8);
+        packetData[8] = (byte) this.processId;
+
+        System.arraycopy(data, 0, packetData, PerfectLink.HEADER_SIZE, data.length);
+        DatagramPacket packet = new DatagramPacket(packetData, packetData.length, this.destination.getInet_address(), this.destination.getPort());
 
         try {
             send_socket.send(packet);

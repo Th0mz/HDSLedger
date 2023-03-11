@@ -5,17 +5,17 @@ import group13.primitives.Event;
 
 public class BEBDeliver extends Event {
     public static final String EVENT_NAME = "bebDeliver";
-    private Address source;
+    private int process_id;
     private String payload;
 
-    public BEBDeliver (Address source, String payload) {
+    public BEBDeliver (int process_id, String payload) {
         super(EVENT_NAME);
-        this.source = source;
+        this.process_id = process_id;
         this.payload = payload;
     }
 
-    public Address getSource() {
-        return source;
+    public int getProcessID() {
+        return this.process_id;
     }
 
     public String getPayload() {
