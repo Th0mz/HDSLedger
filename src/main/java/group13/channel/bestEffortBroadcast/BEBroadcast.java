@@ -3,6 +3,7 @@ package group13.channel.bestEffortBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.bestEffortBroadcast.events.BEBSend;
 
+import group13.channel.perfectLink.PerfectLink;
 import group13.channel.perfectLink.PerfectLinkIn;
 import group13.channel.perfectLink.PerfectLinkOut;
 import group13.channel.perfectLink.events.Pp2pDeliver;
@@ -18,8 +19,7 @@ import java.util.List;
 public class BEBroadcast implements EventListener {
 
     // perfect link
-    private PerfectLinkIn in_link;
-    private List<PerfectLinkOut> out_links;
+    private PerfectLink link;
 
     private int processId;
     private Address address;
@@ -28,9 +28,8 @@ public class BEBroadcast implements EventListener {
     public BEBroadcast (int processId, Address address) {
 
         // create perfect link
-        this.in_link = new PerfectLinkIn(address);
-        this.in_link.subscribeDelivery(this);
-        this.out_links = new ArrayList<>();
+        this.link = new PerfectLink(processId, address);
+        this.link.subscribeDelivery(this);
 
         this.address = address;
         this.processId = processId;
@@ -59,9 +58,7 @@ public class BEBroadcast implements EventListener {
 
     public void addServers(List<Address> addresses) {
         for (Address destination : addresses) {
-            PerfectLinkOut out_link = new PerfectLinkOut(this.processId, destination);
-
-            this.out_links.add(out_link);
+            PerfectLinkOut out_link = this.link.createLink(destination);
             this.subscribeSend(out_link);
         }
     }
@@ -71,9 +68,7 @@ public class BEBroadcast implements EventListener {
     }
 
     public void removeServer(Address destination) {
-        PerfectLinkOut out_link = new PerfectLinkOut(this.processId, destination);
-
-        this.out_links.remove(out_link);
+        PerfectLinkOut out_link = this.link.removeLink(destination);
         this.unsubscribeSend(out_link);
     }
 
@@ -86,11 +81,7 @@ public class BEBroadcast implements EventListener {
     }
 
     public void close () {
-        this.in_link.interrupt();
-        this.in_link.close();
-        for (PerfectLinkOut out_link : this.out_links) {
-            out_link.close();
-        }
+        this.link.close();
     }
 
     public void subscribeSend(EventListener listener) {

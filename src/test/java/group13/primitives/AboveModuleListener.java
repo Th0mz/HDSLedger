@@ -45,4 +45,8 @@ public class AboveModuleListener implements EventListener {
 
         return received_events.get(eventType);
     }
+
+    public void clean_events () {
+        this.received_events = new HashMap<>();
+    }
 }

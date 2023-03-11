@@ -20,7 +20,7 @@ public class PerfectLinkIn extends Thread {
     private DatagramSocket recv_socket;
     private EventHandler plEventHandler;
 
-    public PerfectLinkIn(Address address) {
+    public PerfectLinkIn(Address address, EventHandler plEventHandler) {
         this.address = address;
 
         try {
@@ -31,7 +31,7 @@ public class PerfectLinkIn extends Thread {
             throw new RuntimeException(e);
         }
 
-        plEventHandler = new EventHandler();
+        this.plEventHandler = plEventHandler;
         this.start();
     }
 
@@ -117,10 +117,6 @@ public class PerfectLinkIn extends Thread {
             */
 
         }
-    }
-
-    public void subscribeDelivery(EventListener listener) {
-        plEventHandler.subscribe(Pp2pDeliver.EVENT_NAME, listener);
     }
 
     public int getSeqNum(byte[] ackData) {
