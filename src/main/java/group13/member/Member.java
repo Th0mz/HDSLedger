@@ -6,15 +6,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class Member {
+
+    private static MemberInterface frontend;
     public static void main(String[] args){
         BufferedReader reader;
         ArrayList<ServerStruct> listOfServers = new ArrayList<ServerStruct>();
+        ArrayList<Integer> portsForBlockchain = new ArrayList<Integer>();
         Integer nrFaulty = -1;
         Integer nrServers = -1;
+        int port = -1;
         ServerStruct myInfo = null;
 
         if (args.length != 2) {
-            System.out.println("Intended format: java <program-name> <config-file> <processId>");
+            System.out.println("Intended format: mvn exec:java -Dexec.args=\"<config-file> <processId>\"");
             return;
         }
 
@@ -32,6 +36,7 @@ public class Member {
                 String line = reader.readLine();
                 String[] splited = line.split("\\s+");
 				listOfServers.add(new ServerStruct(splited[0], splited[1]));
+                portsForBlockchain.add(Integer.parseInt(splited[2]));
                 if(i == serverId)
                     myInfo = new ServerStruct(splited[0], splited[1]);
 			}
@@ -47,5 +52,12 @@ public class Member {
             System.out.println(s);
         }
         System.out.println(myInfo);
+
+        port = Integer.parseInt(args[1]);
+        for(Integer i : portsForBlockchain) {
+            frontend = new MemberInterface(i);
+            frontend.start();
+        }
+        
     }
 }
