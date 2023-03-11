@@ -14,7 +14,6 @@ import java.net.SocketException;
 public class PerfectLinkIn extends Thread {
 
     // Process definition
-    // TODO : (needed?) private int processId;
     private Address address;
 
     private DatagramSocket recv_socket;
@@ -52,16 +51,22 @@ public class PerfectLinkIn extends Thread {
 
             try {
                 recv_socket.receive(packet);
+                byte[] packet_data = packet.getData();
+                int message_type = this.getMessageType(packet_data);
+                int sequence_number = this.getSeqNum(packet_data);
+                int process_id = this.getProcessId(packet_data);
 
-                InetAddress address = packet.getAddress();
-                String hostname = address.getHostAddress();
-                int port = packet.getPort();
-                Address source = new Address(hostname, port);
+                // send message received, it is needed to :
+                //   - send ack
+                //   - deliver the message if it wasn't already
+                if (message_type == 0) {
 
-                String message = new String(packet.getData(), 0, packet.getLength());
+                    String message = new String(packet_data, PerfectLink.HEADER_SIZE, packet.getLength() - PerfectLink.HEADER_SIZE);
 
-                Pp2pDeliver deliver_event = new Pp2pDeliver(source, message);
-                plEventHandler.trigger(deliver_event);
+                    Pp2pDeliver deliver_event = new Pp2pDeliver(process_id, message);
+                    plEventHandler.trigger(deliver_event);
+                }
+
 
             } catch (SocketException e) {
                 // socket closed
@@ -120,7 +125,11 @@ public class PerfectLinkIn extends Thread {
     }
 
     public int getSeqNum(byte[] ackData) {
-        return(ackData[1] << 24) | ((ackData[2] & 0xFF) << 16) | ((ackData[3] & 0xFF) << 8) | (ackData[4] & 0xFF);
+        return (ackData[1] << 24) | (ackData[2] << 16) | (ackData[3] << 8) | ackData[4];
+    }
+
+    public int getProcessId(byte[] ackData) {
+        return (ackData[5] << 24) | (ackData[6] << 16) | (ackData[7] << 8) | ackData[8];
     }
 
     public int getMessageType(byte[] data) {
@@ -128,6 +137,7 @@ public class PerfectLinkIn extends Thread {
             return 0; // it's a 'send' message
         else if (data[0] == 0xff)
             return 1; // it's an 'ack' message
+
         return -1; //unknown type
     }
 

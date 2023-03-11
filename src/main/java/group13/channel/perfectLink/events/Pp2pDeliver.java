@@ -6,18 +6,18 @@ import group13.primitives.Event;
 public class Pp2pDeliver extends Event {
 
     public static final String EVENT_NAME = "pp2pDeliver";
-    private Address source;
+    private int process_id;
     private String payload;
 
 
-    public Pp2pDeliver(Address source, String payload) {
+    public Pp2pDeliver(int process_id, String payload) {
         super(EVENT_NAME);
-        this.source = source;
+        this.process_id = process_id;
         this.payload = payload;
     }
 
-    public Address getSource() {
-        return source;
+    public int getProcessId() {
+        return process_id;
     }
 
     public String getPayload() {

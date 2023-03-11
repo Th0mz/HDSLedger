@@ -48,10 +48,10 @@ public class BEBroadcast implements EventListener {
 
         } else if (eventName == Pp2pDeliver.EVENT_NAME) {
             Pp2pDeliver typed_event = (Pp2pDeliver) event;
-            Address address = typed_event.getSource();
+            int process_id = typed_event.getProcessId();
             String payload = typed_event.getPayload();
 
-            BEBDeliver triggered_event = new BEBDeliver(address, payload);
+            BEBDeliver triggered_event = new BEBDeliver(process_id, payload);
             bebEventHandler.trigger(triggered_event);
         }
     }

@@ -83,6 +83,8 @@ class BEBroadcastTest {
             assertEquals(1, received_events.size());
             BEBDeliver deliver_event = (BEBDeliver) received_events.get(0);
             assertTrue(deliver_event.getPayload().equals(MESSAGE));
+            // check sender id
+            assertEquals(1, deliver_event.getProcessID());
         }
 
         sender.close();

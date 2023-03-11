@@ -45,7 +45,6 @@ class PerfectLinkTest {
         am_process2.getEventHandler().subscribe(Pp2pSend.EVENT_NAME, out_process2);
 
 
-
         // process 1 sends a message to process 2
         Pp2pSend send_event = new Pp2pSend(MESSAGE);
         am_process1.getEventHandler().trigger(send_event);
@@ -69,6 +68,8 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertEquals(1, deliver_event.getProcessId());
+
 
          el_process1.clean_events();
          el_process2.clean_events();
@@ -90,8 +91,12 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertEquals(2, deliver_event.getProcessId());
 
         // check process2 received events
         assertEquals(0, el_process2.get_all_events_num());
+
+        process1.close();
+        process2.close();
     }
 }

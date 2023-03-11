@@ -10,6 +10,7 @@ import java.util.List;
 
 public class PerfectLink {
 
+    public static int HEADER_SIZE = 9;
     private int processId;
     private PerfectLinkIn in_link;
     private List<PerfectLinkOut> out_links;
