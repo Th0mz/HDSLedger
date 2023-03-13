@@ -37,17 +37,14 @@ class PerfectLinkTest {
         // above module process 1
         AboveModule am_process1 = new AboveModule();
         process1.subscribeDelivery(am_process1.getEventListner());
-        am_process1.getEventHandler().subscribe(Pp2pSend.EVENT_NAME, out_process1);
 
         // above module process 2
         AboveModule am_process2 = new AboveModule();
         process2.subscribeDelivery(am_process2.getEventListner());
-        am_process2.getEventHandler().subscribe(Pp2pSend.EVENT_NAME, out_process2);
 
 
         // process 1 sends a message to process 2
-        Pp2pSend send_event = new Pp2pSend(MESSAGE);
-        am_process1.getEventHandler().trigger(send_event);
+        out_process1.send(MESSAGE.getBytes());
 
         // wait for messages to be received
         try {
@@ -75,7 +72,7 @@ class PerfectLinkTest {
          el_process2.clean_events();
 
         // process 2 sends a message to process 1
-        am_process2.getEventHandler().trigger(send_event);
+        out_process2.send(MESSAGE.getBytes());
 
         // wait for messages to be received
         try {

@@ -47,7 +47,6 @@ class BEBroadcastTest {
         }
 
         // above module (am) specifications of the sender process
-        EventHandler amEventHandler = new EventHandler();
         AboveModuleListener am = new AboveModuleListener();
 
         // above module (am) specification of the receiver processes
@@ -61,12 +60,9 @@ class BEBroadcastTest {
         sender.subscribeDelivery(am_process2);
         sender.subscribeDelivery(am_process3);
 
-        // am.subscribeSend(sender);
-        amEventHandler.subscribe(BEBSend.EVENT_NAME, sender);
-
         // broadcast(message);
         BEBSend send_event = new BEBSend(MESSAGE);
-        amEventHandler.trigger(send_event);
+        send.send(send_event);
 
         // wait for messages to be received
         try {

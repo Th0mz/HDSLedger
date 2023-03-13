@@ -44,6 +44,10 @@ public class PerfectLink {
         return out_link;
     }
 
+    public HashMap<Integer, PerfectLinkOut> getOutLinks() {
+        return out_links;
+    }
+
     public void subscribeDelivery(EventListener listener) {
         plEventHandler.subscribe(Pp2pDeliver.EVENT_NAME, listener);
     }

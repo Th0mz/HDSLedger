@@ -12,7 +12,7 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.*;
 
-public class PerfectLinkOut implements EventListener {
+public class PerfectLinkOut {
 
     private int source_process_id;
     private Address destination;
@@ -60,17 +60,6 @@ public class PerfectLinkOut implements EventListener {
         Timer time = new Timer();
         RetransmitPacketsTask task = new RetransmitPacketsTask();
         time.scheduleAtFixedRate(task, 300, 300);
-    }
-
-    // handle received events
-    public void update(Event event) {
-        String eventName = event.getEventName();
-        if (eventName == Pp2pSend.EVENT_NAME) {
-            Pp2pSend typed_event = (Pp2pSend) event;
-            byte[] payload = typed_event.getPayload().getBytes();
-
-            this.send(payload);
-        }
     }
 
     public void send(byte[] data) {
