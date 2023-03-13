@@ -1,7 +1,7 @@
 package group13.blockchain.consensus;
 
-import group13.channel.bestEffortBroadcast;
-import group13.primitives;
+import group13.channel.*;
+import group13.primitives.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -10,7 +10,7 @@ public class IBFT implements EventListener{
     
     private int nrProcesses, byzantineP, quorum;
     private int pId, round, preparedRound, instance;
-    private string input, preparedValue;
+    private String input, preparedValue;
     private BEBroadcast broadcast;
 
     private Lock lock = new ReentrantLock();
@@ -33,7 +33,7 @@ public class IBFT implements EventListener{
         return round % nrProcesses;
     }
 
-    public void start(int instance, string value) {
+    public void start(int instance, String value) {
 
         this.instance = instance;
         input = value;
@@ -64,8 +64,9 @@ public class IBFT implements EventListener{
             String msgType = params[0];
 
             //verify signature
-
-            if( msgType.equals("PRE_PREPARE") && leader(params[1], params[2]) == src) {
+            //check round matches
+            //here verify leader using params[2] or round??
+            if( msgType.equals("PRE_PREPARE") && leader(params[1], round) == src) {
                 //what else to verify if valid besides signature??
                 prePrepare(params, src);
             } else if (msgType.equals("PREPARE")) {
