@@ -44,7 +44,7 @@ public class IBFT implements EventListener{
         if ( leader(instance, round) == pId ) {
             //broadcast
             ///Message -> PRE_PREPARE, instance, round, input
-            broadcast.update(new BEBSend("PRE_PREPARE\n" + instance + "\n" + round + "\n" + input));
+            // broadcast.update(new BEBSend("PRE_PREPARE\n" + instance + "\n" + round + "\n" + input));
             //add signature ???
         }
 
