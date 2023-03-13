@@ -5,7 +5,6 @@ import group13.channel.bestEffortBroadcast.events.BEBSend;
 import group13.primitives.AboveModuleListener;
 import group13.primitives.Address;
 import group13.primitives.Event;
-import group13.primitives.EventHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,7 +61,7 @@ class BEBroadcastTest {
 
         // broadcast(message);
         BEBSend send_event = new BEBSend(MESSAGE);
-        send.send(send_event);
+        sender.send(send_event);
 
         // wait for messages to be received
         try {

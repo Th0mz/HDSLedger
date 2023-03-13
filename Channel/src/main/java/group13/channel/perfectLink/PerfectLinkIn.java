@@ -2,9 +2,7 @@ package group13.channel.perfectLink;
 
 import group13.channel.perfectLink.events.Pp2pDeliver;
 import group13.primitives.Address;
-import group13.primitives.Event;
 import group13.primitives.EventHandler;
-import group13.primitives.EventListener;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

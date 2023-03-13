@@ -1,7 +1,6 @@
 package group13.channel.perfectLink;
 
 import group13.channel.perfectLink.events.Pp2pDeliver;
-import group13.channel.perfectLink.events.Pp2pSend;
 import group13.primitives.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

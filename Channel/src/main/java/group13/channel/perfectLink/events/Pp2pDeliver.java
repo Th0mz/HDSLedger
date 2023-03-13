@@ -1,6 +1,5 @@
 package group13.channel.perfectLink.events;
 
-import group13.primitives.Address;
 import group13.primitives.Event;
 
 public class Pp2pDeliver extends Event {

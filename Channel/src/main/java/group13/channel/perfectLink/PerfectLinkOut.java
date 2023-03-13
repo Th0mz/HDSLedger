@@ -1,10 +1,6 @@
 package group13.channel.perfectLink;
 
-import com.sun.source.tree.Tree;
-import group13.channel.perfectLink.events.Pp2pSend;
 import group13.primitives.Address;
-import group13.primitives.Event;
-import group13.primitives.EventListener;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
