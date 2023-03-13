@@ -5,7 +5,6 @@ import group13.channel.bestEffortBroadcast.events.BEBSend;
 import group13.primitives.AboveModuleListener;
 import group13.primitives.Address;
 import group13.primitives.Event;
-import group13.primitives.EventHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,7 +46,6 @@ class BEBroadcastTest {
         }
 
         // above module (am) specifications of the sender process
-        EventHandler amEventHandler = new EventHandler();
         AboveModuleListener am = new AboveModuleListener();
 
         // above module (am) specification of the receiver processes
@@ -61,12 +59,9 @@ class BEBroadcastTest {
         sender.subscribeDelivery(am_process2);
         sender.subscribeDelivery(am_process3);
 
-        // am.subscribeSend(sender);
-        amEventHandler.subscribe(BEBSend.EVENT_NAME, sender);
-
         // broadcast(message);
         BEBSend send_event = new BEBSend(MESSAGE);
-        amEventHandler.trigger(send_event);
+        sender.send(send_event);
 
         // wait for messages to be received
         try {

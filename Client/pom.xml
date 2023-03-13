@@ -2,11 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>HDSLedger</artifactId>
+        <groupId>group13</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
 
-    <groupId>group13</groupId>
-    <artifactId>ClientHDSLedger</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>Client</artifactId>
 
     <properties>
         <mainClass>group13.client.Client</mainClass>
@@ -16,8 +19,8 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>group13</groupId>
-            <artifactId>HDSLedger</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>Channel</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
