@@ -1,7 +1,12 @@
 package group13.blockchain.consensus;
 
-import group13.channel.*;
+import group13.channel.bestEffortBroadcast.BEBroadcast;
+import group13.channel.bestEffortBroadcast.events.BEBDeliver;
+
+import group13.channel.bestEffortBroadcast.events.BEBSend;
 import group13.primitives.*;
+
+import java.util.HashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -39,7 +44,7 @@ public class IBFT implements EventListener{
         input = value;
         round = 1;
         preparedRound = -1;
-        preparedValue = -1;
+        preparedValue = null;
 
         if ( leader(instance, round) == pId ) {
             //broadcast
@@ -79,8 +84,10 @@ public class IBFT implements EventListener{
 
     private void prePrepare(String[] params, int src){
         //timer -- maybe not for now
-        broadcast.update(new BEBSend("PREPARE\n" + instance + "\n" + round + "\n" + input));
+        String payload = "PREPARE\n" + instance + "\n" + round + "\n" + input;
+        BEBSend send_event = new BEBSend(payload);
 
+        this.broadcast.send(send_event);
     }
 
     private void prepare(String[] params, int src) {
@@ -88,7 +95,7 @@ public class IBFT implements EventListener{
         String key = params[1]+params[2]+params[3];
 
         if(! prepares.containsKey(key) ) {
-            prepares.put(key, new valueOf(0));
+            prepares.put(key, 0);
         }
         
         int prepareCount = prepares.get(key);
@@ -113,7 +120,7 @@ public class IBFT implements EventListener{
         String key = params[1]+params[2]+params[3];
 
         if(! commits.containsKey(key) ) {
-            commits.put(key, new valueOf(0));
+            commits.put(key, 0);
         }
 
         int commitCount = commits.get(key);
