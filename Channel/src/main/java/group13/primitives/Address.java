@@ -6,7 +6,7 @@ import java.net.UnknownHostException;
 public class Address {
     private String hostname;
     private int port;
-    InetAddress inet_address;
+    InetAddress inetAddress;
 
     public Address(int port) {
         this("localhost", port);
@@ -17,7 +17,7 @@ public class Address {
         this.port = port;
 
         try {
-            this.inet_address = InetAddress.getByName(hostname);
+            this.inetAddress = InetAddress.getByName(hostname);
         } catch (UnknownHostException e) {
             System.out.println("Error : hostname '" + hostname + "' is not valid");
             throw new RuntimeException(e);
@@ -32,7 +32,7 @@ public class Address {
         return port;
     }
 
-    public InetAddress getInet_address() {
-        return inet_address;
+    public InetAddress getInetAddress() {
+        return inetAddress;
     }
 }

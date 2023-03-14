@@ -44,7 +44,7 @@ public class BMemberInterface implements EventListener {
         String response = instance + msg;
         BEBSend send_event = new BEBSend(response);
         //TODO:
-        beb.unicast(send_event, 9999, new Address(port));
+        // beb.unicast(send_event, 9999, new Address(port));
     }
 
 

@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.*;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,23 +29,23 @@ class PerfectLinkTest {
         Address p1_addr = new Address("localhost", 5000);
         Address p2_addr = new Address("localhost", 5001);
 
-        PerfectLink process1 = new PerfectLink(1, p1_addr);
-        PerfectLink process2 = new PerfectLink(2, p2_addr);
+        Network p1_network = new Network(1, p1_addr);
+        Network p2_network = new Network(2, p2_addr);
 
-        PerfectLinkOut out_process1 = process1.createLink(2, p2_addr);
-        PerfectLinkOut out_process2 = process2.createLink(1, p1_addr);
+        PerfectLink p1_to_p2 = p1_network.createLink(2, p2_addr);
+        PerfectLink p2_to_p1 = p2_network.createLink(1, p1_addr);
 
         // above module process 1
         AboveModule am_process1 = new AboveModule();
-        process1.subscribeDelivery(am_process1.getEventListner());
+        p1_to_p2.subscribeDelivery(am_process1.getEventListner());
 
         // above module process 2
         AboveModule am_process2 = new AboveModule();
-        process2.subscribeDelivery(am_process2.getEventListner());
+        p2_to_p1.subscribeDelivery(am_process2.getEventListner());
 
 
         // process 1 sends a message to process 2
-        out_process1.send(MESSAGE.getBytes());
+        p1_to_p2.send(MESSAGE.getBytes());
 
         // wait for messages to be received
         try {
@@ -71,7 +73,7 @@ class PerfectLinkTest {
          el_process2.clean_events();
 
         // process 2 sends a message to process 1
-        out_process2.send(MESSAGE.getBytes());
+        p2_to_p1.send(MESSAGE.getBytes());
 
         // wait for messages to be received
         try {
@@ -92,7 +94,7 @@ class PerfectLinkTest {
         // check process2 received events
         assertEquals(0, el_process2.get_all_events_num());
 
-        process1.close();
-        process2.close();
+        p1_to_p2.close();
+        p2_to_p1.close();
     }
 }

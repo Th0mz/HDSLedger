@@ -3,6 +3,7 @@ package group13.channel.bestEffortBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.bestEffortBroadcast.events.BEBSend;
 
+import group13.channel.perfectLink.Network;
 import group13.channel.perfectLink.PerfectLink;
 import group13.channel.perfectLink.PerfectLinkOut;
 import group13.channel.perfectLink.events.Pp2pDeliver;
@@ -11,25 +12,28 @@ import group13.primitives.Event;
 import group13.primitives.EventHandler;
 import group13.primitives.EventListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class BEBroadcast implements EventListener {
 
     // perfect link
-    private PerfectLink link;
+    private List<PerfectLink> links;
+    private Network network;
 
-    private int processId;
-    private Address address;
+    private int inProcessId;
+    private Address inAddress;
     private EventHandler bebEventHandler = new EventHandler();
 
-    public BEBroadcast (int processId, Address address) {
+    public BEBroadcast (int inProcessId, Address inAddress) {
 
-        // create perfect link
-        this.link = new PerfectLink(processId, address);
-        this.link.subscribeDelivery(this);
+        this.inAddress = inAddress;
+        this.inProcessId = inProcessId;
 
-        this.address = address;
-        this.processId = processId;
+        // create network (process that listens for packets)
+        this.network = new Network(inProcessId, inAddress);
+        this.links = new ArrayList<>();
     }
 
     // handle received events
@@ -46,25 +50,23 @@ public class BEBroadcast implements EventListener {
         }
     }
 
-    public void addServer(int processId, Address destination) {
-        PerfectLinkOut out_link = this.link.createLink(processId, destination);
-    }
+    public void addServer(int outProcessId, Address outAddress) {
+        PerfectLink link = this.network.createLink(outProcessId, outAddress);
+        link.subscribeDelivery(this);
 
-    public void removeServer(Address destination) {
-        PerfectLinkOut out_link = this.link.removeLink(destination);
+        this.links.add(link);
     }
 
     public void send (BEBSend send_event) {
         byte[] payload = send_event.getPayload().getBytes();
-        HashMap<Integer, PerfectLinkOut> links = this.link.getOutLinks();
 
-        for (int processId : links.keySet()) {
-            PerfectLinkOut link = links.get(processId);
+        for (PerfectLink link : links) {
             link.send(payload);
         }
     }
 
-    public void unicast(BEBSend send_event, int processId, Address destination) {
+    /*
+    public void unicast(BEBSend send_event, int outProcessId, Address destination) {
         byte[] payload = send_event.getPayload().getBytes();
         HashMap<Integer, PerfectLinkOut> links = this.link.getOutLinks();
         System.out.println("Unicast");
@@ -78,9 +80,10 @@ public class BEBroadcast implements EventListener {
             
         out_link.send(payload);
     }
+     */
 
-    public Address getAddress() {
-        return address;
+    public Address getInAddress() {
+        return inAddress;
     }
 
     public void subscribeDelivery(EventListener listener) {
@@ -92,6 +95,6 @@ public class BEBroadcast implements EventListener {
     }
 
     public void close () {
-        this.link.close();
+        this.network.close();
     }
 }
