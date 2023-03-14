@@ -35,13 +35,13 @@ public class BEBroadcast implements EventListener {
     // handle received events
     public void update(Event event) {
         String eventName = event.getEventName();
-
+        System.out.println(eventName);
         if (eventName == Pp2pDeliver.EVENT_NAME) {
             Pp2pDeliver typed_event = (Pp2pDeliver) event;
             int process_id = typed_event.getProcessId();
             String payload = typed_event.getPayload();
 
-            BEBDeliver triggered_event = new BEBDeliver(process_id, payload);
+            BEBDeliver triggered_event = new BEBDeliver(process_id, payload, typed_event.getPort());
             bebEventHandler.trigger(triggered_event);
         }
     }
@@ -62,6 +62,21 @@ public class BEBroadcast implements EventListener {
             PerfectLinkOut link = links.get(processId);
             link.send(payload);
         }
+    }
+
+    public void unicast(BEBSend send_event, int processId, Address destination) {
+        byte[] payload = send_event.getPayload().getBytes();
+        HashMap<Integer, PerfectLinkOut> links = this.link.getOutLinks();
+        System.out.println("Unicast");
+        PerfectLinkOut out_link;
+        
+        if (!links.containsKey(processId)){
+            out_link = new PerfectLinkOut(processId, destination);
+        } else {
+            out_link = links.get(processId);
+        }
+            
+        out_link.send(payload);
     }
 
     public Address getAddress() {

@@ -9,6 +9,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import group13.primitives.Address;
+
 
 public class Client {        
 
@@ -17,9 +19,10 @@ public class Client {
         int nrFaulty = -1;
         int portOfBlockChain = -1;
         BufferedReader reader;
-        ArrayList<BCServerStruct> listOfServers = new ArrayList<BCServerStruct>();
+        ArrayList<Address> listOfServers = new ArrayList<Address>();
         ArrayList<Integer> portsForBlockchain = new ArrayList<Integer>();
         DatagramSocket socket = null;
+        ClientFrontend frontend = null;
         Scanner scanner = new Scanner(System.in);
 
         if (args.length != 1) {
@@ -33,20 +36,23 @@ public class Client {
             nrServers = Integer.parseInt(reader.readLine());
             socket = new DatagramSocket();
 
+            ArrayList<Integer> pids = new ArrayList<Integer>();
 			for (int i = 0; i < nrServers; i++) {
                 String line = reader.readLine();
                 String[] splited = line.split("\\s+");
-				listOfServers.add(new BCServerStruct(splited[0], splited[1]));
+				listOfServers.add(new Address(Integer.parseInt(splited[2])));
                 portsForBlockchain.add(Integer.parseInt(splited[2]));
+                pids.add(i);
 			}
+            frontend = new ClientFrontend(9999, 9876, listOfServers, pids);
 
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
-        for(BCServerStruct s : listOfServers) {
-            System.out.println(s);
+        for(Address s : listOfServers) {
+            System.out.println(s.getPort());
         }
 
         String command = "";
@@ -62,19 +68,18 @@ public class Client {
                 System.out.println("Insert string to append: ");
                 command = scanner.nextLine();
                 int i = 0;
-                for(Integer p : portsForBlockchain) {
+                frontend.sendCommand(command);
+                /* for(Integer p : portsForBlockchain) {
                     try {
                         DatagramPacket pcktToSend = new DatagramPacket(command.getBytes(), command.getBytes().length, 
                                                                 InetAddress.getByName("localhost"), p);
                         socket.send(pcktToSend);
-                        /*new byte[] buffer = byte[500];
-                        ack = new DatagramPacket(buf, buf.length);
-                        socket.receive(packet);*/
+                        
                     } catch(IOException e) {
                         e.printStackTrace();
                     }
                                     
-                }
+                } */
             }
         
         }

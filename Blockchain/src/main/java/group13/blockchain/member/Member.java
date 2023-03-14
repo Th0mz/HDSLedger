@@ -54,9 +54,8 @@ public class Member {
         System.out.println(myInfo);
 
         port = Integer.parseInt(args[1]);
-        for(Integer i : portsForBlockchain) {
-            frontend = new MemberInterface(i);
-            frontend.start();
+        for(int i = 0; i < portsForBlockchain.size(); i++) {
+            frontend = new MemberInterface(i, portsForBlockchain.get(i));
         }
         
     }

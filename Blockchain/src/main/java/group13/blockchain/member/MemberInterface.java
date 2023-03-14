@@ -5,43 +5,41 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-public class MemberInterface extends Thread{
+import group13.channel.bestEffortBroadcast.BEBroadcast;
+import group13.channel.bestEffortBroadcast.events.BEBDeliver;
+import group13.channel.bestEffortBroadcast.events.BEBSend;
+import group13.channel.perfectLink.PerfectLinkOut;
+import group13.primitives.Address;
+import group13.primitives.Event;
+import group13.primitives.EventListener;
+
+public class MemberInterface implements EventListener {
 
     int _port;
-    private DatagramSocket _socket;
+    private BEBroadcast beb;
 
-    public MemberInterface(int port) {
+    public MemberInterface(int pid, int port) {
         _port = port;
-        try{
-            _socket = new DatagramSocket(port);  
-        } catch(IOException e){
-            e.printStackTrace();
-        }
+        beb = new BEBroadcast(pid, new Address(port)); //TODO: PORT??
+        beb.subscribeDelivery(this);
         System.out.println("Started process " + _port );
     }
 
-    public void run(){
-        while (true) {
-            try {
-                byte[] data = new byte[500];
-                InetAddress srcAddress;
-                int srcPort;
-                DatagramPacket pcktReceived = new DatagramPacket(data, data.length);
-                
-                _socket.receive(pcktReceived);
-                srcPort = pcktReceived.getPort();
-                srcAddress = pcktReceived.getAddress();
-
-                String msg = new String(pcktReceived.getData(), 0, pcktReceived.getLength());
-                System.out.println(msg);
-                
-                String response = "MESSAGE RECEIVED";
-                DatagramPacket pcktToSend = new DatagramPacket(response.getBytes(), response.getBytes().length, srcAddress, srcPort);
-                _socket.send(pcktToSend);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    @Override
+    public void update(Event event) {
+        String eventType = event.getEventName();
+        if (!eventType.equals(BEBDeliver.EVENT_NAME)) {
+            System.out.println("Should only receive deliver events (??)");
         }
+        BEBDeliver ev = (BEBDeliver) event;
+        String payload = ev.getPayload();
+        System.out.println(payload);
+        
+        String response = "MESSAGE RECEIVED";
+        BEBSend send_event = new BEBSend(response);
+        beb.unicast(send_event, 9999, new Address(9876));
     }
+
+
 
 }

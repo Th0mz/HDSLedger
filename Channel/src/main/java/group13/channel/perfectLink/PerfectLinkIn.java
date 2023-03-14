@@ -29,6 +29,8 @@ public class PerfectLinkIn extends Thread {
         this.delivered_messages = new HashMap<>();
         this.out_links = out_links;
 
+        System.out.println("Listening at " + address.getPort());
+
         try {
             recv_socket = new DatagramSocket(address.getPort(), address.getInet_address());
         } catch (SocketException e) {
@@ -57,6 +59,7 @@ public class PerfectLinkIn extends Thread {
 
             try {
                 recv_socket.receive(packet);
+                System.out.println("PLin received message: ");
                 byte[] packet_data = packet.getData();
                 int message_type = this.getMessageType(packet_data);
                 int sequence_number = this.getSeqNum(packet_data);
@@ -66,8 +69,10 @@ public class PerfectLinkIn extends Thread {
                 //   - send ack
                 //   - deliver the message if it wasn't already
                 if (! this.delivered_messages.containsKey(process_id)) {
+                    this.addSender(process_id);
+                    this.out_links.put(process_id, new PerfectLinkOut(processId, new Address(9876)));
+                    //TODO: MARTELADA ADD SENDER SO IT CAN RECEIVE MSG FROM CLIENT(PID UNKNOWN)
                     System.out.println("Error : Received message from unknown process id");
-                    return;
                 }
 
                 if (message_type == 0 ) {
@@ -81,15 +86,17 @@ public class PerfectLinkIn extends Thread {
                     // deliver message
                     if (current_sequence_number == sequence_number) {
                         String message = new String(packet_data, PerfectLink.HEADER_SIZE, packet.getLength() - PerfectLink.HEADER_SIZE);
-                        Pp2pDeliver deliver_event = new Pp2pDeliver(process_id, message);
+                        Pp2pDeliver deliver_event = new Pp2pDeliver(process_id, message, packet.getPort());
                         plEventHandler.trigger(deliver_event);
                         this.delivered_messages.put(process_id, current_sequence_number + 1);
+                        System.out.println("sequence number is increased");
                     }
 
                     // ack all messages that were already received
                     if (current_sequence_number >= sequence_number) {
                         // send ack
                         this.out_links.get(process_id).send_ack(sequence_number);
+                        System.out.println("Ack is sent");
                     }
 
                 } else if (message_type == 1) {
