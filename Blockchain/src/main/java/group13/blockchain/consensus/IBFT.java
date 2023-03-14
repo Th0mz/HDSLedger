@@ -17,10 +17,11 @@ import java.util.concurrent.locks.ReentrantLock;
 public class IBFT implements EventListener{
     
     private int nrProcesses, byzantineP, quorum;
-    private int pId, round, preparedRound, instance;
+    private int pId, preparedRound, instance;
     private String input, preparedValue;
     private BEBroadcast broadcast;
     private BMember _server;
+    private int round = 1;
 
     private Lock lock = new ReentrantLock();
 
@@ -123,16 +124,18 @@ public class IBFT implements EventListener{
         
         if (prepareCount < quorum) {
 
+            System.out.println("SIZE BEFORE: " + prepareCount);
             setPrepares.add(src);
             prepareCount = setPrepares.size();
             prepares.put(key, setPrepares);
-            
+            System.out.println("SIZE AFTER: " + prepareCount);
 
             if( prepareCount >= quorum ) {
     
                 preparedRound = Integer.parseInt(params[2]);
                 preparedValue = params[3];
                 broadcast.send(new BEBSend("COMMIT\n" + params[1] + "\n" + params[2] + "\n" + params[3]));
+                System.out.println("SENT BROADCAST OF COMMIT");
             }
         }
     }
