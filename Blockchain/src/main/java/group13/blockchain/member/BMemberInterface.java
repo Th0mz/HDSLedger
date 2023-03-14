@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
+import group13.blockchain.consensus.IBFT;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.bestEffortBroadcast.events.BEBSend;
@@ -13,14 +14,16 @@ import group13.primitives.Address;
 import group13.primitives.Event;
 import group13.primitives.EventListener;
 
-public class MemberInterface implements EventListener {
+public class BMemberInterface implements EventListener {
 
     int _port;
     private BEBroadcast beb;
+    private BMember _server;
 
-    public MemberInterface(int pid, int port) {
+    public BMemberInterface(int pid, int port, BMember server) {
         _port = port;
-        beb = new BEBroadcast(pid, new Address(port)); //TODO: PORT??
+        _server = server;
+        beb = new BEBroadcast(pid, new Address(port));
         beb.subscribeDelivery(this);
         System.out.println("Started process " + _port );
     }
@@ -34,10 +37,14 @@ public class MemberInterface implements EventListener {
         BEBDeliver ev = (BEBDeliver) event;
         String payload = ev.getPayload();
         System.out.println(payload);
-        
-        String response = "MESSAGE RECEIVED";
+        _server.tryConsensus(payload);
+    }
+
+    public void ackClient(Integer instance, String msg, int pid, int port) { 
+        String response = instance + msg;
         BEBSend send_event = new BEBSend(response);
-        beb.unicast(send_event, 9999, new Address(9876));
+        //TODO:
+        beb.unicast(send_event, 9999, new Address(port));
     }
 
 

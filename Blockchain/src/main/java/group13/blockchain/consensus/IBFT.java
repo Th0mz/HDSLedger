@@ -1,5 +1,6 @@
 package group13.blockchain.consensus;
 
+import group13.blockchain.member.BMember;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 
@@ -19,6 +20,7 @@ public class IBFT implements EventListener{
     private int pId, round, preparedRound, instance;
     private String input, preparedValue;
     private BEBroadcast broadcast;
+    private BMember _server;
 
     private Lock lock = new ReentrantLock();
 
@@ -30,13 +32,14 @@ public class IBFT implements EventListener{
 
     private int leader;
 
-    public IBFT(int id, int n, int f, int leader, int port) {
+    public IBFT(int id, int n, int f, int leader, int port, BEBroadcast beb, BMember server) {
         pId = id;
         nrProcesses = n;
         byzantineP = f;
         quorum = (nrProcesses + byzantineP)/2 + 1;
         this.leader = leader;
-        broadcast = new BEBroadcast(pId, new Address(port));
+        _server = server;
+        broadcast = beb;
         broadcast.subscribeDelivery(this);
     }
 
@@ -73,7 +76,10 @@ public class IBFT implements EventListener{
             String[] params = payload.split("\n");
 
             String msgType = params[0];
-
+            System.out.println("-------------------------");
+            System.out.println("RECEIVED UPDATE WITH MESSAGE: " + params[0]);
+            System.out.println("-------------------------");
+            
             //verify signature
             //check round matches
             //here verify leader using params[2] or round??
@@ -90,7 +96,13 @@ public class IBFT implements EventListener{
 
     private void prePrepare(String[] params, int src){
         //timer -- maybe not for now
-        String payload = "PREPARE\n" + instance + "\n" + round + "\n" + input;
+        System.out.println("-----------------------");
+        System.out.println("-----------------------");
+        System.out.println("PRE PREPARE");
+        System.out.println("Value: " + params[3]);
+        System.out.println("-----------------------");
+        System.out.println("-----------------------");
+        String payload = "PREPARE\n" + params[1] + "\n" + params[2] + "\n" + params[3];
         BEBSend send_event = new BEBSend(payload);
 
         this.broadcast.send(send_event);
@@ -103,6 +115,7 @@ public class IBFT implements EventListener{
         if(! prepares.containsKey(key) ) {
             setPrepares = new HashSet<Integer>();
             prepares.put(key, setPrepares);
+            System.out.println("ADDED KEY: " + key);
         }
         
         setPrepares = prepares.get(key);
@@ -119,7 +132,7 @@ public class IBFT implements EventListener{
     
                 preparedRound = Integer.parseInt(params[2]);
                 preparedValue = params[3];
-                broadcast.update(new BEBSend("COMMIT\n" + params[1] + "\n" + params[2] + "\n" + params[3]));
+                broadcast.send(new BEBSend("COMMIT\n" + params[1] + "\n" + params[2] + "\n" + params[3]));
             }
         }
     }
@@ -144,8 +157,13 @@ public class IBFT implements EventListener{
     
             if( commitCount >= quorum) {
                 //timer stuff
+                System.out.println("-----------------------");
+                System.out.println("-----------------------");
                 System.out.println("DECIDE");
                 System.out.println("Value decided: " + params[3]);
+                System.out.println("-----------------------");
+                System.out.println("-----------------------");
+                _server.deliver(Integer.parseInt(params[1]), params[3]);
                 // DECIDE( params[1], params[3], commits.get(key));
             }
         }

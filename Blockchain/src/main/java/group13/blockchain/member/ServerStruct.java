@@ -11,4 +11,8 @@ public class ServerStruct {
     public String toString() {
         return "address:" + _address + " | port:" + _port;
     }
+
+    public int getPort() {
+        return Integer.parseInt(_port);
+    }
 }

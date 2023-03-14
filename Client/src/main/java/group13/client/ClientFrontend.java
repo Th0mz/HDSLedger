@@ -36,6 +36,7 @@ public class ClientFrontend implements EventListener {
         }
         BEBDeliver ev = (BEBDeliver) event;
         String payload = ev.getPayload();
+        System.out.println("CONSENSUS RESULT: ");
         System.out.println(payload);
     }
     

@@ -5,17 +5,26 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class Member {
+import group13.blockchain.consensus.IBFT;
+import group13.channel.bestEffortBroadcast.BEBroadcast;
+import group13.channel.bestEffortBroadcast.events.BEBSend;
+import group13.primitives.Address;
 
-    private static MemberInterface frontend;
+public class StartServer {
+
+    private static BMember server = new BMember();
+    
     public static void main(String[] args){
         BufferedReader reader;
         ArrayList<ServerStruct> listOfServers = new ArrayList<ServerStruct>();
         ArrayList<Integer> portsForBlockchain = new ArrayList<Integer>();
         Integer nrFaulty = -1;
         Integer nrServers = -1;
-        int port = -1;
+        Integer myIPort = -1;
+        Integer myIBFTPort = -1;
         ServerStruct myInfo = null;
+        IBFT consensus = null;
+        ArrayList<String> ledger = new ArrayList<String>();
 
         if (args.length != 2) {
             System.out.println("Intended format: mvn exec:java -Dexec.args=\"<config-file> <processId>\"");
@@ -37,8 +46,12 @@ public class Member {
                 String[] splited = line.split("\\s+");
 				listOfServers.add(new ServerStruct(splited[0], splited[1]));
                 portsForBlockchain.add(Integer.parseInt(splited[2]));
-                if(i == serverId)
+                if(i == serverId){
                     myInfo = new ServerStruct(splited[0], splited[1]);
+                    myIPort = Integer.parseInt(splited[2]);
+                    myIBFTPort = Integer.parseInt(splited[1]);
+                }
+                    
 			}
 
 			reader.close();
@@ -53,10 +66,8 @@ public class Member {
         }
         System.out.println(myInfo);
 
-        port = Integer.parseInt(args[1]);
-        for(int i = 0; i < portsForBlockchain.size(); i++) {
-            frontend = new MemberInterface(i, portsForBlockchain.get(i));
-        }
+        server.CreateBMember(serverId, listOfServers, portsForBlockchain, nrFaulty, nrServers, myIPort, 
+                            myIBFTPort, myInfo, consensus, isLeader);
         
     }
 }
