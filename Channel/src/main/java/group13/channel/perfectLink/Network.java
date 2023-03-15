@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 public class Network extends Thread {
 
-    private HashMap<Integer, PerfectLink> links;
+    protected HashMap<Integer, PerfectLink> links;
     private int inProcessId;
     private Address inAddress;
     private DatagramSocket inSocket;

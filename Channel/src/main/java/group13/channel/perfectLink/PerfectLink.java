@@ -3,6 +3,7 @@ package group13.channel.perfectLink;
 import group13.primitives.Address;
 import group13.primitives.EventListener;
 
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
@@ -17,7 +18,7 @@ public class PerfectLink {
     private int outProcessId;
     private Address outAddress;
 
-    private TreeMap<Integer, byte[]> sentMessages;
+    protected TreeMap<Integer, byte[]> sentMessages;
 
 
 
@@ -35,9 +36,13 @@ public class PerfectLink {
 
             @Override
             public void run() {
-                for (int sequenceNumber : sentMessages.keySet()) {
-                    byte[] payload = sentMessages.get(sequenceNumber);
-                    send(payload);
+                // DEBUG :
+                System.out.println("[pid = " + inPoressId + "] retransmitting : " + sentMessages);
+                for (Map.Entry<Integer, byte[]> entry : sentMessages.entrySet()) {
+                    int sequenceNumber = entry.getKey();
+                    byte[] payload = entry.getValue();
+
+                    retransmit(payload, sequenceNumber);
                 }
 
             }
@@ -56,6 +61,14 @@ public class PerfectLink {
         this.outLink.send(payload);
     }
 
+    public void send_ack(int sequenceNumber) {
+        this.outLink.send_ack(sequenceNumber);
+    }
+
+    public void retransmit (byte[] payload, int sequenceNumber) {
+        this.outLink.retransmit(payload, sequenceNumber);
+    }
+
     public void packet_send(int sequenceNumber, byte[] payload) {
         this.sentMessages.put(sequenceNumber, payload);
     }
@@ -65,11 +78,6 @@ public class PerfectLink {
             this.sentMessages.remove(sequenceNumber);
         }
     }
-
-    public void send_ack(int sequenceNumber) {
-        this.outLink.send_ack(sequenceNumber);
-    }
-
     public void subscribeDelivery(EventListener listener) {
         this.inLink.subscribeDelivery(listener);
     }

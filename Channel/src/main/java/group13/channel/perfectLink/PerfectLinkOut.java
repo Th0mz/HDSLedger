@@ -50,10 +50,13 @@ public class PerfectLinkOut {
         packetData[8] = (byte) this.inProcessId;
 
         System.arraycopy(data, 0, packetData, PerfectLink.HEADER_SIZE, data.length);
-        DatagramPacket packet = new DatagramPacket(packetData, packetData.length, this.outAddress.getInetAddress(), this.outAddress.getPort());
+        DatagramPacket packet = new DatagramPacket(packetData, packetData.length,
+                this.outAddress.getInetAddress(), this.outAddress.getPort());
 
         try {
             this.outSocket.send(packet);
+        } catch (SocketException e) {
+            // socket closed
         } catch (IOException e) {
             // TODO : must die? or just retry?
             System.out.println("Error : Unable to send packet (must die? or just retry?)");
@@ -62,6 +65,20 @@ public class PerfectLinkOut {
 
         this.link.packet_send(sequenceNumber, packetData);
         this.sequenceNumber += 1;
+    }
+    public void retransmit (byte[] payload, int sequenceNumber) {
+        DatagramPacket packet = new DatagramPacket(payload, payload.length,
+                this.outAddress.getInetAddress(), this.outAddress.getPort());
+
+        try {
+            this.outSocket.send(packet);
+        } catch (SocketException e) {
+            // socket closed
+        } catch (IOException e) {
+            // TODO : must die? or just retry?
+            System.out.println("Error : Unable to send packet (must die? or just retry?)");
+            throw new RuntimeException(e);
+        }
     }
 
     public void send_ack(int ackSequenceNumber) {
