@@ -16,13 +16,13 @@ public class StartServer {
     
     public static void main(String[] args){
         BufferedReader reader;
-        ArrayList<ServerStruct> listOfServers = new ArrayList<ServerStruct>();
+        ArrayList<Address> listOfServers = new ArrayList<Address>();
         ArrayList<Integer> portsForBlockchain = new ArrayList<Integer>();
         Integer nrFaulty = -1;
         Integer nrServers = -1;
         Integer myIPort = -1;
         Integer myIBFTPort = -1;
-        ServerStruct myInfo = null;
+        Address myInfo = null;
         IBFT consensus = null;
         ArrayList<String> ledger = new ArrayList<String>();
 
@@ -44,10 +44,10 @@ public class StartServer {
 			for (int i = 0; i < nrServers; i++) {
                 String line = reader.readLine();
                 String[] splited = line.split("\\s+");
-				listOfServers.add(new ServerStruct(splited[0], splited[1]));
+				listOfServers.add(new Address(splited[0], Integer.parseInt(splited[1])));
                 portsForBlockchain.add(Integer.parseInt(splited[2]));
                 if(i == serverId){
-                    myInfo = new ServerStruct(splited[0], splited[1]);
+                    myInfo = new Address(splited[0], Integer.parseInt(splited[1]));
                     myIPort = Integer.parseInt(splited[2]);
                     myIBFTPort = Integer.parseInt(splited[1]);
                 }
@@ -61,7 +61,7 @@ public class StartServer {
 
         System.out.println(nrFaulty);
         System.out.println(nrServers);
-        for(ServerStruct s : listOfServers) {
+        for(Address s : listOfServers) {
             System.out.println(s);
         }
         System.out.println(myInfo);

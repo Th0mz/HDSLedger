@@ -35,4 +35,9 @@ public class Address {
     public InetAddress getInetAddress() {
         return inetAddress;
     }
+
+    public String toString() {
+        return "address:" + this.hostname + " | port:" + this.port;
+    }
+
 }

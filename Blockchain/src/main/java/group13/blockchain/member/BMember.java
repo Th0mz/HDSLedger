@@ -1,6 +1,5 @@
 package group13.blockchain.member;
 
-import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -10,14 +9,14 @@ import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.primitives.Address;
 
 public class BMember {
-    private ArrayList<ServerStruct> _listOfServers = new ArrayList<ServerStruct>();
+    private ArrayList<Address> _listOfServers = new ArrayList<Address>();
     private ArrayList<Integer> _portsForBlockchain = new ArrayList<Integer>();
     private Integer _id;
     private Integer _nrFaulty;
     private Integer _nrServers;
     private Integer _myIPort;
     private Integer _myIBFTPort;
-    private ServerStruct _myInfo;
+    private Address _myInfo;
     private boolean _isLeader;
 
     private BMemberInterface frontend;
@@ -28,8 +27,8 @@ public class BMember {
 
     public BMember(){}
 
-    public void CreateBMember(Integer id, ArrayList<ServerStruct> list, ArrayList<Integer> portsBlockchain, Integer nrFaulty, Integer nrServers, 
-                    Integer myIPort, Integer myIBFTPort, ServerStruct myInfo, IBFT consensus, boolean isLeader) {
+    public void CreateBMember(Integer id, ArrayList<Address> list, ArrayList<Integer> portsBlockchain, Integer nrFaulty, Integer nrServers,
+                    Integer myIPort, Integer myIBFTPort, Address myInfo, IBFT consensus, boolean isLeader) {
         _id = id;
         _listOfServers = list;
         _portsForBlockchain = portsBlockchain;
