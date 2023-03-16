@@ -33,7 +33,8 @@ public class PerfectLinkIn {
             // deliver message
             synchronized (this) {
                 if (this.currentSequenceNumber == sequenceNumber) {
-                    String payload = new String(packetData, PerfectLink.HEADER_SIZE, packetLength - PerfectLink.HEADER_SIZE);
+                    byte[] payload = new byte[packetLength - PerfectLink.HEADER_SIZE];
+                    System.arraycopy(packetData, PerfectLink.HEADER_SIZE, payload, 0, packetLength - PerfectLink.HEADER_SIZE);
 
                     Pp2pDeliver deliver_event = new Pp2pDeliver(outProcessId, payload, packetPort);
                     plEventHandler.trigger(deliver_event);

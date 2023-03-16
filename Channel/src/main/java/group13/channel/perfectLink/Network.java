@@ -68,6 +68,7 @@ public class Network extends Thread {
                 };
 
                 thread.start();
+                this.threadPool.add(thread);
 
             } catch (SocketException e) {
                 // socket closed
@@ -98,9 +99,9 @@ public class Network extends Thread {
             link.close();
         }
 
-        this.interrupt();
         for (Thread thread : this.threadPool) {
             thread.interrupt();
         }
+        this.interrupt();
     }
 }

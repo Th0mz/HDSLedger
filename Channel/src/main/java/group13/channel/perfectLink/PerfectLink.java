@@ -18,6 +18,8 @@ public class PerfectLink {
     private int outProcessId;
     private Address outAddress;
 
+    private TimerTask retransmitTask;
+
     protected TreeMap<Integer, byte[]> sentMessages;
 
 
@@ -49,8 +51,8 @@ public class PerfectLink {
         }
 
         Timer time = new Timer();
-        RetransmitPacketsTask task = new RetransmitPacketsTask();
-        time.scheduleAtFixedRate(task, this.RETRANSMIT_DELTA, this.RETRANSMIT_DELTA);
+        this.retransmitTask = new RetransmitPacketsTask();
+        time.scheduleAtFixedRate(this.retransmitTask, this.RETRANSMIT_DELTA, this.RETRANSMIT_DELTA);
     }
 
     public void receive (byte[] packetData, int packetLength, int packetPort) {

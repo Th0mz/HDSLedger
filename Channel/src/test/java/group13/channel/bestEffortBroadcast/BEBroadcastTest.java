@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -79,7 +80,8 @@ class BEBroadcastTest {
             List<Event> received_events = above_module.get_events(BEBDeliver.EVENT_NAME);
             assertEquals(1, received_events.size());
             BEBDeliver deliver_event = (BEBDeliver) received_events.get(0);
-            assertTrue(deliver_event.getPayload().equals(MESSAGE));
+
+            assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
             // check sender id
             assertEquals(1, deliver_event.getProcessID());
         }
@@ -89,6 +91,4 @@ class BEBroadcastTest {
         process2.close();
         process3.close();
     }
-
-
 }
