@@ -10,12 +10,10 @@ import group13.primitives.Address;
 
 public class BMember {
     private ArrayList<Address> _listOfServers = new ArrayList<Address>();
-    private ArrayList<Integer> _portsForBlockchain = new ArrayList<Integer>();
     private Integer _id;
     private Integer _nrFaulty;
     private Integer _nrServers;
     private Integer _myIPort;
-    private Integer _myIBFTPort;
     private Address _myInfo;
     private boolean _isLeader;
 
@@ -27,23 +25,24 @@ public class BMember {
 
     public BMember(){}
 
-    public void CreateBMember(Integer id, ArrayList<Address> list, ArrayList<Integer> portsBlockchain, Integer nrFaulty, Integer nrServers,
-                    Integer myIPort, Integer myIBFTPort, Address myInfo, IBFT consensus, boolean isLeader) {
+    public void createBMember(Integer id, ArrayList<Address> list, Integer nrFaulty, Integer nrServers,
+                    Integer myIPort, Address myInfo, boolean isLeader) {
         _id = id;
         _listOfServers = list;
-        _portsForBlockchain = portsBlockchain;
         _nrFaulty = nrFaulty;
         _nrServers = nrServers;
         _myIPort = myIPort;
-        _myIBFTPort = myIBFTPort;
         _myInfo = myInfo;
         _isLeader = isLeader;
+        for (int i = 0; i < 1000; i++) {
+            _ledger.add("");
+        }
 
         BEBroadcast beb = new BEBroadcast(_id, new Address(_myInfo.getPort()));
         for (int index = 0; index < _listOfServers.size(); index++ ) {
             beb.addServer(new Address(_listOfServers.get(index).getPort()));
         }
-        _consensus = new IBFT(_id, _nrServers, _nrFaulty, 0, _myIBFTPort, beb, this);
+        _consensus = new IBFT(_id, _nrServers, _nrFaulty, 0, beb, this);
 
         frontend = new BMemberInterface(_id, _myIPort, this);
     }
@@ -70,6 +69,19 @@ public class BMember {
         _ledger.add(instance, message); //TODO: DONT ALLOW BYZANTINE TO FORCE A MSG
         ledgerLock.unlock();
         frontend.ackClient(instance, message, 9999, 9876);
+    }
+
+    public String getConsensusResult(int instance) {
+        return _ledger.get(instance);
+    }
+
+    public IBFT getConsensusObject(){
+        return _consensus;
+    }
+
+    public void printLedger(){
+        for(String i : _ledger)
+            System.out.println(i);
     }
 
 }
