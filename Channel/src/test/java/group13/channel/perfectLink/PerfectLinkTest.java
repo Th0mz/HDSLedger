@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,7 +64,7 @@ class PerfectLinkTest {
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertEquals(1, deliver_event.getProcessId());
 
 
@@ -86,7 +87,7 @@ class PerfectLinkTest {
         received_events = el_process1.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertEquals(2, deliver_event.getProcessId());
 
         // check process2 received events
@@ -160,7 +161,7 @@ class PerfectLinkTest {
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertEquals(1, deliver_event.getProcessId());
 
         // check retransmit queue sizes
@@ -222,7 +223,7 @@ class PerfectLinkTest {
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertEquals(1, deliver_event.getProcessId());
 
 
@@ -279,7 +280,7 @@ class PerfectLinkTest {
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertEquals(1, deliver_event.getProcessId());
 
         // check retransmit queue sizes
@@ -303,7 +304,7 @@ class PerfectLinkTest {
         received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertEquals(1, deliver_event.getProcessId());
 
         // check retransmit queue sizes
@@ -329,7 +330,7 @@ class PerfectLinkTest {
         received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(deliver_event.getPayload().equals(MESSAGE));
+        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertEquals(1, deliver_event.getProcessId());
 
         // check retransmit queue sizes

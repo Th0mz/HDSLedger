@@ -59,7 +59,8 @@ public class IBFT implements EventListener{
         if ( leader == pId ) {
             //broadcast
             ///Message -> PRE_PREPARE, instance, round, input
-            broadcast.send(new BEBSend("PRE_PREPARE\n" + instance + "\n" + round + "\n" + input));
+            String message = "PRE_PREPARE\n" + instance + "\n" + round + "\n" + input;
+            broadcast.send(new BEBSend(message.getBytes()));
             //add signature ???
         }
 
@@ -104,7 +105,7 @@ public class IBFT implements EventListener{
         System.out.println("-----------------------");
         System.out.println("-----------------------");
         String payload = "PREPARE\n" + params[1] + "\n" + params[2] + "\n" + params[3];
-        BEBSend send_event = new BEBSend(payload);
+        BEBSend send_event = new BEBSend(payload.getBytes());
 
         this.broadcast.send(send_event);
     }
@@ -134,7 +135,8 @@ public class IBFT implements EventListener{
     
                 preparedRound = Integer.parseInt(params[2]);
                 preparedValue = params[3];
-                broadcast.send(new BEBSend("COMMIT\n" + params[1] + "\n" + params[2] + "\n" + params[3]));
+                String message = "COMMIT\n" + params[1] + "\n" + params[2] + "\n" + params[3];
+                broadcast.send(new BEBSend(message.getBytes()));
                 System.out.println("SENT BROADCAST OF COMMIT");
             }
         }

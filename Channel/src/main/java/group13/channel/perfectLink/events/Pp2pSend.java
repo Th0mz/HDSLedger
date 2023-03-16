@@ -4,14 +4,14 @@ import group13.primitives.Event;
 
 public class Pp2pSend extends Event {
     public static final String EVENT_NAME = "pp2pSend";
-    private String payload;
+    private byte[] payload;
 
-    public Pp2pSend(String payload) {
+    public Pp2pSend(byte[] payload) {
         super(EVENT_NAME);
         this.payload = payload;
     }
 
-    public String getPayload() {
+    public byte[] getPayload() {
         return payload;
     }
 }

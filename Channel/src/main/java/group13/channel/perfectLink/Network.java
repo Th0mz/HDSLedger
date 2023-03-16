@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +68,7 @@ public class Network extends Thread {
                 };
 
                 thread.start();
+                this.threadPool.add(thread);
 
             } catch (SocketException e) {
                 // socket closed
@@ -96,9 +99,9 @@ public class Network extends Thread {
             link.close();
         }
 
-        this.interrupt();
         for (Thread thread : this.threadPool) {
             thread.interrupt();
         }
+        this.interrupt();
     }
 }
