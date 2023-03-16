@@ -60,7 +60,7 @@ class BEBroadcastTest {
         sender.subscribeDelivery(am_process3);
 
         // broadcast(message);
-        BEBSend send_event = new BEBSend(MESSAGE);
+        BEBSend send_event = new BEBSend(MESSAGE.getBytes());
         sender.send(send_event);
 
         // wait for messages to be received

@@ -22,7 +22,7 @@ public class ClientFrontend implements EventListener {
     }
 
     public void sendCommand(String message) {
-        BEBSend send_event = new BEBSend(message);
+        BEBSend send_event = new BEBSend(message.getBytes());
         //amEventHandler.trigger(send_event);
         beb.send(send_event);
     }

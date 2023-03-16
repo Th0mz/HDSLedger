@@ -4,14 +4,14 @@ import group13.primitives.Event;
 
 public class BEBSend extends Event {
     public static final String EVENT_NAME = "bebSend";
-    private String payload;
+    private byte[] payload;
 
-    public BEBSend(String payload) {
+    public BEBSend(byte[] payload) {
         super(EVENT_NAME);
         this.payload = payload;
     }
 
-    public String getPayload() {
+    public byte[] getPayload() {
         return payload;
     }
 }

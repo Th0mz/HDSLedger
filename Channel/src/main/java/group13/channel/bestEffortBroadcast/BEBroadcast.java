@@ -58,7 +58,7 @@ public class BEBroadcast implements EventListener {
     }
 
     public void send (BEBSend send_event) {
-        byte[] payload = send_event.getPayload().getBytes();
+        byte[] payload = send_event.getPayload();
 
         for (PerfectLink link : links) {
             link.send(payload);
@@ -68,7 +68,7 @@ public class BEBroadcast implements EventListener {
     /*
     public void unicast(BEBSend send_event, int outProcessId, Address destination) {
         byte[] payload = send_event.getPayload().getBytes();
-        HashMap<Integer, PerfectLinkOut> links = this.link.getOutLinks();
+        HashMap<Integer, PerfectLinkOut> links = this.links.getOutLinks();
         System.out.println("Unicast");
         PerfectLinkOut out_link;
         
@@ -80,6 +80,7 @@ public class BEBroadcast implements EventListener {
             
         out_link.send(payload);
     }
+
      */
 
     public Address getInAddress() {

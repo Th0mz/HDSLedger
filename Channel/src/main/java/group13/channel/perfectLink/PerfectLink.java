@@ -83,6 +83,7 @@ public class PerfectLink {
     public void unsubscribeDelivery(EventListener listener) {
         this.inLink.unsubscribeDelivery(listener);
     }
+
     public void close () {
         this.outLink.close();
     }

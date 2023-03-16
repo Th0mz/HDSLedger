@@ -42,7 +42,7 @@ public class BMemberInterface implements EventListener {
 
     public void ackClient(Integer instance, String msg, int pid, int port) { 
         String response = instance + msg;
-        BEBSend send_event = new BEBSend(response);
+        BEBSend send_event = new BEBSend(response.getBytes());
         //TODO:
         // beb.unicast(send_event, 9999, new Address(port));
     }
