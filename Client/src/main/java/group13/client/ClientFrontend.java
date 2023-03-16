@@ -35,9 +35,9 @@ public class ClientFrontend implements EventListener {
             System.out.println("Should only receive deliver events (??)");
         }
         BEBDeliver ev = (BEBDeliver) event;
-        String payload = ev.getPayload();
+        byte[] payload = ev.getPayload();
         System.out.println("CONSENSUS RESULT: ");
-        System.out.println(payload);
+        System.out.println(new String(payload));
     }
     
 }

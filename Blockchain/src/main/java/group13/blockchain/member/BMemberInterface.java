@@ -35,9 +35,10 @@ public class BMemberInterface implements EventListener {
             System.out.println("Should only receive deliver events (??)");
         }
         BEBDeliver ev = (BEBDeliver) event;
-        String payload = ev.getPayload();
-        System.out.println(payload);
-        _server.tryConsensus(payload);
+        byte[] payload = ev.getPayload();
+        String payloadString = new String(payload);
+        System.out.println(payloadString);
+        _server.tryConsensus(payloadString);
     }
 
     public void ackClient(Integer instance, String msg, int pid, int port) { 
