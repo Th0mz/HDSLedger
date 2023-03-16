@@ -33,7 +33,7 @@ public class IBFT implements EventListener{
 
     private int leader;
 
-    public IBFT(int id, int n, int f, int leader, int port, BEBroadcast beb, BMember server) {
+    public IBFT(int id, int n, int f, int leader, BEBroadcast beb, BMember server) {
         pId = id;
         nrProcesses = n;
         byzantineP = f;
@@ -95,7 +95,7 @@ public class IBFT implements EventListener{
         }
     }
 
-    private void prePrepare(String[] params, int src){
+    public void prePrepare(String[] params, int src){
         //timer -- maybe not for now
         System.out.println("-----------------------");
         System.out.println("-----------------------");
@@ -109,7 +109,7 @@ public class IBFT implements EventListener{
         this.broadcast.send(send_event);
     }
 
-    private void prepare(String[] params, int src) {
+    public void prepare(String[] params, int src) {
 
         String key = params[1]+params[2]+params[3];
         Set<Integer> setPrepares;
@@ -140,7 +140,7 @@ public class IBFT implements EventListener{
         }
     }
 
-    private void commit(String[] params, int src) {
+    public void commit(String[] params, int src) {
 
         Set<Integer> setCommits;
         String key = params[1]+params[2]+params[3];

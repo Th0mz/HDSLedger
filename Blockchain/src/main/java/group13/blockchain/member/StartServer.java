@@ -66,8 +66,8 @@ public class StartServer {
         }
         System.out.println(myInfo);
 
-        server.CreateBMember(serverId, listOfServers, portsForBlockchain, nrFaulty, nrServers, myIPort, 
-                            myIBFTPort, myInfo, consensus, isLeader);
+        server.createBMember(serverId, listOfServers, nrFaulty, nrServers, myIPort, 
+                            myInfo, isLeader);
         
     }
 }
