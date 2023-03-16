@@ -35,6 +35,9 @@ public class BMemberByzantine extends BMember {
         _myIPort = myIPort;
         _myInfo = myInfo;
         _isLeader = isLeader;
+        for (int i = 0; i < 1000; i++) {
+            _ledger.add("");
+        }
 
         BEBroadcast beb = new BEBroadcast(_id, new Address(_myInfo.getPort()));
         for (int index = 0; index < _listOfServers.size(); index++ ) {

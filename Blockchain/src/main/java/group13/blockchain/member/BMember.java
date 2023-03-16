@@ -34,6 +34,9 @@ public class BMember {
         _myIPort = myIPort;
         _myInfo = myInfo;
         _isLeader = isLeader;
+        for (int i = 0; i < 1000; i++) {
+            _ledger.add("");
+        }
 
         BEBroadcast beb = new BEBroadcast(_id, new Address(_myInfo.getPort()));
         for (int index = 0; index < _listOfServers.size(); index++ ) {
@@ -74,6 +77,11 @@ public class BMember {
 
     public IBFT getConsensusObject(){
         return _consensus;
+    }
+
+    public void printLedger(){
+        for(String i : _ledger)
+            System.out.println(i);
     }
 
 }

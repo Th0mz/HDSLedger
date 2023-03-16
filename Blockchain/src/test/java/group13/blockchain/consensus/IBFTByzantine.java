@@ -61,7 +61,36 @@ public class IBFTByzantine extends IBFT {
                 //add signature ???
             }
         }
-        
+    }
+
+    @Override
+    public void prePrepare(String[] params, int src) {
+        if(!isPrePrepareByzantine)
+            super.prePrepare(params, src);
+        else {
+            String[] wrong = {params[0], params[1], params[2], "WRONG MESSAGE"};
+            super.prePrepare(wrong, src);
+        }
+    }
+
+    @Override
+    public void prepare(String[] params, int src) {
+        if(!isPrepareByzantine)
+            super.prepare(params, src);
+        else {
+            preparedValue = params[3];
+            broadcast.send(new BEBSend("COMMIT\n" + params[1] + "\n" + params[2] + "\n" + "WRONG MESSAGE"));
+            System.out.println("SENT BROADCAST OF WRONG COMMIT");
+        }
+    }
+
+    @Override
+    public void commit(String[] params, int src) {
+        if(!isCommitByzantine)
+            super.commit(params, src);
+        else {
+            _server.deliver(Integer.parseInt(params[1]), "WRONG_MSG");
+        }
     }
 
 
