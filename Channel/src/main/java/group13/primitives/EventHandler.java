@@ -34,7 +34,14 @@ public class EventHandler {
         List<EventListener> listeners = this.listeners.get(eventName);
 
         for (EventListener listener : listeners) {
-            listener.update(event);
+            Thread thread = new Thread() {
+                @Override
+                public void run () {
+                    listener.update(event);
+                }
+            };
+
+            thread.start();
         }
     }
 }

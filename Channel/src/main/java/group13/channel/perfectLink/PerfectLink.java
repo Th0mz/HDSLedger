@@ -74,9 +74,7 @@ public class PerfectLink {
     }
 
     public void received_ack(int sequenceNumber) {
-        if (this.sentMessages.containsKey(sequenceNumber)) {
-            this.sentMessages.remove(sequenceNumber);
-        }
+        this.sentMessages.remove(sequenceNumber);
     }
     public void subscribeDelivery(EventListener listener) {
         this.inLink.subscribeDelivery(listener);

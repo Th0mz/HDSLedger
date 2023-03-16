@@ -24,31 +24,33 @@ public class PerfectLinkIn {
         int outProcessId = this.getProcessId(packetData);
 
 
-        if (messageType == 0 ) {
+        if ( messageType == 0 ) {
             // DEBUG :
             System.out.println("message received [pid = " + this.inProcessId + "] : ");
             System.out.println(" - process id : " + this.inProcessId);
             System.out.println(" - sequence number : " + sequenceNumber);
 
             // deliver message
-            if (this.currentSequenceNumber == sequenceNumber) {
-                String payload = new String(packetData, PerfectLink.HEADER_SIZE, packetLength - PerfectLink.HEADER_SIZE);
+            synchronized (this) {
+                if (this.currentSequenceNumber == sequenceNumber) {
+                    String payload = new String(packetData, PerfectLink.HEADER_SIZE, packetLength - PerfectLink.HEADER_SIZE);
 
-                Pp2pDeliver deliver_event = new Pp2pDeliver(outProcessId, payload, packetPort);
-                plEventHandler.trigger(deliver_event);
+                    Pp2pDeliver deliver_event = new Pp2pDeliver(outProcessId, payload, packetPort);
+                    plEventHandler.trigger(deliver_event);
 
-                // increase sequence number
-                this.currentSequenceNumber += 1;
+                    // increase sequence number
+                    this.currentSequenceNumber += 1;
+                }
+
+                if (this.currentSequenceNumber >= sequenceNumber) {
+                    // send ack
+                    this.link.send_ack(sequenceNumber);
+                }
             }
 
-            if (this.currentSequenceNumber >= sequenceNumber) {
-                // send ack
-                this.link.send_ack(sequenceNumber);
-                System.out.println("Ack is sent");
-            }
         } else if (messageType == 1) {
-            // must notify the respective perfect link out that the message was
-            // already received
+            // must notify the respective perfect link out that the
+            // message was already received
             // DEBUG :
             System.out.println("ACK received [pid = " + this.inProcessId + "] :" );
             System.out.println(" - process id : " + this.inProcessId);

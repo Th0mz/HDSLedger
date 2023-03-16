@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class Network extends Thread {
 
@@ -14,10 +16,14 @@ public class Network extends Thread {
     private Address inAddress;
     private DatagramSocket inSocket;
 
+    private List<Thread> threadPool;
+
+
     public Network (int inProcessId, Address inAddress) {
         this.inProcessId = inProcessId;
         this.inAddress = inAddress;
         this.links = new HashMap<>();
+        this.threadPool = new ArrayList<>();
 
         try {
             inSocket = new DatagramSocket(inAddress.getPort(), inAddress.getInetAddress());
@@ -51,8 +57,15 @@ public class Network extends Thread {
                     System.out.println("Error : Received message from unknown process id");
                 }
 
-                // deliver contents to respective PerfectLinkIn
-                this.links.get(outProcessId).receive(packetData, packet.getLength(), packet.getPort());
+                Thread thread = new Thread() {
+                    @Override
+                    public void run() {
+                        // deliver contents to respective PerfectLinkIn
+                        links.get(outProcessId).receive(packetData, packet.getLength(), packet.getPort());
+                    }
+                };
+
+                thread.start();
 
             } catch (SocketException e) {
                 // socket closed
@@ -63,7 +76,7 @@ public class Network extends Thread {
         }
     }
 
-    public PerfectLink createLink (int outProcessId, Address outAddress) {
+    synchronized public PerfectLink createLink (int outProcessId, Address outAddress) {
         PerfectLink link = new PerfectLink(this.inProcessId, this.inAddress, outProcessId, outAddress);
         this.links.put(outProcessId, link);
 
@@ -84,5 +97,8 @@ public class Network extends Thread {
         }
 
         this.interrupt();
+        for (Thread thread : this.threadPool) {
+            thread.interrupt();
+        }
     }
 }
