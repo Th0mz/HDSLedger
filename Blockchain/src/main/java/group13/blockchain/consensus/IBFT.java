@@ -60,7 +60,7 @@ public class IBFT implements EventListener{
 
     private int leader;
 
-    public IBFT(int id, int n, int f, int leader, int port, BEBroadcast beb, BMember server) {
+    public IBFT(int id, int n, int f, int leader, BEBroadcast beb, BMember server) {
         pId = id;
         nrProcesses = n;
         byzantineP = f;
