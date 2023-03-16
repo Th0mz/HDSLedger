@@ -41,7 +41,7 @@ public class BMember {
 
         BEBroadcast beb = new BEBroadcast(_id, new Address(_myInfo.getPort()));
         for (int index = 0; index < _listOfServers.size(); index++ ) {
-            beb.addServer(index, new Address(_listOfServers.get(index).getPort()));
+            beb.addServer(new Address(_listOfServers.get(index).getPort()));
         }
         _consensus = new IBFT(_id, _nrServers, _nrFaulty, 0, _myIBFTPort, beb, this);
 

@@ -21,7 +21,6 @@ public class Client {
         BufferedReader reader;
         ArrayList<Address> listOfServers = new ArrayList<Address>();
         ArrayList<Integer> portsForBlockchain = new ArrayList<Integer>();
-        DatagramSocket socket = null;
         ClientFrontend frontend = null;
         Scanner scanner = new Scanner(System.in);
 
@@ -34,7 +33,6 @@ public class Client {
 			reader = new BufferedReader(new FileReader(args[0]));
 			nrFaulty = Integer.parseInt(reader.readLine());
             nrServers = Integer.parseInt(reader.readLine());
-            socket = new DatagramSocket();
 
             ArrayList<Integer> pids = new ArrayList<Integer>();
 			for (int i = 0; i < nrServers; i++) {
@@ -69,19 +67,7 @@ public class Client {
                 command = scanner.nextLine();
                 int i = 0;
                 frontend.sendCommand(command);
-                /* for(Integer p : portsForBlockchain) {
-                    try {
-                        DatagramPacket pcktToSend = new DatagramPacket(command.getBytes(), command.getBytes().length, 
-                                                                InetAddress.getByName("localhost"), p);
-                        socket.send(pcktToSend);
-                        
-                    } catch(IOException e) {
-                        e.printStackTrace();
-                    }
-                                    
-                } */
             }
-        
         }
     }
 }

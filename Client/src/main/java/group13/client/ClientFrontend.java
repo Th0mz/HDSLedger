@@ -16,7 +16,7 @@ public class ClientFrontend implements EventListener {
         System.out.println("Client on port " + port.toString());
         beb = new BEBroadcast(pid, new Address(port));
         for(int i = 0; i < addresses.size(); i++)
-            beb.addServer(pids.get(i), addresses.get(i));
+            beb.addServer(addresses.get(i));
         beb.subscribeDelivery(this);
         //amEventHandler.subscribe(BEBSend.EVENT_NAME, sender);
     }
@@ -35,9 +35,9 @@ public class ClientFrontend implements EventListener {
             System.out.println("Should only receive deliver events (??)");
         }
         BEBDeliver ev = (BEBDeliver) event;
-        String payload = ev.getPayload();
+        byte[] payload = ev.getPayload();
         System.out.println("CONSENSUS RESULT: ");
-        System.out.println(payload);
+        System.out.println(payload.toString());
     }
     
 }

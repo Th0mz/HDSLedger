@@ -1,34 +1,33 @@
 package group13.channel.perfectLink;
 
 import group13.channel.perfectLink.events.Pp2pDeliver;
+import group13.primitives.Address;
 import group13.primitives.EventHandler;
 import group13.primitives.EventListener;
 
+import java.util.Base64;
+
 public class PerfectLinkIn {
 
-    private int inProcessId;
+    private Address inAddress;
     private int currentSequenceNumber;
     private PerfectLink link;
     private EventHandler plEventHandler;
 
-    public PerfectLinkIn(PerfectLink link, int inProcessId) {
-        this.inProcessId = inProcessId;
+    public PerfectLinkIn(PerfectLink link, Address inAddress) {
         this.currentSequenceNumber = 0;
         this.link = link;
+        this.inAddress = inAddress;
         this.plEventHandler = new EventHandler();
     }
 
     public void receive (byte[] packetData, int packetLength, int packetPort) {
         int messageType = this.getMessageType(packetData);
         int sequenceNumber = this.getSeqNum(packetData);
-        int outProcessId = this.getProcessId(packetData);
+        String outProcessId = this.getProcessId(packetData);
 
 
         if ( messageType == 0 ) {
-            // DEBUG :
-            System.out.println("message received [pid = " + this.inProcessId + "] : ");
-            System.out.println(" - process id : " + this.inProcessId);
-            System.out.println(" - sequence number : " + sequenceNumber);
 
             // deliver message
             synchronized (this) {
@@ -52,11 +51,6 @@ public class PerfectLinkIn {
         } else if (messageType == 1) {
             // must notify the respective perfect link out that the
             // message was already received
-            // DEBUG :
-            System.out.println("ACK received [pid = " + this.inProcessId + "] :" );
-            System.out.println(" - process id : " + this.inProcessId);
-            System.out.println(" - sequence number : " + sequenceNumber);
-
             this.link.received_ack(sequenceNumber);
         }
     }
@@ -74,8 +68,15 @@ public class PerfectLinkIn {
         return (ackData[1] << 24) | (ackData[2] << 16) | (ackData[3] << 8) | ackData[4];
     }
 
-    public int getProcessId(byte[] packetData) {
-        return (packetData[5] << 24) | (packetData[6] << 16) | (packetData[7] << 8) | packetData[8];
+    public String getProcessId(byte[] packetData) {
+        int processIdStart = PerfectLink.MESSAGE_TYPE_SIZE + PerfectLink.SEQUENCE_NUMBER_SIZE;
+        byte[] processId = new byte[32];
+
+        for (int i = processIdStart; i < processIdStart + PerfectLink.PROCESS_ID_SIZE; i++) {
+            processId[i - processIdStart] = packetData[i];
+        }
+
+        return Base64.getEncoder().encodeToString(processId);
     }
 
     public int getMessageType(byte[] data) {

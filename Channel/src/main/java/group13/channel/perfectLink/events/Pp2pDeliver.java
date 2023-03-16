@@ -5,14 +5,14 @@ import group13.primitives.Event;
 public class Pp2pDeliver extends Event {
 
     public static final String EVENT_NAME = "pp2pDeliver";
-    private int process_id;
+    private String processId;
     private byte[] payload;
     private int port;
 
 
-    public Pp2pDeliver(int process_id, byte[] payload, int port) {
+    public Pp2pDeliver(String processId, byte[] payload, int port) {
         super(EVENT_NAME);
-        this.process_id = process_id;
+        this.processId = processId;
         this.payload = payload;
         this.port = port;
     }
@@ -21,8 +21,8 @@ public class Pp2pDeliver extends Event {
         return port;
     }
 
-    public int getProcessId() {
-        return process_id;
+    public String getProcessId() {
+        return processId;
     }
 
     public byte[] getPayload() {

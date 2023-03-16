@@ -31,8 +31,10 @@ class BEBroadcastTest {
     @DisplayName("Broadcast message and check reception")
     public void BroadcastMessageTest () {
 
+        Address sender_addr = new Address(5000);
+
         // broadcast module instances
-        BEBroadcast sender   = new BEBroadcast(1, new Address(5000));
+        BEBroadcast sender   = new BEBroadcast(1, sender_addr);
         BEBroadcast process1 = new BEBroadcast(2, new Address(5001));
         BEBroadcast process2 = new BEBroadcast(3, new Address(5002));
         BEBroadcast process3 = new BEBroadcast(4, new Address(5003));
@@ -40,10 +42,10 @@ class BEBroadcastTest {
         List<BEBroadcast> broadcast_modules = new ArrayList<>(List.of(sender, process1, process2, process3));
 
         for (BEBroadcast sender_module : broadcast_modules) {
-            sender_module.addServer(1, sender.getInAddress());
-            sender_module.addServer(2, process1.getInAddress());
-            sender_module.addServer(3, process2.getInAddress());
-            sender_module.addServer(4, process3.getInAddress());
+            sender_module.addServer(sender.getInAddress());
+            sender_module.addServer(process1.getInAddress());
+            sender_module.addServer(process2.getInAddress());
+            sender_module.addServer(process3.getInAddress());
         }
 
         // above module (am) specifications of the sender process
@@ -81,9 +83,9 @@ class BEBroadcastTest {
             assertEquals(1, received_events.size());
             BEBDeliver deliver_event = (BEBDeliver) received_events.get(0);
 
-            assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
             // check sender id
-            assertEquals(1, deliver_event.getProcessID());
+            assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+            assertTrue(sender_addr.getProcessId().equals(deliver_event.getProcessId()));
         }
 
         sender.close();

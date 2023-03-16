@@ -6,19 +6,22 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.Base64;
 import java.util.Objects;
 
 public class PerfectLinkOut {
 
     private int sequenceNumber;
-    private int inProcessId;
+
+    private Address inAddress;
     private Address outAddress;
+
     private PerfectLink link;
     private DatagramSocket outSocket;
 
-    public PerfectLinkOut(PerfectLink link, int inProcessId, Address outAddress) {
+    public PerfectLinkOut(PerfectLink link, Address inAddress, Address outAddress) {
         this.sequenceNumber = 0;
-        this.inProcessId = inProcessId;
+        this.inAddress = inAddress;
         this.outAddress = outAddress;
         this.link = link;
 
@@ -44,10 +47,11 @@ public class PerfectLinkOut {
         packetData[4] = (byte) this.sequenceNumber;
 
         // process id
-        packetData[5] = (byte) (this.inProcessId >> 24);
-        packetData[6] = (byte) (this.inProcessId >> 16);
-        packetData[7] = (byte) (this.inProcessId >> 8);
-        packetData[8] = (byte) this.inProcessId;
+        byte[] inProcessId = Base64.getDecoder().decode(this.inAddress.getProcessId());
+        System.arraycopy(inProcessId, 0, packetData,
+                PerfectLink.MESSAGE_TYPE_SIZE + PerfectLink.SEQUENCE_NUMBER_SIZE,
+                inProcessId.length);
+
 
         System.arraycopy(data, 0, packetData, PerfectLink.HEADER_SIZE, data.length);
         DatagramPacket packet = new DatagramPacket(packetData, packetData.length,
@@ -96,10 +100,10 @@ public class PerfectLinkOut {
         packetData[4] = (byte) ackSequenceNumber;
 
         // process id
-        packetData[5] = (byte) (this.inProcessId >> 24);
-        packetData[6] = (byte) (this.inProcessId >> 16);
-        packetData[7] = (byte) (this.inProcessId >> 8);
-        packetData[8] = (byte) this.inProcessId;
+        byte[] inProcessId = Base64.getDecoder().decode(this.inAddress.getProcessId());
+        System.arraycopy(inProcessId, 0, packetData,
+                PerfectLink.MESSAGE_TYPE_SIZE + PerfectLink.SEQUENCE_NUMBER_SIZE,
+                inProcessId.length);
 
         DatagramPacket packet = new DatagramPacket(packetData, packetData.length, this.outAddress.getInetAddress(), this.outAddress.getPort());
 

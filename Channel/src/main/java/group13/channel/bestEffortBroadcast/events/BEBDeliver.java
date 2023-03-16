@@ -4,19 +4,19 @@ import group13.primitives.Event;
 
 public class BEBDeliver extends Event {
     public static final String EVENT_NAME = "bebDeliver";
-    private int process_id;
+    private String processId;
     private byte[] payload;
     private int port;
 
-    public BEBDeliver (int process_id, byte[] payload, int port) {
+    public BEBDeliver (String processId, byte[] payload, int port) {
         super(EVENT_NAME);
-        this.process_id = process_id;
+        this.processId = processId;
         this.payload = payload;
         this.port = port;
     }
 
-    public int getProcessID() {
-        return this.process_id;
+    public String getProcessId() {
+        return this.processId;
     }
 
     public int getPort() {

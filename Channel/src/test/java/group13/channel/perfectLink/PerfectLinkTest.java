@@ -28,11 +28,11 @@ class PerfectLinkTest {
         Address p1_addr = new Address("localhost", 5000);
         Address p2_addr = new Address("localhost", 5001);
 
-        Network p1_network = new Network(1, p1_addr);
-        Network p2_network = new Network(2, p2_addr);
+        Network p1_network = new Network(p1_addr);
+        Network p2_network = new Network(p2_addr);
 
-        PerfectLink p1_to_p2 = p1_network.createLink(2, p2_addr);
-        PerfectLink p2_to_p1 = p2_network.createLink(1, p1_addr);
+        PerfectLink p1_to_p2 = p1_network.createLink(p2_addr);
+        PerfectLink p2_to_p1 = p2_network.createLink(p1_addr);
 
         // above module process 1
         AboveModule am_process1 = new AboveModule();
@@ -65,7 +65,7 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertEquals(1, deliver_event.getProcessId());
+        assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
 
 
          el_process1.clean_events();
@@ -88,7 +88,7 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertEquals(2, deliver_event.getProcessId());
+        assertTrue(p2_addr.getProcessId().equals(deliver_event.getProcessId()));
 
         // check process2 received events
         assertEquals(0, el_process2.get_all_events_num());
@@ -103,11 +103,11 @@ class PerfectLinkTest {
         Address p1_addr = new Address("localhost", 5000);
         Address p2_addr = new Address("localhost", 5001);
 
-        NetworkTester p1_network = new NetworkTester(1, p1_addr);
-        NetworkTester p2_network = new NetworkTester(2, p2_addr);
+        NetworkTester p1_network = new NetworkTester(p1_addr);
+        NetworkTester p2_network = new NetworkTester(p2_addr);
 
-        PerfectLinkTester p1_to_p2 = p1_network.createTestLink(2, p2_addr, false);
-        PerfectLinkTester p2_to_p1 = p2_network.createTestLink(1, p1_addr, false);
+        PerfectLinkTester p1_to_p2 = p1_network.createTestLink(p2_addr, false);
+        PerfectLinkTester p2_to_p1 = p2_network.createTestLink(p1_addr, false);
 
         // above module process 1
         AboveModule am_process1 = new AboveModule();
@@ -147,7 +147,7 @@ class PerfectLinkTest {
 
         // wait for process 1 to retransmit
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA);
+            Thread.sleep(PerfectLink.RETRANSMIT_DELTA * 2);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -162,7 +162,8 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertEquals(1, deliver_event.getProcessId());
+        assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
+
 
         // check retransmit queue sizes
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());
@@ -178,8 +179,8 @@ class PerfectLinkTest {
         Address p1_addr = new Address("localhost", 5000);
         Address p2_addr = new Address("localhost", 5001);
 
-        Network p1_network = new Network(1, p1_addr);
-        PerfectLink p1_to_p2 = p1_network.createLink(2, p2_addr);
+        Network p1_network = new Network(p1_addr);
+        PerfectLink p1_to_p2 = p1_network.createLink(p2_addr);
 
         // above module process 1
         AboveModule am_process1 = new AboveModule();
@@ -196,8 +197,8 @@ class PerfectLinkTest {
         }
 
         // +- 300ms (RETRANSMIT TIME) to create the other endpoint
-        Network p2_network = new Network(2, p2_addr);
-        PerfectLink p2_to_p1 = p2_network.createLink(1, p1_addr);
+        Network p2_network = new Network(p2_addr);
+        PerfectLink p2_to_p1 = p2_network.createLink(p1_addr);
 
         // above module process 2
         AboveModule am_process2 = new AboveModule();
@@ -224,8 +225,7 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertEquals(1, deliver_event.getProcessId());
-
+        assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
 
         p1_network.close();
         p2_network.close();
@@ -238,11 +238,11 @@ class PerfectLinkTest {
         Address p1_addr = new Address("localhost", 5000);
         Address p2_addr = new Address("localhost", 5001);
 
-        NetworkTester p1_network = new NetworkTester(1, p1_addr);
-        NetworkTester p2_network = new NetworkTester(2, p2_addr);
+        NetworkTester p1_network = new NetworkTester(p1_addr);
+        NetworkTester p2_network = new NetworkTester(p2_addr);
 
-        PerfectLinkTester p1_to_p2 = p1_network.createTestLink(2, p2_addr, false);
-        PerfectLinkTester p2_to_p1 = p2_network.createTestLink(1, p1_addr, false);
+        PerfectLinkTester p1_to_p2 = p1_network.createTestLink(p2_addr, false);
+        PerfectLinkTester p2_to_p1 = p2_network.createTestLink(p1_addr, false);
 
         // above module process 1
         AboveModule am_process1 = new AboveModule();
@@ -281,7 +281,8 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertEquals(1, deliver_event.getProcessId());
+        assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
+
 
         // check retransmit queue sizes
         assertEquals(1, p1_to_p2.getRetransmitQueueSize());
@@ -305,7 +306,8 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertEquals(1, deliver_event.getProcessId());
+        assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
+
 
         // check retransmit queue sizes
         assertEquals(1, p1_to_p2.getRetransmitQueueSize());
@@ -331,7 +333,8 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertEquals(1, deliver_event.getProcessId());
+        assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
+
 
         // check retransmit queue sizes
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());

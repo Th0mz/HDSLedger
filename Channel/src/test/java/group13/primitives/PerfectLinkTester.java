@@ -7,8 +7,8 @@ public class PerfectLinkTester extends PerfectLink {
     // network problems flags
     private boolean inProblems;
 
-    public PerfectLinkTester(int inProcessId, Address inAddress, int outProcessId, Address outAddress, boolean inProblems) {
-        super(inProcessId, inAddress, outProcessId, outAddress);
+    public PerfectLinkTester(Address inAddress, Address outAddress, boolean inProblems) {
+        super(inAddress, outAddress);
         this.inProblems = inProblems;
     }
 

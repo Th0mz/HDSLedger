@@ -8,21 +8,20 @@ import java.net.SocketException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 
 public class Network extends Thread {
 
-    protected HashMap<Integer, PerfectLink> links;
-    private int inProcessId;
+    protected HashMap<String, PerfectLink> links;
     private Address inAddress;
     private DatagramSocket inSocket;
 
     private List<Thread> threadPool;
 
 
-    public Network (int inProcessId, Address inAddress) {
-        this.inProcessId = inProcessId;
+    public Network (Address inAddress) {
         this.inAddress = inAddress;
         this.links = new HashMap<>();
         this.threadPool = new ArrayList<>();
@@ -50,12 +49,11 @@ public class Network extends Thread {
             try {
                 inSocket.receive(packet);
                 byte[] packetData = packet.getData();
-                int outProcessId = this.getProcessId(packetData);
+                String outProcessId = this.getProcessId(packetData);
 
                 if (! this.links.containsKey(outProcessId)) {
                     //TODO: MARTELADA ADD SENDER SO IT CAN RECEIVE MSG FROM CLIENT(PID UNKNOWN)
                     // processId, new Address(9876)
-                    this.createLink(100, new Address(9999));
                     System.out.println("Error : Received message from unknown process id");
                 }
 
@@ -79,22 +77,31 @@ public class Network extends Thread {
         }
     }
 
-    synchronized public PerfectLink createLink (int outProcessId, Address outAddress) {
-        PerfectLink link = new PerfectLink(this.inProcessId, this.inAddress, outProcessId, outAddress);
+    synchronized public PerfectLink createLink (Address outAddress) {
+        PerfectLink link = new PerfectLink(this.inAddress, outAddress);
+
+        String outProcessId = outAddress.getProcessId();
         this.links.put(outProcessId, link);
 
         return link;
     }
 
     // message parse
-    public int getProcessId(byte[] packetData) {
-        return (packetData[5] << 24) | (packetData[6] << 16) | (packetData[7] << 8) | packetData[8];
+    public String getProcessId(byte[] packetData) {
+        int processIdStart = PerfectLink.MESSAGE_TYPE_SIZE + PerfectLink.SEQUENCE_NUMBER_SIZE;
+        byte[] processId = new byte[32];
+
+        for (int i = processIdStart; i < processIdStart + PerfectLink.PROCESS_ID_SIZE; i++) {
+            processId[i - processIdStart] = packetData[i];
+        }
+
+        return Base64.getEncoder().encodeToString(processId);
     }
 
     public void close () {
         this.inSocket.close();
 
-        for (int processId : this.links.keySet()) {
+        for (String processId : this.links.keySet()) {
             PerfectLink link = this.links.get(processId);
             link.close();
         }

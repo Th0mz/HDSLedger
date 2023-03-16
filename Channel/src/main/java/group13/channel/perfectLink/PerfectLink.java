@@ -10,26 +10,32 @@ import java.util.TreeMap;
 
 public class PerfectLink {
 
-    public static int HEADER_SIZE = 9;
+    public static int PROCESS_ID_SIZE = 32;
+    public static int SEQUENCE_NUMBER_SIZE = 4;
+    public static int MESSAGE_TYPE_SIZE = 1;
+
+    public static int HEADER_SIZE = PROCESS_ID_SIZE + SEQUENCE_NUMBER_SIZE + MESSAGE_TYPE_SIZE;
     public static int RETRANSMIT_DELTA = 300;
+
 
     private PerfectLinkIn inLink;
     private PerfectLinkOut outLink;
-    private int outProcessId;
+
+    private Address inAddress;
     private Address outAddress;
 
+    private Timer timer;
     private TimerTask retransmitTask;
 
     protected TreeMap<Integer, byte[]> sentMessages;
 
 
 
-    public PerfectLink(int inPoressId, Address inAddress, int outProcessId, Address outAddress) {
-        this.outProcessId = outProcessId;
+    public PerfectLink(Address inAddress, Address outAddress) {
         this.outAddress = outAddress;
 
-        this.inLink = new PerfectLinkIn(this, inPoressId);
-        this.outLink = new PerfectLinkOut(this, inPoressId, outAddress);
+        this.inLink = new PerfectLinkIn(this, inAddress);
+        this.outLink = new PerfectLinkOut(this, inAddress, outAddress);
 
         this.sentMessages = new TreeMap<>();
 
@@ -38,8 +44,7 @@ public class PerfectLink {
 
             @Override
             public void run() {
-                // DEBUG :
-                System.out.println("[pid = " + inPoressId + "] retransmitting : " + sentMessages);
+
                 for (Map.Entry<Integer, byte[]> entry : sentMessages.entrySet()) {
                     int sequenceNumber = entry.getKey();
                     byte[] payload = entry.getValue();
@@ -50,9 +55,9 @@ public class PerfectLink {
             }
         }
 
-        Timer time = new Timer();
+        this.timer = new Timer();
         this.retransmitTask = new RetransmitPacketsTask();
-        time.scheduleAtFixedRate(this.retransmitTask, this.RETRANSMIT_DELTA, this.RETRANSMIT_DELTA);
+        this.timer.scheduleAtFixedRate(this.retransmitTask, this.RETRANSMIT_DELTA, this.RETRANSMIT_DELTA);
     }
 
     public void receive (byte[] packetData, int packetLength, int packetPort) {
@@ -87,6 +92,8 @@ public class PerfectLink {
     }
 
     public void close () {
+        this.retransmitTask.cancel();
+        this.timer.cancel();
         this.outLink.close();
     }
 }

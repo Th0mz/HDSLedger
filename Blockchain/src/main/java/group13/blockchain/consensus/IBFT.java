@@ -72,7 +72,7 @@ public class IBFT implements EventListener{
         if (event.getEventName() == BEBDeliver.EVENT_NAME) {
             BEBDeliver typed_event = (BEBDeliver) event;
             String payload = typed_event.getPayload();
-            int src = typed_event.getProcessID();
+            int src = typed_event.getProcessId();
 
             //problema aqui se o input acabar com espaço
             String[] params = payload.split("\n");

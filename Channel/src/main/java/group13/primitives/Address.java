@@ -4,10 +4,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 public class Address {
 
-    private byte[] processId;
+    private String processId;
     private String hostname;
     private int port;
     InetAddress inetAddress;
@@ -42,7 +43,11 @@ public class Address {
         return inetAddress;
     }
 
-    public static byte[] calculateProcessId (Address address) {
+    public String getProcessId() {
+        return processId;
+    }
+
+    public static String calculateProcessId (Address address) {
         MessageDigest digest = null;
 
         try {
@@ -52,8 +57,9 @@ public class Address {
         }
 
         String address_string = address.toString();
-        byte[] processId = digest.digest(address_string.getBytes());
+        byte[] processIdDigest = digest.digest(address_string.getBytes());
 
+        String processId = Base64.getEncoder().encodeToString(processIdDigest);
         return processId;
     }
 

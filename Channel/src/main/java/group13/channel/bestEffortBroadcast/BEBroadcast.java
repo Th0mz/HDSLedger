@@ -32,17 +32,16 @@ public class BEBroadcast implements EventListener {
         this.inProcessId = inProcessId;
 
         // create network (process that listens for packets)
-        this.network = new Network(inProcessId, inAddress);
+        this.network = new Network(inAddress);
         this.links = new ArrayList<>();
     }
 
     // handle received events
     public void update(Event event) {
         String eventName = event.getEventName();
-        System.out.println(eventName);
         if (eventName == Pp2pDeliver.EVENT_NAME) {
             Pp2pDeliver typed_event = (Pp2pDeliver) event;
-            int process_id = typed_event.getProcessId();
+            String process_id = typed_event.getProcessId();
             byte[] payload = typed_event.getPayload();
 
             BEBDeliver triggered_event = new BEBDeliver(process_id, payload, typed_event.getPort());
@@ -50,8 +49,8 @@ public class BEBroadcast implements EventListener {
         }
     }
 
-    public void addServer(int outProcessId, Address outAddress) {
-        PerfectLink link = this.network.createLink(outProcessId, outAddress);
+    public void addServer(Address outAddress) {
+        PerfectLink link = this.network.createLink(outAddress);
         link.subscribeDelivery(this);
 
         this.links.add(link);
