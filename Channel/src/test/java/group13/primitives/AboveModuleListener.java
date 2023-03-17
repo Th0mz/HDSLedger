@@ -14,16 +14,17 @@ public class AboveModuleListener implements EventListener {
         this.received_events = new HashMap<>();
     }
     @Override
-    public void update(Event event) {
+    synchronized public void update(Event event) {
         String eventType = event.getEventName();
         if (! this.received_events.containsKey(eventType)) {
             this.received_events.put(eventType, new ArrayList<>());
         }
 
+
         this.received_events.get(eventType).add(event);
     }
 
-    public int get_all_events_num () {
+    synchronized public int get_all_events_num () {
         int result = 0;
 
         for (String eventType : this.received_events.keySet()) {
@@ -32,7 +33,7 @@ public class AboveModuleListener implements EventListener {
         return result;
     }
 
-    public List<Event> get_events(String eventType) {
+    synchronized public List<Event> get_events(String eventType) {
         if (! received_events.containsKey(eventType)) {
             return new ArrayList<>();
         }
@@ -40,7 +41,7 @@ public class AboveModuleListener implements EventListener {
         return received_events.get(eventType);
     }
 
-    public void clean_events () {
+    synchronized public void clean_events () {
         this.received_events = new HashMap<>();
     }
 }

@@ -17,8 +17,8 @@ import java.util.List;
 public class BEBroadcast implements EventListener {
 
     // perfect link
-    private List<PerfectLink> links;
-    private Network network;
+    protected List<PerfectLink> links;
+    protected Network network;
     private Address inAddress;
 
     private EventHandler bebEventHandler = new EventHandler();
@@ -40,7 +40,7 @@ public class BEBroadcast implements EventListener {
             String process_id = typed_event.getProcessId();
             byte[] payload = typed_event.getPayload();
 
-            BEBDeliver triggered_event = new BEBDeliver(process_id, payload, typed_event.getPort());
+            BEBDeliver triggered_event = new BEBDeliver(process_id, payload);
             bebEventHandler.trigger(triggered_event);
         }
     }
@@ -65,7 +65,6 @@ public class BEBroadcast implements EventListener {
             link.send_handshake();
         }
     }
-
 
     public void unicast(String outProcessId, BEBSend send_event) {
         byte[] payload = send_event.getPayload();

@@ -2,6 +2,7 @@ package group13.channel.perfectLink;
 
 import group13.channel.perfectLink.events.Pp2pDeliver;
 import group13.primitives.*;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,35 +15,55 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PerfectLinkTest {
     public static String MESSAGE = "test message";
-    public int delivered_messages;
+
+    private Address p1_addr, p2_addr;
+    private NetworkTester p1_network, p2_network;
+    private PerfectLinkTester p1_to_p2, p2_to_p1;
+
+    private AboveModule am_process1, am_process2;
+    private AboveModuleListener el_process1, el_process2;
 
     @BeforeEach
-    void SetUp () {
-        delivered_messages = 0;
+    void setUp () {
+        p1_addr = new Address("localhost", 5000);
+        p2_addr = new Address("localhost", 5001);
+
+        p1_network = new NetworkTester(p1_addr);
+        p2_network = new NetworkTester(p2_addr);
+
+        p1_to_p2 = p1_network.createLink(p2_addr);
+        p2_to_p1 = p2_network.createLink(p1_addr);
+
+        // above module process 1
+        AboveModule am_process1 = new AboveModule();
+        p1_to_p2.subscribeDelivery(am_process1.getEventListner());
+        el_process1 = am_process1.getEventListner();
+
+        // above module process 2
+        AboveModule am_process2 = new AboveModule();
+        p2_to_p1.subscribeDelivery(am_process2.getEventListner());
+        el_process2 = am_process2.getEventListner();
+    }
+
+    @AfterEach
+    void cleanUp () {
+        p1_network.close();
+        p2_network.close();
+
+        // wait for packet in the network to disappear
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
     @DisplayName("Message exchange between 2 end points")
     public void SendMessagesTest () {
 
-        Address p1_addr = new Address("localhost", 5000);
-        Address p2_addr = new Address("localhost", 5001);
-
-        Network p1_network = new Network(p1_addr);
-        Network p2_network = new Network(p2_addr);
-
-        PerfectLink p1_to_p2 = p1_network.createLink(p2_addr);
-        PerfectLink p2_to_p1 = p2_network.createLink(p1_addr);
-
-        // above module process 1
-        AboveModule am_process1 = new AboveModule();
-        p1_to_p2.subscribeDelivery(am_process1.getEventListner());
-
-        // above module process 2
-        AboveModule am_process2 = new AboveModule();
-        p2_to_p1.subscribeDelivery(am_process2.getEventListner());
-
-
+        System.out.println("============================================");
+        System.out.println("Test : Message exchange between 2 end points");
         // process 1 sends a message to process 2
         p1_to_p2.send(MESSAGE.getBytes());
 
@@ -54,11 +75,9 @@ class PerfectLinkTest {
         }
 
         // check process1 received events
-        AboveModuleListener el_process1 = am_process1.getEventListner();
         assertEquals(0, el_process1.get_all_events_num());
 
         // check process2 received events
-        AboveModuleListener el_process2 = am_process2.getEventListner();
         assertEquals(1, el_process2.get_all_events_num());
 
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
@@ -66,7 +85,6 @@ class PerfectLinkTest {
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
-
 
          el_process1.clean_events();
          el_process2.clean_events();
@@ -92,30 +110,14 @@ class PerfectLinkTest {
 
         // check process2 received events
         assertEquals(0, el_process2.get_all_events_num());
-
-        p1_network.close();
-        p2_network.close();
     }
 
     @Test
     @DisplayName("Message retransmission because original message was lost/corrupted in the network")
     public void MessageRetransmissionOriginalLostTest() {
-        Address p1_addr = new Address("localhost", 5000);
-        Address p2_addr = new Address("localhost", 5001);
 
-        NetworkTester p1_network = new NetworkTester(p1_addr);
-        NetworkTester p2_network = new NetworkTester(p2_addr);
-
-        PerfectLinkTester p1_to_p2 = p1_network.createTestLink(p2_addr, false);
-        PerfectLinkTester p2_to_p1 = p2_network.createTestLink(p1_addr, false);
-
-        // above module process 1
-        AboveModule am_process1 = new AboveModule();
-        p1_to_p2.subscribeDelivery(am_process1.getEventListner());
-
-        // above module process 2
-        AboveModule am_process2 = new AboveModule();
-        p2_to_p1.subscribeDelivery(am_process2.getEventListner());
+        System.out.println("========================================================================================");
+        System.out.println("Test : Message retransmission because original message was lost/corrupted in the network");
 
         // process 2 will not receive any message from process 1
         p2_to_p1.setInProblems(true);
@@ -131,11 +133,9 @@ class PerfectLinkTest {
         }
 
         // check process1 received events
-        AboveModuleListener el_process1 = am_process1.getEventListner();
         assertEquals(0, el_process1.get_all_events_num());
 
         // check process2 received events (didn't receive any message)
-        AboveModuleListener el_process2 = am_process2.getEventListner();
         assertEquals(0, el_process2.get_all_events_num());
 
         // check retransmit queue sizes
@@ -168,26 +168,27 @@ class PerfectLinkTest {
         // check retransmit queue sizes
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());
         assertEquals(0, p2_to_p1.getRetransmitQueueSize());
-
-        p1_network.close();
-        p2_network.close();
     }
 
     @Test
     @DisplayName("Message retransmission because the other process socket is not open")
     public void MessageRetransmissionSocketNotOpenTest() {
-        Address p1_addr = new Address("localhost", 5000);
-        Address p2_addr = new Address("localhost", 5001);
 
-        Network p1_network = new Network(p1_addr);
-        PerfectLink p1_to_p2 = p1_network.createLink(p2_addr);
+        System.out.println("==========================================================================");
+        System.out.println("Test : Message retransmission because the other process socket is not open");
+
+        Address p3_addr = new Address("localhost", 6000);
+        Address p4_addr = new Address("localhost", 6001);
+
+        Network p3_network = new Network(p3_addr);
+        PerfectLink p3_to_p4 = p3_network.createLink(p4_addr);
 
         // above module process 1
         AboveModule am_process1 = new AboveModule();
-        p1_to_p2.subscribeDelivery(am_process1.getEventListner());
+        p3_to_p4.subscribeDelivery(am_process1.getEventListner());
 
         // process 1 sends a message to process 2
-        p1_to_p2.send(MESSAGE.getBytes());
+        p3_to_p4.send(MESSAGE.getBytes());
 
         // wait for two retransmissions
         try {
@@ -197,12 +198,12 @@ class PerfectLinkTest {
         }
 
         // +- 300ms (RETRANSMIT TIME) to create the other endpoint
-        Network p2_network = new Network(p2_addr);
-        PerfectLink p2_to_p1 = p2_network.createLink(p1_addr);
+        Network p4_network = new Network(p4_addr);
+        PerfectLink p4_to_p3 = p4_network.createLink(p3_addr);
 
         // above module process 2
         AboveModule am_process2 = new AboveModule();
-        p2_to_p1.subscribeDelivery(am_process2.getEventListner());
+        p4_to_p3.subscribeDelivery(am_process2.getEventListner());
 
         // wait for the message to arrive and for the retransmit timer to
         // be triggered again. this time, no message will be retransmitted
@@ -225,32 +226,15 @@ class PerfectLinkTest {
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
-
-        p1_network.close();
-        p2_network.close();
+        assertTrue(p3_addr.getProcessId().equals(deliver_event.getProcessId()));
     }
 
     @Test
     @DisplayName("Message retransmission because ACK was lost/corrupted in the network")
     public void MessageRetransmissionACKLostTest() {
 
-        Address p1_addr = new Address("localhost", 5000);
-        Address p2_addr = new Address("localhost", 5001);
-
-        NetworkTester p1_network = new NetworkTester(p1_addr);
-        NetworkTester p2_network = new NetworkTester(p2_addr);
-
-        PerfectLinkTester p1_to_p2 = p1_network.createTestLink(p2_addr, false);
-        PerfectLinkTester p2_to_p1 = p2_network.createTestLink(p1_addr, false);
-
-        // above module process 1
-        AboveModule am_process1 = new AboveModule();
-        p1_to_p2.subscribeDelivery(am_process1.getEventListner());
-
-        // above module process 2
-        AboveModule am_process2 = new AboveModule();
-        p2_to_p1.subscribeDelivery(am_process2.getEventListner());
+        System.out.println("===========================================================================");
+        System.out.println("Test : Message retransmission because ACK was lost/corrupted in the network");
 
         // process 1 send message to process
         p1_to_p2.send(MESSAGE.getBytes());
@@ -270,11 +254,9 @@ class PerfectLinkTest {
         }
 
         // check process1 received events
-        AboveModuleListener el_process1 = am_process1.getEventListner();
         assertEquals(0, el_process1.get_all_events_num());
 
         // check process2 received events
-        AboveModuleListener el_process2 = am_process2.getEventListner();
         assertEquals(1, el_process2.get_all_events_num());
 
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
@@ -339,8 +321,5 @@ class PerfectLinkTest {
         // check retransmit queue sizes
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());
         assertEquals(0, p2_to_p1.getRetransmitQueueSize());
-
-        p1_network.close();
-        p2_network.close();
     }
 }

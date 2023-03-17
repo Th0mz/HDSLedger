@@ -1,9 +1,12 @@
 package group13.primitives;
 
+import group13.channel.bestEffortBroadcast.events.BEBDeliver;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Base64;
 
 public class Address {
@@ -65,6 +68,23 @@ public class Address {
 
     public String toString() {
         return this.hostname + ":" + this.port;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+        // If the object is compared with itself then return true
+        if (o == this) {
+            return true;
+        }
+
+        if (!(o instanceof Address)) {
+            return false;
+        }
+
+        Address deliver = (Address) o;
+
+        return deliver.getProcessId().equals(this.processId);
     }
 
 }

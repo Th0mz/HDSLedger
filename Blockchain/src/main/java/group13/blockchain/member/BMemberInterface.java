@@ -41,16 +41,13 @@ public class BMemberInterface implements EventListener {
         byte[] payload = ev.getPayload();
         String payloadString = new String(payload);
         System.out.println(payloadString);
-        _server.tryConsensus(payloadString);
+        _server.tryConsensus(payloadString, clientId);
     }
 
-    public void ackClient(Integer instance, String msg, int pid, int port) { 
+    public void ackClient(Integer instance, String msg, String clientId) {
         String response = instance + msg;
         BEBSend send_event = new BEBSend(response.getBytes());
 
-        //beb.unicast(clientId, send_event);
+        beb.unicast(clientId, send_event);
     }
-
-
-
 }

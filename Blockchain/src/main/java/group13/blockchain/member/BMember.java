@@ -16,6 +16,9 @@ public class BMember {
     protected Address _myInfo;
     protected boolean _isLeader;
 
+    private HashMap<Integer, String> instances = new HashMap<>();
+    private int _nextInstance;
+
     protected BMemberInterface frontend;
 
     protected IBFT _consensus;
@@ -32,6 +35,7 @@ public class BMember {
         _nrServers = nrServers;
         _myInfo = myInfo;
         _isLeader = myInfo.getProcessId().equals(leaderId);
+        _nextInstance = 0;
 
         BEBroadcast beb = new BEBroadcast(myInfo);
         for (Address serverAddress : serverList) {
@@ -42,17 +46,20 @@ public class BMember {
         frontend = new BMemberInterface(interfaceAddress, this);
     }
 
-    public void tryConsensus(String msg) {
+    public void tryConsensus(String msg, String clientId) {
         if (!_isLeader)
             return;
 
         ledgerLock.lock();
-        int nextInstance = _ledger.size();
+        int nextInstance = _nextInstance;
+        _nextInstance += 1;
+
         _consensus.start(nextInstance, msg);
         System.out.println("============================");
         System.out.println("============================");
         System.out.println("CONSENSUS STARTED");
         ledgerLock.unlock();
+        this.instances.put(nextInstance, clientId);
     }
 
     public void deliver(Integer instance, String message) {
@@ -64,7 +71,11 @@ public class BMember {
         ledgerLock.lock();
         _ledger.put(instance, message); //TODO: DONT ALLOW BYZANTINE TO FORCE A MSG
         ledgerLock.unlock();
-        frontend.ackClient(instance, message, 9999, 9876);
+
+        if (_isLeader) {
+            String clientId = instances.get(instance);
+            frontend.ackClient(instance, message, clientId);
+        }
     }
 
     public String getConsensusResult(int instance) {

@@ -16,8 +16,9 @@ public class NetworkTester extends Network {
         this.inProcessId = inProcessId;
     }
 
-    public PerfectLinkTester createTestLink (Address outAddress, boolean inProblems) {
-        PerfectLinkTester link = new PerfectLinkTester(this.inAddress, outAddress, inProblems);
+    @Override
+    public PerfectLinkTester createLink (Address outAddress) {
+        PerfectLinkTester link = new PerfectLinkTester(this.inAddress, outAddress, false);
 
         String outProcessId = outAddress.getProcessId();
         this.links.put(outProcessId, link);
