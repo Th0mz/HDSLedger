@@ -101,7 +101,8 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
-        p2_beb.unicast(client_addr.getProcessId(), "yoooo".getBytes());
+        BEBSend send_event = new BEBSend("yoooo".getBytes());
+        p2_beb.unicast(client_addr.getProcessId(), send_event);
 
         // TODO : frontend wait for handshake responses
         try {

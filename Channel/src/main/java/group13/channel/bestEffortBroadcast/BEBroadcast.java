@@ -69,8 +69,10 @@ public class BEBroadcast implements EventListener {
     }
 
 
-    public void unicast(String outProcessId, byte[] payload) {
+    public void unicast(String outProcessId, BEBSend send_event) {
+        byte[] payload = send_event.getPayload();
         PerfectLink link = this.network.getLink(outProcessId);
+
         if (link != null) {
             link.send(payload);
         }
