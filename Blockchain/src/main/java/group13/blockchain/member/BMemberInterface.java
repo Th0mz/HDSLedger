@@ -33,7 +33,11 @@ public class BMemberInterface implements EventListener {
         if (!eventType.equals(BEBDeliver.EVENT_NAME)) {
             System.out.println("Should only receive deliver events (??)");
         }
+
+
         BEBDeliver ev = (BEBDeliver) event;
+        String clientId = ev.getProcessId();
+
         byte[] payload = ev.getPayload();
         String payloadString = new String(payload);
         System.out.println(payloadString);
@@ -43,8 +47,8 @@ public class BMemberInterface implements EventListener {
     public void ackClient(Integer instance, String msg, int pid, int port) { 
         String response = instance + msg;
         BEBSend send_event = new BEBSend(response.getBytes());
-        // TODO : need to store client id to repond to him
-        // beb.unicast();
+
+        //beb.unicast(clientId, send_event);
     }
 
 

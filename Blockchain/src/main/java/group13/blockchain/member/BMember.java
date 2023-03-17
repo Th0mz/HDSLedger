@@ -1,6 +1,7 @@
 package group13.blockchain.member;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -18,7 +19,7 @@ public class BMember {
     protected BMemberInterface frontend;
 
     protected IBFT _consensus;
-    protected ArrayList<String> _ledger = new ArrayList<String>();
+    protected HashMap<Integer, String> _ledger = new HashMap<>();
     protected Lock ledgerLock = new ReentrantLock();
 
     public BMember(){}
@@ -31,10 +32,6 @@ public class BMember {
         _nrServers = nrServers;
         _myInfo = myInfo;
         _isLeader = myInfo.getProcessId().equals(leaderId);
-
-        for (int i = 0; i < 1000; i++) {
-            _ledger.add("");
-        }
 
         BEBroadcast beb = new BEBroadcast(myInfo);
         for (Address serverAddress : serverList) {
@@ -63,8 +60,9 @@ public class BMember {
         System.out.println("CONSENSUS FINISHED");
         System.out.println("============================");
         System.out.println("============================");
+
         ledgerLock.lock();
-        _ledger.add(instance, message); //TODO: DONT ALLOW BYZANTINE TO FORCE A MSG
+        _ledger.put(instance, message); //TODO: DONT ALLOW BYZANTINE TO FORCE A MSG
         ledgerLock.unlock();
         frontend.ackClient(instance, message, 9999, 9876);
     }
@@ -77,9 +75,14 @@ public class BMember {
         return _consensus;
     }
 
-    public void printLedger(){
-        for(String i : _ledger)
-            System.out.println(i);
-    }
+    public void printLedger() {
+        System.out.println("Ledger of " + this._myInfo.getProcessId());
+        int i = 0;
+        String next = this._ledger.get(i);
+        while (next != null) {
+            System.out.println(i + " : " + next);
 
+            next = this._ledger.get(++i);
+        }
+    }
 }

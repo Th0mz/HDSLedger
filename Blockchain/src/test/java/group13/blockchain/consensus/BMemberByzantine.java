@@ -1,8 +1,6 @@
 package group13.blockchain.consensus;
 
 import java.util.ArrayList;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import group13.blockchain.member.BMember;
 import group13.blockchain.member.BMemberInterface;
@@ -19,10 +17,6 @@ public class BMemberByzantine extends BMember {
         _nrServers = nrServers;
         _myInfo = myInfo;
         _isLeader = myInfo.getProcessId().equals(leaderId);
-
-        for (int i = 0; i < 1000; i++) {
-            _ledger.add("");
-        }
 
         BEBroadcast beb = new BEBroadcast(myInfo);
         for (Address serverAddress : serverList) {

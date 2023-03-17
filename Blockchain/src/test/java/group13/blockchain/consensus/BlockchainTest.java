@@ -29,9 +29,14 @@ public class BlockchainTest {
     public static void init() {
 
         Address server1_addr = new Address(2222);
+        System.out.println("server 1 : " + server1_addr.getProcessId());
         Address server2_addr = new Address(3333);
+        System.out.println("server 2 : " + server2_addr.getProcessId());
         Address server3_addr = new Address(4444);
+        System.out.println("server 3 : " + server3_addr.getProcessId());
         Address server4_addr = new Address(5555);
+        System.out.println("server 4 : " + server4_addr.getProcessId());
+
 
         ArrayList<Address> listOfServers = new ArrayList<>(List.of(
           server1_addr, server2_addr, server3_addr, server4_addr

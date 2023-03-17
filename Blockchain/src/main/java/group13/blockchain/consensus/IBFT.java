@@ -98,14 +98,14 @@ public class IBFT implements EventListener{
         preparedRound = -1;
         preparedValue = null;
 
-        if ( leader == pId ) {
+        if ( leader.equals(pId) ) {
             //broadcast
             ///Message ->  0(PRE_PREPARE), instance, round, input, signature
             byte[] msg = new String("0\n" + instance + "\n" + round + "\n" + input).getBytes();
             byte[] signature = sign(msg, myKey);
-           /*  System.out.println("-------------------------");
+            System.out.println("-------------------------");
             System.out.println("SENT PRE PREPARE FROM LEADER PID" + pId );
-            System.out.println("-------------------------");*/
+            System.out.println("-------------------------");
 
             broadcast.send(new BEBSend(concatBytes(msg, signature)));
         }
@@ -129,19 +129,20 @@ public class IBFT implements EventListener{
 
             boolean signVerified = verify(msg, signature, publicKeys.get(src));
 
-            /*System.out.println("-------------------------");
+            System.out.println("-------------------------");
             System.out.println("PID " + pId +" RECEIVED UPDATE WITH MESSAGE: " + msgType + " FROM PID " + src +"\nVERIFY STATUS: " + signVerified);
-            System.out.println("-------------------------");*/
+            System.out.println("-------------------------");
             
             //verify signature
             //check round matches
             // 0 -> PRE-PREPARE; 1 -> PREPARE; 2-> COMMIT
 
-            
-            if( msgType.equals("0") && leader == src  && signVerified/* && round == Integer.parseInt(params[2])*/) {
+            if( msgType.equals("0") && leader.equals(src) && signVerified/* && round == Integer.parseInt(params[2])*/) {
                 /*lock.lock();
                 validPrePreapares.put(msg, signature);
                 lock.unlock();*/
+
+
                 prePrepare(msg, src);
             } else if (msgType.equals("1") && signVerified /* && round == Integer.parseInt(params[2])*/) {
                 prepare(msg, src);
@@ -154,12 +155,12 @@ public class IBFT implements EventListener{
     protected void prePrepare(byte[] msg, String src){
         String[] params = new String(msg).split("\n");
         //timer -- maybe not for now
-        /*System.out.println("-----------------------");
+        System.out.println("-----------------------");
         System.out.println("-----------------------");
         System.out.println("PRE PREPARE");
         System.out.println("Value: " + params[3]);
         System.out.println("-----------------------");
-        System.out.println("-----------------------");*/
+        System.out.println("-----------------------");
 
         byte[] payload = new String("1\n" + params[1] + "\n" + params[2] + "\n" + params[3]).getBytes();
         // Send signedPrePrepare for validation that Prepares are not bogus
@@ -243,6 +244,7 @@ public class IBFT implements EventListener{
                 System.out.println("Value decided: " + params[3]);
                 System.out.println("-----------------------");
                 System.out.println("-----------------------");
+
                 _server.deliver(Integer.parseInt(params[1]), params[3]);
             }
         }

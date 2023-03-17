@@ -10,7 +10,4 @@ public class AboveModule {
         this.eventListner = new AboveModuleListener();
     }
 
-    public AboveModuleListener getEventListner() {
-        return eventListner;
-    }
 }
