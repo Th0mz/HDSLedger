@@ -1,5 +1,27 @@
 package group13.blockchain.consensus;
 
+import java.io.IOException;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Key;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.spec.X509EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.PrivateKey;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -29,6 +51,8 @@ public class IBFTByzantine extends IBFT {
     private boolean isPrePrepareByzantine = false;
     private boolean isPrepareByzantine = false;
     private boolean isCommitByzantine = false;
+    
+    private PrivateKey myKey;
 
     public IBFTByzantine(int id, int n, int f, int leader, BEBroadcast beb, BMember server) {
         super(id, n, f, leader, beb, server);
@@ -40,6 +64,7 @@ public class IBFTByzantine extends IBFT {
         _server = server;
         broadcast = beb;
         broadcast.subscribeDelivery(this);
+        myKey = getPrivateKey("C:\\Users\\Cristi\\Desktop\\private-key-" +  (pId+1) + ".key");
     }
 
     @Override
@@ -51,48 +76,150 @@ public class IBFTByzantine extends IBFT {
         preparedRound = -1;
         preparedValue = null;
 
+        byte[] msg = new String("0\n" + instance + "\n" + round + "\n" + input).getBytes();
+        byte[] signature = sign(msg, myKey);
         if(isStartByzantine) {
-            broadcast.send(new BEBSend("PRE_PREPARE\n" + instance + "\n" + round + "\n" + input));
+            System.out.println("-------------------------");
+            System.out.println("SENT PRE PREPARE FROM BYZANTINE PID" + pId);
+            System.out.println("-------------------------");
+            broadcast.send(new BEBSend(concatBytes(msg, signature)));
         } else {
             if ( leader == pId ) {
                 //broadcast
                 ///Message -> PRE_PREPARE, instance, round, input
-                broadcast.send(new BEBSend("PRE_PREPARE\n" + instance + "\n" + round + "\n" + input));
+                System.out.println("-------------------------");
+                System.out.println("SENT PRE PREPARE FROM LEADER PID" + pId);
+                System.out.println("-------------------------");
+                broadcast.send(new BEBSend(concatBytes(msg, signature)));
                 //add signature ???
             }
         }
     }
 
     @Override
-    public void prePrepare(String[] params, int src) {
+    public void prePrepare(byte[] msg, int src) {
         if(!isPrePrepareByzantine)
-            super.prePrepare(params, src);
+            super.prePrepare(msg, src);
         else {
-            String[] wrong = {params[0], params[1], params[2], "WRONG MESSAGE"};
+            String[] params = new String(msg).split("\n");
+            byte[] wrong = new String("0\n" + params[1] + params[2] + "WRONG MESSAGE").getBytes();
             super.prePrepare(wrong, src);
         }
     }
 
     @Override
-    public void prepare(String[] params, int src) {
+    public void prepare(byte[] msg, int src) {
+        String[] params = new String(msg).split("\n");
         if(!isPrepareByzantine)
-            super.prepare(params, src);
+            super.prepare(msg, src);
         else {
             preparedValue = params[3];
-            broadcast.send(new BEBSend("COMMIT\n" + params[1] + "\n" + params[2] + "\n" + "WRONG MESSAGE"));
+            byte[] payload = new String("2\n" + params[1] + "\n" + params[2] + "\n" + "WRONG MESSAGE").getBytes();
+            byte[] signature = sign(payload, myKey);
+            broadcast.send(new BEBSend(concatBytes(payload, signature)));
             System.out.println("SENT BROADCAST OF WRONG COMMIT");
         }
     }
 
     @Override
-    public void commit(String[] params, int src) {
+    public void commit(byte[] msg, int src) {
+        String[] params = new String(msg).split("\n");
         if(!isCommitByzantine)
-            super.commit(params, src);
+            super.commit(msg, src);
         else {
             _server.deliver(Integer.parseInt(params[1]), "WRONG_MSG");
         }
     }
 
+    private static PrivateKey getPrivateKey(String file) {
+        try {
+            //Encoder enc = Base64.getEncoder();
+            FileInputStream fis = new FileInputStream(file);
+            byte[] bytes = new byte[fis.available()];
+            fis.read(bytes);
+            fis.close();
+            //System.out.println(new String(bytes));
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(bytes);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePrivate(spec);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        //hack
+        PrivateKey k = null;
+        return k;
+    }
+
+    private static PublicKey getPubKey(String file) {
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            byte[] bytes = new byte[fis.available()];
+            fis.read(bytes);
+            fis.close();
+            X509EncodedKeySpec ks = new X509EncodedKeySpec(bytes, "RSA");
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            PublicKey pub = kf.generatePublic(ks);
+            return pub;
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        //hack
+        PublicKey k = null;
+        return k;
+    }
+
+    private byte[] extractSignature(byte[] b, int mlength ,int size){
+        byte[] signature = new byte[size];
+        System.arraycopy( b, mlength - size, signature, 0, size);
+        return signature;
+    }
+
+    private byte[] extractMsg(byte[] b, int mlength){
+        byte[] msg = new byte[mlength];
+        System.arraycopy( b, 0, msg, 0, mlength);
+        return msg;
+    }
+
+    private byte[] sign(byte[] message, PrivateKey privateKey) {
+        byte[] signedMessage = null;
+        // Sign the message using the private key
+        try {
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signature.initSign(privateKey);
+            signature.update(message);
+            signedMessage = signature.sign();
+            return signedMessage;
+
+        } catch (SignatureException |NoSuchAlgorithmException | InvalidKeyException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        return signedMessage;
+    }
+
+    private boolean verify(byte[] message, byte[] signature, PublicKey publicKey) {
+        try{
+        // Verify the signature using the public key
+        
+            Signature signatureVerifier = Signature.getInstance("SHA256withRSA");
+            signatureVerifier.initVerify(publicKey);
+            signatureVerifier.update(message);
+            return signatureVerifier.verify(signature);
+        } catch (SignatureException |NoSuchAlgorithmException | InvalidKeyException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        return false;
+    }
+
+    private byte [] concatBytes(byte[] a, byte[] b){
+        byte[] c = new byte[a.length + b.length];
+        System.arraycopy(a, 0, c, 0, a.length);
+        System.arraycopy(b, 0, c, a.length, b.length);
+        return c;
+    }
 
     public void setStartByzantine() {isStartByzantine = true;}
     public void setPrePrepareByzantine() {isPrePrepareByzantine = true;}

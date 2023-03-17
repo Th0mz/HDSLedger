@@ -38,6 +38,9 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 
 
+import java.util.Base64;
+
+
 public class IBFT implements EventListener{
     
     private int nrProcesses, byzantineP, quorum;
@@ -46,6 +49,8 @@ public class IBFT implements EventListener{
     private BEBroadcast broadcast;
     private BMember _server;
     private int round = 1;
+
+    private long beg;
 
     private Lock lockPrepare = new ReentrantLock();
     private Lock lockCommit = new ReentrantLock();
@@ -60,6 +65,8 @@ public class IBFT implements EventListener{
 
     private int leader;
 
+    Base64.Encoder encoder = Base64.getEncoder();
+
     public IBFT(int id, int n, int f, int leader, BEBroadcast beb, BMember server) {
         pId = id;
         nrProcesses = n;
@@ -70,9 +77,9 @@ public class IBFT implements EventListener{
         broadcast = beb;
         broadcast.subscribeDelivery(this);
         publicKeys = new ArrayList<PublicKey>(nrProcesses);
-        myKey = getPrivateKey("public-key-" + pId+1 + ".key");
+        myKey = getPrivateKey("C:\\Users\\Cristi\\Desktop\\private-key-"+ (pId+1) +".key");
         for (int i = 0; i < nrProcesses; i++){
-            publicKeys.add(getPubKey("public-key-" + i+1 + ".pub"));
+            publicKeys.add(getPubKey("C:\\Users\\Cristi\\Desktop\\public-key-" + (i+1) + ".pub"));
         }
 
     }
@@ -82,7 +89,7 @@ public class IBFT implements EventListener{
     }
 
     public void start(int instance, String value) {
-
+        beg = System.currentTimeMillis();
         this.instance = instance;
         input = value;
         round = 1;
@@ -94,6 +101,9 @@ public class IBFT implements EventListener{
             ///Message ->  0(PRE_PREPARE), instance, round, input, signature
             byte[] msg = new String("0\n" + instance + "\n" + round + "\n" + input).getBytes();
             byte[] signature = sign(msg, myKey);
+           /*  System.out.println("-------------------------");
+            System.out.println("SENT PRE PREPARE FROM LEADER PID" + pId );
+            System.out.println("-------------------------");*/
 
             broadcast.send(new BEBSend(concatBytes(msg, signature)));
         }
@@ -115,36 +125,39 @@ public class IBFT implements EventListener{
             String msgType = new String(new byte[]{payload[0]});
             //String[] params = msg.split("\n");
 
+            boolean signVerified = verify(msg, signature, publicKeys.get(src));
 
-            System.out.println("-------------------------");
-            System.out.println("RECEIVED UPDATE WITH MESSAGE: " + msgType);
-            System.out.println("-------------------------");
+            /*System.out.println("-------------------------");
+            System.out.println("PID " + pId +" RECEIVED UPDATE WITH MESSAGE: " + msgType + " FROM PID " + src +"\nVERIFY STATUS: " + signVerified);
+            System.out.println("-------------------------");*/
             
             //verify signature
             //check round matches
             // 0 -> PRE-PREPARE; 1 -> PREPARE; 2-> COMMIT
-            if( msgType.equals("0") && leader == src  && verify(payload, signature, publicKeys.get(src))/* && round == Integer.parseInt(params[2])*/) {
+
+            
+            if( msgType.equals("0") && leader == src  && signVerified/* && round == Integer.parseInt(params[2])*/) {
                 /*lock.lock();
                 validPrePreapares.put(msg, signature);
                 lock.unlock();*/
                 prePrepare(msg, src);
-            } else if (msgType.equals("1") && verify(payload, signature, publicKeys.get(src)) /* && round == Integer.parseInt(params[2])*/) {
+            } else if (msgType.equals("1") && signVerified /* && round == Integer.parseInt(params[2])*/) {
                 prepare(msg, src);
-            } else if (msgType.equals("2") && verify(payload, signature, publicKeys.get(src)) ) {
+            } else if (msgType.equals("2") && signVerified ) {
                 commit(msg, src);
             }
         }
     }
 
-    private void prePrepare(byte[] msg, int src){
+    protected void prePrepare(byte[] msg, int src){
         String[] params = new String(msg).split("\n");
         //timer -- maybe not for now
-        System.out.println("-----------------------");
+        /*System.out.println("-----------------------");
         System.out.println("-----------------------");
         System.out.println("PRE PREPARE");
         System.out.println("Value: " + params[3]);
         System.out.println("-----------------------");
-        System.out.println("-----------------------");
+        System.out.println("-----------------------");*/
 
         byte[] payload = new String("1\n" + params[1] + "\n" + params[2] + "\n" + params[3]).getBytes();
         // Send signedPrePrepare for validation that Prepares are not bogus
@@ -156,7 +169,7 @@ public class IBFT implements EventListener{
         this.broadcast.send(send_event);
     }
 
-    private void prepare(byte[] msg, int src) {
+    protected void prepare(byte[] msg, int src) {
         String[] params = new String(msg).split("\n");
         String key = params[1]+params[2]+params[3];
         Set<Integer> setPrepares;
@@ -164,7 +177,7 @@ public class IBFT implements EventListener{
         if(! prepares.containsKey(key) ) {
             setPrepares = new HashSet<Integer>();
             prepares.put(key, setPrepares);
-            System.out.println("ADDED KEY: " + key);
+            //System.out.println("ADDED KEY: " + key);
         }
         setPrepares = prepares.get(key);
         lockPrepare.unlock();
@@ -172,13 +185,13 @@ public class IBFT implements EventListener{
         
         if (prepareCount < quorum) {
 
-            System.out.println("SIZE BEFORE: " + prepareCount);
+            //System.out.println("SIZE BEFORE: " + prepareCount);
             lockPrepare.lock();
             setPrepares.add(src);
             prepareCount = setPrepares.size();
             prepares.put(key, setPrepares);
             lockPrepare.unlock();
-            System.out.println("SIZE AFTER: " + prepareCount);
+            //System.out.println("SIZE AFTER: " + prepareCount);
 
             //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
             if( prepareCount == quorum ) {
@@ -189,12 +202,12 @@ public class IBFT implements EventListener{
                 byte[] signature = sign(payload, myKey);
                 BEBSend send_event = new BEBSend(concatBytes(payload, signature));
                 broadcast.send(send_event);
-                System.out.println("SENT BROADCAST OF COMMIT");
+                //System.out.println("SENT BROADCAST OF COMMIT");
             }
         }
     }
 
-    private void commit(byte[] msg, int src) {
+    protected void commit(byte[] msg, int src) {
 
         Set<Integer> setCommits;
         String[] params = new String(msg).split("\n");
@@ -219,6 +232,8 @@ public class IBFT implements EventListener{
             //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
             if( commitCount == quorum) {
                 //timer stuff
+                Float time = (System.currentTimeMillis() - beg)/1000F;
+                System.out.println(time);
                 System.out.println("-----------------------");
                 System.out.println("-----------------------");
                 System.out.println("DECIDE");
@@ -226,7 +241,6 @@ public class IBFT implements EventListener{
                 System.out.println("-----------------------");
                 System.out.println("-----------------------");
                 _server.deliver(Integer.parseInt(params[1]), params[3]);
-                // DECIDE( params[1], params[3], commits.get(key));
             }
         }
     }
@@ -288,6 +302,7 @@ public class IBFT implements EventListener{
         byte[] signedMessage = null;
         // Sign the message using the private key
         try {
+
             Signature signature = Signature.getInstance("SHA256withRSA");
             signature.initSign(privateKey);
             signature.update(message);
