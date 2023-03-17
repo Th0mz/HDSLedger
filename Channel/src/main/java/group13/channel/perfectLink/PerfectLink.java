@@ -95,6 +95,8 @@ public class PerfectLink {
         this.inLink.unsubscribeDelivery(listener);
     }
 
+    public Address getOutAddress() { return outAddress; }
+
     public void close () {
         this.retransmitTask.cancel();
         this.timer.cancel();

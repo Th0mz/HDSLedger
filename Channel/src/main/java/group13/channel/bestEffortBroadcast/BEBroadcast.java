@@ -5,7 +5,6 @@ import group13.channel.bestEffortBroadcast.events.BEBSend;
 
 import group13.channel.perfectLink.Network;
 import group13.channel.perfectLink.PerfectLink;
-import group13.channel.perfectLink.PerfectLinkOut;
 import group13.channel.perfectLink.events.Pp2pDeliver;
 import group13.primitives.Address;
 import group13.primitives.Event;
@@ -13,7 +12,6 @@ import group13.primitives.EventHandler;
 import group13.primitives.EventListener;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class BEBroadcast implements EventListener {
@@ -80,6 +78,17 @@ public class BEBroadcast implements EventListener {
 
     public Address getInAddress() {
         return inAddress;
+    }
+
+    public List<Address> getAllAddresses () {
+
+        List<Address> addresses = new ArrayList<>();
+        for (PerfectLink link : this.links) {
+            Address outAddress = link.getOutAddress();
+            addresses.add(outAddress);
+        }
+
+        return addresses;
     }
 
     public void subscribeDelivery(EventListener listener) {

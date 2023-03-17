@@ -75,7 +75,7 @@ public class BlockchainTest {
         server1.printLedger();
         server2.printLedger();
         server3.printLedger();
-        
+
         assertEquals(CONSENSUS_MESSAGE, server1.getConsensusResult(0));
         assertEquals(CONSENSUS_MESSAGE, server2.getConsensusResult(0));
         assertEquals(CONSENSUS_MESSAGE, server3.getConsensusResult(0));
