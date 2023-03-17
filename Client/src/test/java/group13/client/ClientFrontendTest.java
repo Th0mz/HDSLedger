@@ -96,12 +96,19 @@ class ClientFrontendTest {
 
         // TODO : frontend wait for handshake responses
         try {
-            Thread.sleep(200);
+            Thread.sleep(600);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
         p2_beb.unicast(client_addr.getProcessId(), "yoooo".getBytes());
+
+        // TODO : frontend wait for handshake responses
+        try {
+            Thread.sleep(600);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
 
     }

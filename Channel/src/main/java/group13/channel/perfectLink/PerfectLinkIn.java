@@ -52,6 +52,16 @@ public class PerfectLinkIn {
             // must notify the respective perfect link out that the
             // message was already received
             this.link.received_ack(sequenceNumber);
+        } else if (messageType == 2) {
+
+            if (this.currentSequenceNumber == sequenceNumber) {
+                this.currentSequenceNumber += 1;
+            }
+
+            if (this.currentSequenceNumber >= sequenceNumber) {
+                // send ack
+                this.link.send_ack(sequenceNumber);
+            }
         }
     }
 
