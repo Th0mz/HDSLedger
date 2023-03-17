@@ -18,11 +18,12 @@ public class ClientFrontend implements EventListener {
         for(int i = 0; i < addresses.size(); i++)
             beb.addServer(addresses.get(i));
 
-        beb.send_handshake();
         beb.subscribeDelivery(this);
+        beb.send_handshake();
     }
 
     public void sendCommand(String message) {
+
         BEBSend send_event = new BEBSend(message.getBytes());
         beb.send(send_event);
     }

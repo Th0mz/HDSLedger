@@ -7,6 +7,7 @@ import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.bestEffortBroadcast.events.BEBSend;
 import group13.primitives.*;
 
+import javax.swing.plaf.synth.SynthTextAreaUI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -91,6 +92,8 @@ public class IBFT implements EventListener{
     }
 
     public void start(int instance, String value) {
+
+        System.out.println("start");
         beg = System.currentTimeMillis();
         this.instance = instance;
         input = value;

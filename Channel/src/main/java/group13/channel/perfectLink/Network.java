@@ -1,5 +1,9 @@
 package group13.channel.perfectLink;
+import group13.channel.bestEffortBroadcast.events.BEBDeliver;
+import group13.channel.perfectLink.events.NetworkNew;
 import group13.primitives.Address;
+import group13.primitives.EventHandler;
+import group13.primitives.EventListener;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -21,11 +25,14 @@ public class Network extends Thread {
 
     private List<Thread> threadPool;
 
+    private EventHandler networkHandler;
+
 
     public Network (Address inAddress) {
         this.inAddress = inAddress;
         this.links = new HashMap<>();
         this.threadPool = new ArrayList<>();
+        this.networkHandler = new EventHandler();
 
         try {
             inSocket = new DatagramSocket(inAddress.getPort(), inAddress.getInetAddress());
@@ -72,7 +79,11 @@ public class Network extends Thread {
                         System.err.println("Error : process id doesnt match with the received address");
                     }
 
-                    this.createLink(outAddress);
+                    // notify about the new link
+                    PerfectLink link = this.createLink(outAddress);
+                    NetworkNew new_event = new NetworkNew(link);
+                    networkHandler.trigger(new_event);
+
                 } else if (!this.links.containsKey(outProcessId) && messageType != 2){
                     // process unknown and first message isn't handshake
                     System.err.println("Error : Received message from unknown process id without handshake");
@@ -123,6 +134,14 @@ public class Network extends Thread {
         }
 
         return Base64.getEncoder().encodeToString(processId);
+    }
+
+    public void subscribeNew(EventListener listener) {
+        networkHandler.subscribe(NetworkNew.EVENT_NAME, listener);
+    }
+
+    public void unsubscribeNew(EventListener listener) {
+        networkHandler.unsubscribe(NetworkNew.EVENT_NAME, listener);
     }
 
     public void close () {

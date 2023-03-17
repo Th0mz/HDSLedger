@@ -43,8 +43,8 @@ public class Client {
                 pids.add(i);
 			}
 
-            frontend = new ClientFrontend(new Address(9876), listOfServers);
 
+            frontend = new ClientFrontend(new Address(9876), listOfServers);
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();

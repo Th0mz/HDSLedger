@@ -5,6 +5,7 @@ import group13.channel.bestEffortBroadcast.events.BEBSend;
 
 import group13.channel.perfectLink.Network;
 import group13.channel.perfectLink.PerfectLink;
+import group13.channel.perfectLink.events.NetworkNew;
 import group13.channel.perfectLink.events.Pp2pDeliver;
 import group13.primitives.Address;
 import group13.primitives.Event;
@@ -30,6 +31,8 @@ public class BEBroadcast implements EventListener {
         // create network (process that listens for packets)
         this.network = new Network(inAddress);
         this.links = new ArrayList<>();
+
+        this.network.subscribeNew(this);
     }
 
     // handle received events
@@ -41,7 +44,13 @@ public class BEBroadcast implements EventListener {
             byte[] payload = typed_event.getPayload();
 
             BEBDeliver triggered_event = new BEBDeliver(process_id, payload);
+            System.out.println("broadcast : delivering to the above module");
             bebEventHandler.trigger(triggered_event);
+        } else if (eventName == NetworkNew.EVENT_NAME) {
+            NetworkNew typed_event = (NetworkNew) event;
+            PerfectLink link = typed_event.getLink();
+
+            link.subscribeDelivery(this);
         }
     }
 

@@ -68,8 +68,9 @@ public class StartServer {
         System.out.println(myInfo);
 
         // TODO : lala
+        String leaderId = listOfServers.get(0).getProcessId();
         server.createBMember(listOfServers, nrFaulty, nrServers, interfaceAddress,
-                            myInfo, "lala");
+                            myInfo, leaderId);
         
     }
 }

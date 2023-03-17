@@ -47,12 +47,15 @@ public class BMember {
     }
 
     public void tryConsensus(String msg, String clientId) {
+        System.out.println("tryConsensus");
         if (!_isLeader)
             return;
 
         ledgerLock.lock();
         int nextInstance = _nextInstance;
         _nextInstance += 1;
+
+        System.out.println("leader : " + nextInstance);
 
         _consensus.start(nextInstance, msg);
         System.out.println("============================");
