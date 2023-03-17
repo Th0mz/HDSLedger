@@ -20,7 +20,7 @@ public class StartServer {
         ArrayList<Integer> portsForBlockchain = new ArrayList<Integer>();
         Integer nrFaulty = -1;
         Integer nrServers = -1;
-        Integer myIPort = -1;
+        Address interfaceAddress = null;
         Integer myIBFTPort = -1;
         Address myInfo = null;
         IBFT consensus = null;
@@ -31,6 +31,7 @@ public class StartServer {
             return;
         }
 
+        // TODO :
         Integer serverId = Integer.parseInt(args[1]);
         boolean isLeader = false;
         if (serverId == 0)
@@ -48,7 +49,7 @@ public class StartServer {
                 portsForBlockchain.add(Integer.parseInt(splited[2]));
                 if(i == serverId){
                     myInfo = new Address(splited[0], Integer.parseInt(splited[1]));
-                    myIPort = Integer.parseInt(splited[2]);
+                    interfaceAddress = new Address(Integer.parseInt(splited[2]));
                     myIBFTPort = Integer.parseInt(splited[1]);
                 }
                     
@@ -66,8 +67,9 @@ public class StartServer {
         }
         System.out.println(myInfo);
 
-        server.createBMember(serverId, listOfServers, nrFaulty, nrServers, myIPort, 
-                            myInfo, isLeader);
+        // TODO : lala
+        server.createBMember(listOfServers, nrFaulty, nrServers, interfaceAddress,
+                            myInfo, "lala");
         
     }
 }

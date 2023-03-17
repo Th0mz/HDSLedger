@@ -27,24 +27,31 @@ public class BlockchainTest {
 
     @BeforeAll
     public static void init() {
-        ArrayList<Address> listOfServers = new ArrayList<>(Arrays.asList(new Address[]{
-            new Address(2222), new Address(3333), new Address(4444), new Address(5555) 
-        }));
+
+        Address server1_addr = new Address(2222);
+        Address server2_addr = new Address(3333);
+        Address server3_addr = new Address(4444);
+        Address server4_addr = new Address(5555);
+
+        ArrayList<Address> listOfServers = new ArrayList<>(List.of(
+          server1_addr, server2_addr, server3_addr, server4_addr
+        ));
 
         server1 = new BMember();
         server2 = new BMember();
         server3 = new BMember();
         server4 = new BMemberByzantine();
 
-        server1.createBMember(0, listOfServers, 1, 4, 
-                            2345, new Address(2222), true);
-        server2.createBMember(1, listOfServers, 1, 4, 
-                            3456, new Address(3333), false);
-        server3.createBMember(2, listOfServers, 1, 4, 
-                            4567, new Address(4444), false);
+        String leaderId = server1_addr.getProcessId();
+        server1.createBMember(listOfServers, 1, 4,
+                new Address(2345), server1_addr, leaderId);
+        server2.createBMember(listOfServers, 1, 4,
+                new Address(3456), server2_addr, leaderId);
+        server3.createBMember(listOfServers, 1, 4,
+                new Address(4567), server3_addr, leaderId);
         // this will create a byzantine member
-        server4.createBMember(3, listOfServers, 1, 4,
-                            5678, new Address(5555), false);
+        server4.createBMember(listOfServers, 1, 4,
+                new Address(5678), server4_addr, leaderId);
         
         ibft1 = server1.getConsensusObject();
         ibft2 = server2.getConsensusObject();
@@ -68,6 +75,7 @@ public class BlockchainTest {
         server1.printLedger();
         server2.printLedger();
         server3.printLedger();
+        
         assertEquals(CONSENSUS_MESSAGE, server1.getConsensusResult(0));
         assertEquals(CONSENSUS_MESSAGE, server2.getConsensusResult(0));
         assertEquals(CONSENSUS_MESSAGE, server3.getConsensusResult(0));

@@ -16,16 +16,15 @@ import group13.primitives.EventListener;
 
 public class BMemberInterface implements EventListener {
 
-    int _port;
     private BEBroadcast beb;
     private BMember _server;
 
-    public BMemberInterface(int pid, int port, BMember server) {
-        _port = port;
+    public BMemberInterface(Address memberAddress, BMember server) {
         _server = server;
-        beb = new BEBroadcast(new Address(port));
+        beb = new BEBroadcast(memberAddress);
         beb.subscribeDelivery(this);
-        System.out.println("Started process " + _port );
+
+        System.out.println("Started process " +  memberAddress.getPort() );
     }
 
     @Override

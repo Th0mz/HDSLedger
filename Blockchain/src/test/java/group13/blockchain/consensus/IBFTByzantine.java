@@ -1,31 +1,18 @@
 package group13.blockchain.consensus;
 
 import java.io.IOException;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileInputStream;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Key;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.X509EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.PrivateKey;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import group13.blockchain.member.BMember;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
@@ -39,8 +26,8 @@ public class IBFTByzantine extends IBFT {
     private boolean isCommitByzantine = false;
     
 
-    public IBFTByzantine(int id, int n, int f, int leader, BEBroadcast beb, BMember server) {
-        super(id, n, f, leader, beb, server);
+    public IBFTByzantine(int n, int f, String leader, BEBroadcast beb, BMember server) {
+        super(n, f, leader, beb, server);
     }
 
     @Override
@@ -73,7 +60,7 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public void prePrepare(byte[] msg, int src) {
+    public void prePrepare(byte[] msg, String src) {
         if(!isPrePrepareByzantine)
             super.prePrepare(msg, src);
         else {
@@ -84,7 +71,7 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public void prepare(byte[] msg, int src) {
+    public void prepare(byte[] msg, String src) {
         String[] params = new String(msg).split("\n");
         if(!isPrepareByzantine)
             super.prepare(msg, src);
@@ -98,7 +85,7 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public void commit(byte[] msg, int src) {
+    public void commit(byte[] msg, String src) {
         String[] params = new String(msg).split("\n");
         if(!isCommitByzantine)
             super.commit(msg, src);

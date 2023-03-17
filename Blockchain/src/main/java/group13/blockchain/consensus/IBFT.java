@@ -10,27 +10,17 @@ import group13.primitives.*;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Key;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.X509EncodedKeySpec;
@@ -44,7 +34,7 @@ import java.util.Base64;
 public class IBFT implements EventListener{
 
     protected int nrProcesses, byzantineP, quorum;
-    protected int pId, preparedRound, instance;
+    protected int preparedRound, instance;
     protected String input, preparedValue;
     protected BEBroadcast broadcast;
     protected BMember _server;
@@ -55,19 +45,21 @@ public class IBFT implements EventListener{
     protected Lock lockPrepare = new ReentrantLock();
     protected Lock lockCommit = new ReentrantLock();
     protected int prepared, commited;
-    protected HashMap<String, Set<Integer>> prepares = new HashMap<>();
-    protected HashMap<String, Set<Integer>> commits = new HashMap<>();
-    protected List<PublicKey> publicKeys = new ArrayList<PublicKey>(4);
+    protected HashMap<String, Set<String>> prepares = new HashMap<>();
+    protected HashMap<String, Set<String>> commits = new HashMap<>();
+    protected HashMap<String, PublicKey> publicKeys;
     protected PrivateKey myKey;
 
     //Timer (eventually)
 
-    protected int leader;
+    protected String leader;
+    protected String pId;
 
     Base64.Encoder encoder = Base64.getEncoder();
 
-    public IBFT(int id, int n, int f, int leader, BEBroadcast beb, BMember server) {
-        pId = id;
+    public IBFT(int n, int f, String leader, BEBroadcast beb, BMember server) {
+        pId = beb.getInAddress().getProcessId();
+
         nrProcesses = n;
         byzantineP = f;
         quorum = (nrProcesses + byzantineP)/2 + 1;
@@ -75,7 +67,7 @@ public class IBFT implements EventListener{
         _server = server;
         broadcast = beb;
         broadcast.subscribeDelivery(this);
-        publicKeys = new ArrayList<PublicKey>(nrProcesses);
+        publicKeys = new HashMap<String, PublicKey>(nrProcesses);
 
         String consensus_folder;
         try {
@@ -84,10 +76,13 @@ public class IBFT implements EventListener{
             throw new RuntimeException(e);
         }
 
-        myKey = getPrivateKey(consensus_folder + "\\private-key-"+ (pId+1) + ".key");
-        for (int i = 0; i < nrProcesses; i++){
-            PublicKey key = getPubKey(consensus_folder + "\\public-key-" + (i+1) + ".pub");
-            publicKeys.add(key);
+        // TODO :
+        myKey = getPrivateKey(consensus_folder + "\\" + pId.substring(0, 5) + ".key");
+        for (Address outAddress : beb.getAllAddresses()){
+            String outProcessId = outAddress.getProcessId();
+            PublicKey key = getPubKey(consensus_folder + "\\" + outProcessId.substring(0, 5) + ".pub");
+
+            publicKeys.put(outProcessId, key);
         }
     }
 
@@ -123,8 +118,7 @@ public class IBFT implements EventListener{
         if (event.getEventName() == BEBDeliver.EVENT_NAME) {
             BEBDeliver typed_event = (BEBDeliver) event;
             byte[] payload = typed_event.getPayload();
-            int src = 1;
-            // TODO : int src = typed_event.getProcessID();
+            String src = typed_event.getProcessId();
 
             byte[] signature = extractSignature(payload, payload.length, 256);
             byte[] msg = extractMsg(payload, payload.length - 256);
@@ -157,7 +151,7 @@ public class IBFT implements EventListener{
         }
     }
 
-    protected void prePrepare(byte[] msg, int src){
+    protected void prePrepare(byte[] msg, String src){
         String[] params = new String(msg).split("\n");
         //timer -- maybe not for now
         /*System.out.println("-----------------------");
@@ -177,13 +171,14 @@ public class IBFT implements EventListener{
         this.broadcast.send(send_event);
     }
 
-    protected void prepare(byte[] msg, int src) {
+    protected void prepare(byte[] msg, String src) {
         String[] params = new String(msg).split("\n");
         String key = params[1]+params[2]+params[3];
-        Set<Integer> setPrepares;
+        Set<String> setPrepares;
+
         lockPrepare.lock();
         if(! prepares.containsKey(key) ) {
-            setPrepares = new HashSet<Integer>();
+            setPrepares = new HashSet<String>();
             prepares.put(key, setPrepares);
             //System.out.println("ADDED KEY: " + key);
         }
@@ -215,15 +210,15 @@ public class IBFT implements EventListener{
         }
     }
 
-    protected void commit(byte[] msg, int src) {
+    protected void commit(byte[] msg, String src) {
 
-        Set<Integer> setCommits;
+        Set<String> setCommits;
         String[] params = new String(msg).split("\n");
         String key = params[1]+params[2]+params[3];
 
         lockCommit.lock();
         if(! commits.containsKey(key) ) {
-            setCommits = new HashSet<Integer>();
+            setCommits = new HashSet<String>();
             commits.put(key, setCommits);
         }
         setCommits = commits.get(key);

@@ -12,25 +12,26 @@ import group13.primitives.Address;
 public class BMemberByzantine extends BMember {
 
     @Override
-    public void createBMember(Integer id, ArrayList<Address> list, Integer nrFaulty, Integer nrServers,
-                    Integer myIPort, Address myInfo, boolean isLeader) {
-        _id = id;
-        _listOfServers = list;
+    public void createBMember(ArrayList<Address> serverList, Integer nrFaulty, Integer nrServers,
+                    Address interfaceAddress, Address myInfo, String leaderId) {
+        _serverList = serverList;
         _nrFaulty = nrFaulty;
         _nrServers = nrServers;
-        _myIPort = myIPort;
         _myInfo = myInfo;
-        _isLeader = isLeader;
+        _isLeader = myInfo.getProcessId().equals(leaderId);
+
         for (int i = 0; i < 1000; i++) {
             _ledger.add("");
         }
 
-        BEBroadcast beb = new BEBroadcast(new Address(_myInfo.getPort()));
-        for (int index = 0; index < _listOfServers.size(); index++ ) {
-            beb.addServer(new Address(_listOfServers.get(index).getPort()));
+        BEBroadcast beb = new BEBroadcast(myInfo);
+        for (Address serverAddress : serverList) {
+            beb.addServer(serverAddress);
         }
-        _consensus = new IBFTByzantine(_id, _nrServers, _nrFaulty, 0, beb, this);
-        frontend = new BMemberInterface(_id, _myIPort, this);
+
+
+        _consensus = new IBFTByzantine(_nrServers, _nrFaulty, leaderId, beb, this);
+        frontend = new BMemberInterface(interfaceAddress, this);
     }
 
     public String getConsensusResult(int instance) {
