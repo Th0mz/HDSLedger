@@ -42,28 +42,27 @@ import java.util.Base64;
 
 
 public class IBFT implements EventListener{
-    
-    private int nrProcesses, byzantineP, quorum;
-    private int pId, preparedRound, instance;
-    private String input, preparedValue;
-    private BEBroadcast broadcast;
-    private BMember _server;
-    private int round = 1;
 
-    private long beg;
+    protected int nrProcesses, byzantineP, quorum;
+    protected int pId, preparedRound, instance;
+    protected String input, preparedValue;
+    protected BEBroadcast broadcast;
+    protected BMember _server;
+    protected int round = 1;
 
-    private Lock lockPrepare = new ReentrantLock();
-    private Lock lockCommit = new ReentrantLock();
-    private int prepared, commited;
-    private HashMap<String, Set<Integer>> prepares = new HashMap<>();
-    private HashMap<String, Set<Integer>> commits = new HashMap<>();
-    private List<PublicKey> publicKeys = new ArrayList<PublicKey>(4);
-    private PrivateKey myKey;
-    //private HashMap<byte[],byte[]> validPrePreapares = new HashMap<>();
-    
+    protected long beg;
+
+    protected Lock lockPrepare = new ReentrantLock();
+    protected Lock lockCommit = new ReentrantLock();
+    protected int prepared, commited;
+    protected HashMap<String, Set<Integer>> prepares = new HashMap<>();
+    protected HashMap<String, Set<Integer>> commits = new HashMap<>();
+    protected List<PublicKey> publicKeys = new ArrayList<PublicKey>(4);
+    protected PrivateKey myKey;
+
     //Timer (eventually)
 
-    private int leader;
+    protected int leader;
 
     Base64.Encoder encoder = Base64.getEncoder();
 
@@ -77,11 +76,19 @@ public class IBFT implements EventListener{
         broadcast = beb;
         broadcast.subscribeDelivery(this);
         publicKeys = new ArrayList<PublicKey>(nrProcesses);
-        myKey = getPrivateKey("C:\\Users\\Cristi\\Desktop\\private-key-"+ (pId+1) +".key");
-        for (int i = 0; i < nrProcesses; i++){
-            publicKeys.add(getPubKey("C:\\Users\\Cristi\\Desktop\\public-key-" + (i+1) + ".pub"));
+
+        String consensus_folder;
+        try {
+            consensus_folder = new File("./src/main/java/group13/blockchain/consensus").getCanonicalPath();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
+        myKey = getPrivateKey(consensus_folder + "\\private-key-"+ (pId+1) + ".key");
+        for (int i = 0; i < nrProcesses; i++){
+            PublicKey key = getPubKey(consensus_folder + "\\public-key-" + (i+1) + ".pub");
+            publicKeys.add(key);
+        }
     }
 
     private int leader(int instance, int round) {
@@ -116,7 +123,8 @@ public class IBFT implements EventListener{
         if (event.getEventName() == BEBDeliver.EVENT_NAME) {
             BEBDeliver typed_event = (BEBDeliver) event;
             byte[] payload = typed_event.getPayload();
-            int src = typed_event.getProcessID();
+            int src = 1;
+            // TODO : int src = typed_event.getProcessID();
 
             byte[] signature = extractSignature(payload, payload.length, 256);
             byte[] msg = extractMsg(payload, payload.length - 256);
@@ -248,6 +256,7 @@ public class IBFT implements EventListener{
 
 
     private static PrivateKey getPrivateKey(String file) {
+
         try {
             //Encoder enc = Base64.getEncoder();
             FileInputStream fis = new FileInputStream(file);

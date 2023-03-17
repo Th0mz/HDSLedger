@@ -42,7 +42,8 @@ public class BlockchainTest {
                             3456, new Address(3333), false);
         server3.createBMember(2, listOfServers, 1, 4, 
                             4567, new Address(4444), false);
-        server4.createBMemberByzantine(3, listOfServers, 1, 4, 
+        // this will create a byzantine member
+        server4.createBMember(3, listOfServers, 1, 4,
                             5678, new Address(5555), false);
         
         ibft1 = server1.getConsensusObject();

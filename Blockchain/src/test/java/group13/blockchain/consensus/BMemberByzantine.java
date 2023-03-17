@@ -11,22 +11,8 @@ import group13.primitives.Address;
 
 public class BMemberByzantine extends BMember {
 
-    private ArrayList<Address> _listOfServers = new ArrayList<Address>();
-    private Integer _id;
-    private Integer _nrFaulty;
-    private Integer _nrServers;
-    private Integer _myIPort;
-    private Address _myInfo;
-    private boolean _isLeader;
-
-    private BMemberInterface frontend;
-
-    private IBFTByzantine _consensus;
-    private ArrayList<String> _ledger = new ArrayList<String>();
-    private Lock ledgerLock = new ReentrantLock();
-
-  
-    public void createBMemberByzantine(Integer id, ArrayList<Address> list, Integer nrFaulty, Integer nrServers,
+    @Override
+    public void createBMember(Integer id, ArrayList<Address> list, Integer nrFaulty, Integer nrServers,
                     Integer myIPort, Address myInfo, boolean isLeader) {
         _id = id;
         _listOfServers = list;
@@ -44,7 +30,6 @@ public class BMemberByzantine extends BMember {
             beb.addServer(new Address(_listOfServers.get(index).getPort()));
         }
         _consensus = new IBFTByzantine(_id, _nrServers, _nrFaulty, 0, beb, this);
-
         frontend = new BMemberInterface(_id, _myIPort, this);
     }
 
@@ -53,7 +38,7 @@ public class BMemberByzantine extends BMember {
     }
 
     public IBFTByzantine getConsensusObject(){
-        return _consensus;
+        return (IBFTByzantine) _consensus;
     }
     
 }

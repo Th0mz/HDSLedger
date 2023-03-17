@@ -9,19 +9,19 @@ import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.primitives.Address;
 
 public class BMember {
-    private ArrayList<Address> _listOfServers = new ArrayList<Address>();
-    private Integer _id;
-    private Integer _nrFaulty;
-    private Integer _nrServers;
-    private Integer _myIPort;
-    private Address _myInfo;
-    private boolean _isLeader;
+    protected ArrayList<Address> _listOfServers = new ArrayList<Address>();
+    protected Integer _id;
+    protected Integer _nrFaulty;
+    protected Integer _nrServers;
+    protected Integer _myIPort;
+    protected Address _myInfo;
+    protected boolean _isLeader;
 
-    private BMemberInterface frontend;
+    protected BMemberInterface frontend;
 
-    private IBFT _consensus;
-    private ArrayList<String> _ledger = new ArrayList<String>();
-    private Lock ledgerLock = new ReentrantLock();
+    protected IBFT _consensus;
+    protected ArrayList<String> _ledger = new ArrayList<String>();
+    protected Lock ledgerLock = new ReentrantLock();
 
     public BMember(){}
 

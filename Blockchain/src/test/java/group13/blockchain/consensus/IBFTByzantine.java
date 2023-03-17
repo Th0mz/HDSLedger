@@ -33,38 +33,14 @@ import group13.channel.bestEffortBroadcast.events.BEBSend;
 
 public class IBFTByzantine extends IBFT {
 
-    private int nrProcesses, byzantineP, quorum;
-    private int pId, preparedRound, instance;
-    private String input, preparedValue;
-    private BEBroadcast broadcast;
-    private BMember _server;
-    private int round = 1;
-
-    private Lock lock = new ReentrantLock();
-
-    private int prepared, commited;
-    private HashMap<String, Set<Integer>> prepares = new HashMap<>();
-    private HashMap<String, Set<Integer>> commits = new HashMap<>();
-    private int leader;
-
     private boolean isStartByzantine = false;
     private boolean isPrePrepareByzantine = false;
     private boolean isPrepareByzantine = false;
     private boolean isCommitByzantine = false;
     
-    private PrivateKey myKey;
 
     public IBFTByzantine(int id, int n, int f, int leader, BEBroadcast beb, BMember server) {
         super(id, n, f, leader, beb, server);
-        pId = id;
-        nrProcesses = n;
-        byzantineP = f;
-        quorum = (nrProcesses + byzantineP)/2 + 1;
-        this.leader = leader;
-        _server = server;
-        broadcast = beb;
-        broadcast.subscribeDelivery(this);
-        myKey = getPrivateKey("C:\\Users\\Cristi\\Desktop\\private-key-" +  (pId+1) + ".key");
     }
 
     @Override
@@ -77,7 +53,7 @@ public class IBFTByzantine extends IBFT {
         preparedValue = null;
 
         byte[] msg = new String("0\n" + instance + "\n" + round + "\n" + input).getBytes();
-        byte[] signature = sign(msg, myKey);
+        byte[] signature = sign(msg, super.myKey);
         if(isStartByzantine) {
             System.out.println("-------------------------");
             System.out.println("SENT PRE PREPARE FROM BYZANTINE PID" + pId);
@@ -115,7 +91,7 @@ public class IBFTByzantine extends IBFT {
         else {
             preparedValue = params[3];
             byte[] payload = new String("2\n" + params[1] + "\n" + params[2] + "\n" + "WRONG MESSAGE").getBytes();
-            byte[] signature = sign(payload, myKey);
+            byte[] signature = sign(payload, super.myKey);
             broadcast.send(new BEBSend(concatBytes(payload, signature)));
             System.out.println("SENT BROADCAST OF WRONG COMMIT");
         }
