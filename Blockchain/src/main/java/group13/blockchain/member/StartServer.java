@@ -31,7 +31,6 @@ public class StartServer {
             return;
         }
 
-        // TODO :
         Integer serverId = Integer.parseInt(args[1]);
         boolean isLeader = false;
         if (serverId == 0)
@@ -67,7 +66,6 @@ public class StartServer {
         }
         System.out.println(myInfo);
 
-        // TODO : lala
         String leaderId = listOfServers.get(0).getProcessId();
         server.createBMember(listOfServers, nrFaulty, nrServers, interfaceAddress,
                             myInfo, leaderId);

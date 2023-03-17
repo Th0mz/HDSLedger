@@ -44,7 +44,6 @@ public class BEBroadcast implements EventListener {
             byte[] payload = typed_event.getPayload();
 
             BEBDeliver triggered_event = new BEBDeliver(process_id, payload);
-            System.out.println("broadcast : delivering to the above module");
             bebEventHandler.trigger(triggered_event);
         } else if (eventName == NetworkNew.EVENT_NAME) {
             NetworkNew typed_event = (NetworkNew) event;

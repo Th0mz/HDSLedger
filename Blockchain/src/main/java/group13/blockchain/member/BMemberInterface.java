@@ -40,7 +40,6 @@ public class BMemberInterface implements EventListener {
 
         byte[] payload = ev.getPayload();
         String payloadString = new String(payload);
-        System.out.println(payloadString);
         _server.tryConsensus(payloadString, clientId);
     }
 

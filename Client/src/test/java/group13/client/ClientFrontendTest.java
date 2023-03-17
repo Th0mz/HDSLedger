@@ -22,6 +22,7 @@ class ClientFrontendTest {
     @Test
     @DisplayName("Check hanshake messages")
     public void CheckHandshakeMessagesTest () {
+
         Address client_addr = new Address(9876);
         Address p1_addr = new Address(5001);
         Address p2_addr = new Address(5002);
@@ -82,8 +83,6 @@ class ClientFrontendTest {
         deliver_event = (BEBDeliver) received_events.get(0);
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertTrue(client_addr.getProcessId().equals(deliver_event.getProcessId()));
-
-
 
     }
 }

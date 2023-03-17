@@ -93,7 +93,6 @@ public class IBFT implements EventListener{
 
     public void start(int instance, String value) {
 
-        System.out.println("start");
         beg = System.currentTimeMillis();
         this.instance = instance;
         input = value;
