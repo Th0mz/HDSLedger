@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -114,6 +115,42 @@ public class PerfectLinkOut {
             System.out.println("Error : Unable to send packet (must die? or just retry?)");
             throw new RuntimeException(e);
         }
+    }
+
+    public void send_handshake () {
+        String inAddressString = inAddress.toString();
+        byte[] packetData = new byte[PerfectLink.HEADER_SIZE + inAddressString.length()];
+
+        // prepend type_of_message + sequence_number + process_id
+        // code 0 represents am ACK message being sent
+        packetData[0] = (byte) 0x02;
+
+        // sequence number
+        packetData[1] = (byte) (this.sequenceNumber >> 24);
+        packetData[2] = (byte) (this.sequenceNumber >> 16);
+        packetData[3] = (byte) (this.sequenceNumber >> 8);
+        packetData[4] = (byte) this.sequenceNumber;
+
+        // process id
+        byte[] inProcessId = Base64.getDecoder().decode(this.inAddress.getProcessId());
+        System.arraycopy(inProcessId, 0, packetData,
+                PerfectLink.MESSAGE_TYPE_SIZE + PerfectLink.SEQUENCE_NUMBER_SIZE,
+                inProcessId.length);
+
+        byte[] data = inAddressString.getBytes(StandardCharsets.UTF_8);
+        System.arraycopy(data, 0, packetData, PerfectLink.HEADER_SIZE, data.length);
+        DatagramPacket packet = new DatagramPacket(packetData, packetData.length, this.outAddress.getInetAddress(), this.outAddress.getPort());
+
+        try {
+            this.outSocket.send(packet);
+        } catch (IOException e) {
+            // TODO : must die? or just retry?
+            System.out.println("Error : Unable to send packet (must die? or just retry?)");
+            throw new RuntimeException(e);
+        }
+
+        this.link.packet_send(sequenceNumber, packetData);
+        this.sequenceNumber += 1;
     }
 
 

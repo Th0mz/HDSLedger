@@ -42,7 +42,8 @@ public class Client {
                 portsForBlockchain.add(Integer.parseInt(splited[2]));
                 pids.add(i);
 			}
-            frontend = new ClientFrontend(9999, 9876, listOfServers, pids);
+
+            frontend = new ClientFrontend(new Address(9876), listOfServers);
 
 			reader.close();
 		} catch (IOException e) {

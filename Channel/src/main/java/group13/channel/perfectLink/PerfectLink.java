@@ -72,6 +72,10 @@ public class PerfectLink {
         this.outLink.send_ack(sequenceNumber);
     }
 
+    public void send_handshake () {
+        this.outLink.send_handshake();
+    }
+
     public void retransmit (byte[] payload, int sequenceNumber) {
         this.outLink.retransmit(payload, sequenceNumber);
     }

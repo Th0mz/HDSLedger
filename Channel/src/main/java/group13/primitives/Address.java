@@ -64,7 +64,7 @@ public class Address {
     }
 
     public String toString() {
-        return "address:" + this.hostname + " | port:" + this.port;
+        return this.hostname + ":" + this.port;
     }
 
 }

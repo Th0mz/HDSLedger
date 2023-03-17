@@ -38,7 +38,7 @@ public class BMember {
             _ledger.add("");
         }
 
-        BEBroadcast beb = new BEBroadcast(_id, new Address(_myInfo.getPort()));
+        BEBroadcast beb = new BEBroadcast(new Address(_myInfo.getPort()));
         for (int index = 0; index < _listOfServers.size(); index++ ) {
             beb.addServer(new Address(_listOfServers.get(index).getPort()));
         }

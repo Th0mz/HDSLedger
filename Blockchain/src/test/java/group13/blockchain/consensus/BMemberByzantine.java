@@ -39,9 +39,9 @@ public class BMemberByzantine extends BMember {
             _ledger.add("");
         }
 
-        BEBroadcast beb = new BEBroadcast(_id, new Address(_myInfo.getPort()));
+        BEBroadcast beb = new BEBroadcast(new Address(_myInfo.getPort()));
         for (int index = 0; index < _listOfServers.size(); index++ ) {
-            beb.addServer(index, new Address(_listOfServers.get(index).getPort()));
+            beb.addServer(new Address(_listOfServers.get(index).getPort()));
         }
         _consensus = new IBFTByzantine(_id, _nrServers, _nrFaulty, 0, beb, this);
 

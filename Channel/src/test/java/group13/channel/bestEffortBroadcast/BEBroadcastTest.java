@@ -34,10 +34,10 @@ class BEBroadcastTest {
         Address sender_addr = new Address(5000);
 
         // broadcast module instances
-        BEBroadcast sender   = new BEBroadcast(1, sender_addr);
-        BEBroadcast process1 = new BEBroadcast(2, new Address(5001));
-        BEBroadcast process2 = new BEBroadcast(3, new Address(5002));
-        BEBroadcast process3 = new BEBroadcast(4, new Address(5003));
+        BEBroadcast sender   = new BEBroadcast(sender_addr);
+        BEBroadcast process1 = new BEBroadcast(new Address(5001));
+        BEBroadcast process2 = new BEBroadcast(new Address(5002));
+        BEBroadcast process3 = new BEBroadcast(new Address(5003));
 
         List<BEBroadcast> broadcast_modules = new ArrayList<>(List.of(sender, process1, process2, process3));
 
@@ -58,9 +58,9 @@ class BEBroadcastTest {
 
         // setup event architecture
         sender.subscribeDelivery(am);
-        sender.subscribeDelivery(am_process1);
-        sender.subscribeDelivery(am_process2);
-        sender.subscribeDelivery(am_process3);
+        process1.subscribeDelivery(am_process1);
+        process2.subscribeDelivery(am_process2);
+        process3.subscribeDelivery(am_process3);
 
         // broadcast(message);
         BEBSend send_event = new BEBSend(MESSAGE.getBytes());

@@ -21,15 +21,13 @@ public class BEBroadcast implements EventListener {
     // perfect link
     private List<PerfectLink> links;
     private Network network;
-
-    private int inProcessId;
     private Address inAddress;
+
     private EventHandler bebEventHandler = new EventHandler();
 
-    public BEBroadcast (int inProcessId, Address inAddress) {
+    public BEBroadcast (Address inAddress) {
 
         this.inAddress = inAddress;
-        this.inProcessId = inProcessId;
 
         // create network (process that listens for packets)
         this.network = new Network(inAddress);
@@ -64,23 +62,19 @@ public class BEBroadcast implements EventListener {
         }
     }
 
-    /*
-    public void unicast(BEBSend send_event, int outProcessId, Address destination) {
-        byte[] payload = send_event.getPayload().getBytes();
-        HashMap<Integer, PerfectLinkOut> links = this.links.getOutLinks();
-        System.out.println("Unicast");
-        PerfectLinkOut out_link;
-        
-        if (!links.containsKey(processId)){
-            out_link = new PerfectLinkOut(processId, destination);
-        } else {
-            out_link = links.get(processId);
+    public void send_handshake () {
+        for (PerfectLink link : links) {
+            link.send_handshake();
         }
-            
-        out_link.send(payload);
     }
 
-     */
+
+    public void unicast(String outProcessId, byte[] payload) {
+        PerfectLink link = this.network.getLink(outProcessId);
+        if (link != null) {
+            link.send(payload);
+        }
+    }
 
     public Address getInAddress() {
         return inAddress;

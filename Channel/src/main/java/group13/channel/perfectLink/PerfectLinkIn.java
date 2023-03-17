@@ -85,6 +85,8 @@ public class PerfectLinkIn {
             return 0; // it's a 'send' message
         else if (data[0] == 0x01)
             return 1; // it's an 'ack' message
+        else if (data[0] == 0x02)
+            return 2;
 
         return -1; //unknown type
     }

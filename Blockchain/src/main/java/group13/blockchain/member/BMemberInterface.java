@@ -23,7 +23,7 @@ public class BMemberInterface implements EventListener {
     public BMemberInterface(int pid, int port, BMember server) {
         _port = port;
         _server = server;
-        beb = new BEBroadcast(pid, new Address(port));
+        beb = new BEBroadcast(new Address(port));
         beb.subscribeDelivery(this);
         System.out.println("Started process " + _port );
     }

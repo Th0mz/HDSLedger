@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -50,11 +51,33 @@ public class Network extends Thread {
                 inSocket.receive(packet);
                 byte[] packetData = packet.getData();
                 String outProcessId = this.getProcessId(packetData);
+                int messageType = this.getMessageType(packetData);
 
-                if (! this.links.containsKey(outProcessId)) {
-                    //TODO: MARTELADA ADD SENDER SO IT CAN RECEIVE MSG FROM CLIENT(PID UNKNOWN)
-                    // processId, new Address(9876)
-                    System.out.println("Error : Received message from unknown process id");
+
+                if (! this.links.containsKey(outProcessId) && messageType == 2) {
+                    byte[] byte_stream = new byte[packet.getLength() - PerfectLink.HEADER_SIZE];
+
+                    System.out.println();
+                    System.arraycopy(packetData, PerfectLink.HEADER_SIZE, byte_stream, 0, packet.getLength() - PerfectLink.HEADER_SIZE);
+
+                    String payload = new String(byte_stream, StandardCharsets.UTF_8);
+                    String[] parts = payload.split(":");
+
+                    if (parts.length != 2) {
+                        System.err.println("Error : Invalid address");
+                    }
+
+                    Address outAddress = new Address(parts[0], Integer.parseInt(parts[1]));
+                    if (!outAddress.getProcessId().equals(outProcessId)) {
+                        System.err.println("Error : process id doesnt match with the received address");
+                    }
+
+                    this.createLink(outAddress);
+                } else if (!this.links.containsKey(outProcessId) && messageType != 2){
+                    // process unknown and first message isn't handshake
+                    System.err.println("Error : Received message from unknown process id without handshake");
+                    this.close();
+                    return;
                 }
 
                 Thread thread = new Thread() {
@@ -86,6 +109,10 @@ public class Network extends Thread {
         return link;
     }
 
+    public PerfectLink getLink (String processId) {
+        return this.links.get(processId);
+    }
+
     // message parse
     public String getProcessId(byte[] packetData) {
         int processIdStart = PerfectLink.MESSAGE_TYPE_SIZE + PerfectLink.SEQUENCE_NUMBER_SIZE;
@@ -110,5 +137,17 @@ public class Network extends Thread {
             thread.interrupt();
         }
         this.interrupt();
+    }
+
+    public int getMessageType(byte[] data) {
+
+        if(data[0] == 0x00)
+            return 0; // it's a 'send' message
+        else if (data[0] == 0x01)
+            return 1; // it's an 'ack' message
+        else if (data[0] == 0x02)
+            return 2;
+
+        return -1; //unknown type
     }
 }
