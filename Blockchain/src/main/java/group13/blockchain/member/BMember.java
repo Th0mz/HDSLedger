@@ -46,7 +46,7 @@ public class BMember {
         frontend = new BMemberInterface(interfaceAddress, this);
     }
 
-    public void tryConsensus(String msg, String clientId) {
+    public void tryConsensus(byte[] msg, String clientId) {
         System.out.println("tryConsensus");
         if (!_isLeader)
             return;
@@ -57,7 +57,9 @@ public class BMember {
 
         System.out.println("leader : " + nextInstance);
 
-        _consensus.start(nextInstance, msg);
+        if(!_consensus.start(nextInstance, msg)) {
+            _nextInstance -=1;
+        }
         System.out.println("============================");
         System.out.println("============================");
         System.out.println("CONSENSUS STARTED");

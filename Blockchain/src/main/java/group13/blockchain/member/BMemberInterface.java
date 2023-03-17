@@ -39,8 +39,8 @@ public class BMemberInterface implements EventListener {
         String clientId = ev.getProcessId();
 
         byte[] payload = ev.getPayload();
-        String payloadString = new String(payload);
-        _server.tryConsensus(payloadString, clientId);
+        //String payloadString = new String(payload);
+        _server.tryConsensus(payload, clientId);
     }
 
     public void ackClient(Integer instance, String msg, String clientId) {

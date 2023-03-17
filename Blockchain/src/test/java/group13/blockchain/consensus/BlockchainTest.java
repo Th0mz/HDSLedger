@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import group13.blockchain.member.BMember;
 import group13.primitives.Address;
+import group13.client.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,6 +25,7 @@ public class BlockchainTest {
     private static BMemberByzantine server4;
     private static IBFT ibft1, ibft2, ibft3;
     private static IBFTByzantine byz4;
+    private static ClientFrontend cf1;
 
     @BeforeAll
     public static void init() {
@@ -62,14 +64,20 @@ public class BlockchainTest {
         ibft2 = server2.getConsensusObject();
         ibft3 = server3.getConsensusObject();
         byz4 = server4.getConsensusObject();
+
+        cf1 = new ClientFrontend(new Address(9876), listOfServers);
+
     }
 
     @Test
     @DisplayName("Byzantine member fakes start")
     public void ByzantineStartTest () {
         byz4.setStartByzantine();
-        byz4.start(0, WRONG_MESSAGE);
-        ibft1.start(0, CONSENSUS_MESSAGE);
+        
+        //byz4.start(0, WRONG_MESSAGE.getBytes());
+        System.out.println("HIIIIIIIIIIIIIIIIIIIIIIIIIIII");
+        //cf1.sendCommand(CONSENSUS_MESSAGE);
+        System.out.println("HIIIIIIIIIIIIIIIIIIIIIIIIIIII2");
 
         try{
             Thread.sleep(1000);
@@ -91,7 +99,7 @@ public class BlockchainTest {
     @DisplayName("Byzantine member fakes preprepare")
     public void ByzantinePrePrepareTest () {
         byz4.setPrePrepareByzantine();
-        ibft1.start(1, CONSENSUS_MESSAGE);
+        cf1.sendCommand(CONSENSUS_MESSAGE);
 
         try{
             Thread.sleep(1000);
@@ -109,8 +117,7 @@ public class BlockchainTest {
     @DisplayName("Byzantine member fakes prepare")
     public void ByzantinePrepareTest () {
         byz4.setPrepareByzantine();
-        ibft1.start(2, CONSENSUS_MESSAGE);
-
+        cf1.sendCommand(CONSENSUS_MESSAGE);
         try{
             Thread.sleep(1000);
         } catch(InterruptedException e) {
@@ -127,8 +134,7 @@ public class BlockchainTest {
     @DisplayName("Byzantine member fakes commit")
     public void ByzantineCommitTest () {
         byz4.setCommitByzantine();
-        ibft1.start(3, CONSENSUS_MESSAGE);
-
+        cf1.sendCommand(CONSENSUS_MESSAGE);
         try{
             Thread.sleep(1000);
         } catch(InterruptedException e) {

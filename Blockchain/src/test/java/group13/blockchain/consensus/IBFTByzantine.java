@@ -28,13 +28,17 @@ public class IBFTByzantine extends IBFT {
 
     public IBFTByzantine(int n, int f, String leader, BEBroadcast beb, BMember server) {
         super(n, f, leader, beb, server);
+        System.out.println("BYZANTINOOOOOOOOOOOOOOO" + beb.getInAddress().getProcessId());
     }
 
     @Override
-    public void start(int instance, String value) {
+    public boolean start(int instance, byte[] value) {
 
+        if(value.length <= 256) {
+            return false;
+        }
         this.instance = instance;
-        input = value;
+        input = new String(extractMsg(value, value.length - 256));
         round = 1;
         preparedRound = -1;
         preparedValue = null;
@@ -57,6 +61,7 @@ public class IBFTByzantine extends IBFT {
                 //add signature ???
             }
         }
+        return true;
     }
 
     @Override

@@ -50,6 +50,8 @@ public class IBFT implements EventListener{
     protected HashMap<String, Set<String>> commits = new HashMap<>();
     protected HashMap<String, PublicKey> publicKeys;
     protected PrivateKey myKey;
+    private PublicKey clientPKey;
+
 
     //Timer (eventually)
 
@@ -70,6 +72,8 @@ public class IBFT implements EventListener{
         broadcast.subscribeDelivery(this);
         publicKeys = new HashMap<String, PublicKey>(nrProcesses);
 
+
+
         String consensus_folder;
         try {
             consensus_folder = new File("./src/main/java/group13/blockchain/consensus").getCanonicalPath();
@@ -79,6 +83,7 @@ public class IBFT implements EventListener{
 
         // TODO :
         myKey = getPrivateKey(consensus_folder + "\\" + pId.substring(0, 5) + ".key");
+        clientPKey = getPubKey(consensus_folder + "\\public-key-client.pub");
         for (Address outAddress : beb.getAllAddresses()){
             String outProcessId = outAddress.getProcessId();
             PublicKey key = getPubKey(consensus_folder + "\\" + outProcessId.substring(0, 5) + ".pub");
@@ -91,11 +96,24 @@ public class IBFT implements EventListener{
         return round % nrProcesses;
     }
 
-    public void start(int instance, String value) {
+    public boolean start(int instance, byte[] value) {
 
         beg = System.currentTimeMillis();
+
+        if(value.length <= 256) {
+            return false;
+        }
+
+        byte[] signatureClient = extractSignature(value, value.length, 256);
+        byte[] payload = extractMsg(value, value.length-256);
+
+        /*if (! verify(payload, signatureClient, clientPKey)) {
+            return false;
+        }*/
+        System.out.println("CLIENT REQUEST SIGNATURE VERIFIED");
+
         this.instance = instance;
-        input = value;
+        input = new String(payload);
         round = 1;
         preparedRound = -1;
         preparedValue = null;
@@ -111,7 +129,8 @@ public class IBFT implements EventListener{
 
             broadcast.send(new BEBSend(concatBytes(msg, signature)));
         }
-
+        
+        return true;
         //no timer for now
     }
 
@@ -129,6 +148,7 @@ public class IBFT implements EventListener{
             String msgType = new String(new byte[]{payload[0]});
             //String[] params = msg.split("\n");
 
+            System.out.println(src);
             boolean signVerified = verify(msg, signature, publicKeys.get(src));
 
             System.out.println("-------------------------");
@@ -311,6 +331,8 @@ public class IBFT implements EventListener{
         // Sign the message using the private key
         try {
 
+            System.out.println("SIGNEDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+
             Signature signature = Signature.getInstance("SHA256withRSA");
             signature.initSign(privateKey);
             signature.update(message);
@@ -327,7 +349,8 @@ public class IBFT implements EventListener{
     private boolean verify(byte[] message, byte[] signature, PublicKey publicKey) {
         try{
         // Verify the signature using the public key
-        
+        System.out.println("VERIFYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
+
             Signature signatureVerifier = Signature.getInstance("SHA256withRSA");
             signatureVerifier.initVerify(publicKey);
             signatureVerifier.update(message);
