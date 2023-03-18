@@ -64,7 +64,7 @@ public class Network extends Thread {
                 if (! this.links.containsKey(outProcessId) && messageType == 2) {
                     byte[] byte_stream = new byte[packet.getLength() - PerfectLink.HEADER_SIZE];
 
-                    System.out.println();
+                    //System.out.println();
                     System.arraycopy(packetData, PerfectLink.HEADER_SIZE, byte_stream, 0, packet.getLength() - PerfectLink.HEADER_SIZE);
 
                     String payload = new String(byte_stream, StandardCharsets.UTF_8);

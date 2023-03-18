@@ -48,7 +48,7 @@ public class ClientFrontend implements EventListener {
 
         byte[] payload = message.getBytes();
         byte[] signature = sign(payload, mKey);
-        System.out.println("FRONTEEEEEEEEEEEEEEEND" + beb.getInAddress().getProcessId());
+        //System.out.println("FRONTEEEEEEEEEEEEEEEND" + beb.getInAddress().getProcessId());
         BEBSend send_event = new BEBSend(concatBytes(payload, signature));
         beb.send(send_event);
     }
@@ -135,7 +135,7 @@ public class ClientFrontend implements EventListener {
             return signedMessage;
 
         } catch (SignatureException |NoSuchAlgorithmException | InvalidKeyException e) {
-            System.out.println("ABCBSAHCBKSACBKJSCBKASCBSAKCBAKSJCB");
+            //System.out.println("ABCBSAHCBKSACBKJSCBKASCBSAKCBAKSJCB");
             e.printStackTrace();
             System.exit(-1);
         }

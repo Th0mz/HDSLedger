@@ -24,7 +24,7 @@ public class BMemberInterface implements EventListener {
         beb = new BEBroadcast(memberAddress);
         beb.subscribeDelivery(this);
 
-        System.out.println("Started process " +  memberAddress.getPort() );
+        //System.out.println("Started process " +  memberAddress.getPort() );
     }
 
     @Override

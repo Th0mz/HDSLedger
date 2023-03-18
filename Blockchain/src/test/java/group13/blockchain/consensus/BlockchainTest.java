@@ -41,7 +41,7 @@ public class BlockchainTest {
     private static PrivateKey mKey;
     private static byte[] msg;
     private static byte[] signature;
-    private static byte[] signedMessage;
+    private static byte[] signedMessage, signedMessage2, signedMessage3;
 
     @BeforeAll
     public static void init() {
@@ -57,6 +57,8 @@ public class BlockchainTest {
         msg = CONSENSUS_MESSAGE.getBytes();
         signature = sign(msg, mKey);
         signedMessage = concatBytes(msg, signature);
+        signedMessage2 = concatBytes(new String(CONSENSUS_MESSAGE + "abx").getBytes(), sign(new String(CONSENSUS_MESSAGE + "abx").getBytes(),mKey));
+        signedMessage3 = concatBytes(new String(CONSENSUS_MESSAGE + "xxx").getBytes(), sign(new String(CONSENSUS_MESSAGE + "xxx").getBytes(),mKey));
 
 
         Address server1_addr = new Address(2222);
@@ -101,6 +103,7 @@ public class BlockchainTest {
         byz4.setStartByzantine();
         byz4.start(0, WRONG_MESSAGE.getBytes());
         ibft1.start(0, signedMessage);
+        
 
         try{
             Thread.sleep(1000);
@@ -118,6 +121,40 @@ public class BlockchainTest {
         byz4.clearAllByzantine();
     }
 
+    
+    @Test
+    @DisplayName("Multiple Instances")
+    public void MultipleInstancesTest () {
+        byz4.setStartByzantine();
+        byz4.start(0, WRONG_MESSAGE.getBytes());
+        ibft1.start(0, signedMessage);
+        ibft1.start(1, signedMessage2);
+        ibft1.start(2, signedMessage3);
+
+
+        try{
+            Thread.sleep(2000);
+        } catch(InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        server1.printLedger();
+        server2.printLedger();
+        server3.printLedger();
+
+        assertEquals(CONSENSUS_MESSAGE, server1.getConsensusResult(0));
+        assertEquals(CONSENSUS_MESSAGE, server2.getConsensusResult(0));
+        assertEquals(CONSENSUS_MESSAGE, server3.getConsensusResult(0));
+        assertEquals(CONSENSUS_MESSAGE + "abx", server1.getConsensusResult(1));
+        assertEquals(CONSENSUS_MESSAGE + "abx", server2.getConsensusResult(1));
+        assertEquals(CONSENSUS_MESSAGE + "abx", server3.getConsensusResult(1));
+        assertEquals(CONSENSUS_MESSAGE + "xxx", server1.getConsensusResult(2));
+        assertEquals(CONSENSUS_MESSAGE + "xxx", server2.getConsensusResult(2));
+        assertEquals(CONSENSUS_MESSAGE + "xxx", server3.getConsensusResult(2));
+        byz4.clearAllByzantine();
+    }
+
+    
     @Test
     @DisplayName("Byzantine member fakes preprepare")
     public void ByzantinePrePrepareTest () {
@@ -231,7 +268,7 @@ public class BlockchainTest {
         // Sign the message using the private key
         try {
 
-            System.out.println("SIGNEDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+            //System.out.println("SIGNEDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
 
             Signature signature = Signature.getInstance("SHA256withRSA");
             signature.initSign(privateKey);
@@ -249,7 +286,7 @@ public class BlockchainTest {
     private boolean verify(byte[] message, byte[] signature, PublicKey publicKey) {
         try{
         // Verify the signature using the public key
-        System.out.println("VERIFYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
+        //System.out.println("VERIFYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
 
             Signature signatureVerifier = Signature.getInstance("SHA256withRSA");
             signatureVerifier.initVerify(publicKey);

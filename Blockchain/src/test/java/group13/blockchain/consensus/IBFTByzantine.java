@@ -28,7 +28,7 @@ public class IBFTByzantine extends IBFT {
 
     public IBFTByzantine(int n, int f, String leader, BEBroadcast beb, BMember server) {
         super(n, f, leader, beb, server);
-        System.out.println("BYZANTINOOOOOOOOOOOOOOO" + beb.getInAddress().getProcessId());
+        //System.out.println("BYZANTINOOOOOOOOOOOOOOO" + beb.getInAddress().getProcessId());
     }
 
     @Override
@@ -70,7 +70,7 @@ public class IBFTByzantine extends IBFT {
             super.prePrepare(msg, src);
         else {
             String[] params = new String(msg).split("\n");
-            byte[] wrong = new String("0\n" + params[1] + params[2] + "WRONG MESSAGE").getBytes();
+            byte[] wrong = new String("0\n" + params[1]+ "\n" + params[2]+"\n" + "WRONG MESSAGE").getBytes();
             super.prePrepare(wrong, src);
         }
     }

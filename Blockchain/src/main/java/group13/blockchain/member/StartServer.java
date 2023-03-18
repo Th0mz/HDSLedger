@@ -61,9 +61,9 @@ public class StartServer {
 
         System.out.println(nrFaulty);
         System.out.println(nrServers);
-        for(Address s : listOfServers) {
-            System.out.println(s);
-        }
+        /*for(Address s : listOfServers) {
+            //System.out.println(s);
+        }*/
         System.out.println(myInfo);
 
         String leaderId = listOfServers.get(0).getProcessId();

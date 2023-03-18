@@ -98,7 +98,7 @@ public class IBFT implements EventListener{
 
     public boolean start(int instance, byte[] value) {
 
-        beg = System.currentTimeMillis();
+        //beg = System.currentTimeMillis();
 
         if(value.length <= 256) {
             return false;
@@ -107,7 +107,9 @@ public class IBFT implements EventListener{
         byte[] signatureClient = extractSignature(value, value.length, 256);
         byte[] payload = extractMsg(value, value.length-256);
 
+        //System.out.println("Verifying " + new String(payload));
         if (! verify(payload, signatureClient, clientPKey)) {
+           // System.out.println("Did not pass " + new String(payload));
             return false;
         }
         //System.out.println("CLIENT REQUEST SIGNATURE VERIFIED");
@@ -148,12 +150,12 @@ public class IBFT implements EventListener{
             String msgType = new String(new byte[]{payload[0]});
             //String[] params = msg.split("\n");
 
-            System.out.println(src);
+            //System.out.println(src);
             boolean signVerified = verify(msg, signature, publicKeys.get(src));
-
+            /* 
             System.out.println("-------------------------");
             System.out.println("PID " + pId +" RECEIVED UPDATE WITH MESSAGE: " + msgType + " FROM PID " + src +"\nVERIFY STATUS: " + signVerified);
-            System.out.println("-------------------------");
+            System.out.println("-------------------------");*/
             
             //verify signature
             //check round matches
@@ -177,12 +179,12 @@ public class IBFT implements EventListener{
     protected void prePrepare(byte[] msg, String src){
         String[] params = new String(msg).split("\n");
         //timer -- maybe not for now
-        System.out.println("-----------------------");
+        /*System.out.println("-----------------------");
         System.out.println("-----------------------");
         System.out.println("PRE PREPARE");
         System.out.println("Value: " + params[3]);
         System.out.println("-----------------------");
-        System.out.println("-----------------------");
+        System.out.println("-----------------------");*/
 
         byte[] payload = new String("1\n" + params[1] + "\n" + params[2] + "\n" + params[3]).getBytes();
         // Send signedPrePrepare for validation that Prepares are not bogus
@@ -258,14 +260,14 @@ public class IBFT implements EventListener{
             //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
             if( commitCount == quorum) {
                 //timer stuff
-                Float time = (System.currentTimeMillis() - beg)/1000F;
-                System.out.println(time);
-                System.out.println("-----------------------");
-                System.out.println("-----------------------");
-                System.out.println("DECIDE");
+                //Float time = (System.currentTimeMillis() - beg)/1000F;
+                //System.out.println(time);
+                //System.out.println("-----------------------");
+                System.out.println("\n-----------------------");
+                System.out.println("DECIDE by PID " + pId);
                 System.out.println("Value decided: " + params[3]);
                 System.out.println("-----------------------");
-                System.out.println("-----------------------");
+                //System.out.println("-----------------------");
 
                 _server.deliver(Integer.parseInt(params[1]), params[3]);
             }
@@ -331,7 +333,7 @@ public class IBFT implements EventListener{
         // Sign the message using the private key
         try {
 
-            System.out.println("SIGNEDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+            //System.out.println("SIGNEDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
 
             Signature signature = Signature.getInstance("SHA256withRSA");
             signature.initSign(privateKey);
@@ -349,7 +351,7 @@ public class IBFT implements EventListener{
     private boolean verify(byte[] message, byte[] signature, PublicKey publicKey) {
         try{
         // Verify the signature using the public key
-        System.out.println("VERIFYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
+        //System.out.println("VERIFYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
 
             Signature signatureVerifier = Signature.getInstance("SHA256withRSA");
             signatureVerifier.initVerify(publicKey);

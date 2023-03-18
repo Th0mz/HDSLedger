@@ -47,7 +47,7 @@ public class BMember {
     }
 
     public void tryConsensus(byte[] msg, String clientId) {
-        System.out.println("tryConsensus");
+        //System.out.println("tryConsensus");
         if (!_isLeader)
             return;
 
@@ -55,23 +55,23 @@ public class BMember {
         int nextInstance = _nextInstance;
         _nextInstance += 1;
 
-        System.out.println("leader : " + nextInstance);
+        //System.out.println("leader : " + nextInstance);
 
         if(!_consensus.start(nextInstance, msg)) {
             _nextInstance -=1;
         }
+        /*System.out.println("============================");
         System.out.println("============================");
-        System.out.println("============================");
-        System.out.println("CONSENSUS STARTED");
+        System.out.println("CONSENSUS STARTED");*/
         ledgerLock.unlock();
         this.instances.put(nextInstance, clientId);
     }
 
     public void deliver(Integer instance, String message) {
         // TODO: CHANGE PID AND PORT FOR REAL VALUES BASED ON WHO ASKED FOR OPERATION
-        System.out.println("CONSENSUS FINISHED");
+        /*System.out.println("CONSENSUS FINISHED");
         System.out.println("============================");
-        System.out.println("============================");
+        System.out.println("============================");*/
 
         ledgerLock.lock();
         _ledger.put(instance, message); //TODO: DONT ALLOW BYZANTINE TO FORCE A MSG
