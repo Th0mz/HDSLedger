@@ -6,8 +6,20 @@ import org.junit.jupiter.api.Test;
 
 import group13.blockchain.member.BMember;
 import group13.primitives.Address;
-import group13.client.*;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -19,16 +31,33 @@ import org.junit.jupiter.api.BeforeAll;
 public class BlockchainTest {
 
     public static String CONSENSUS_MESSAGE = "test message";
-    public static String WRONG_MESSAGE = "wrong message";
+    public static String WRONG_MESSAGE = "wrong messageaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     private static BMember server1, server2, server3;
     private static BMemberByzantine server4;
     private static IBFT ibft1, ibft2, ibft3;
     private static IBFTByzantine byz4;
-    private static ClientFrontend cf1;
+
+    private static PrivateKey mKey;
+    private static byte[] msg;
+    private static byte[] signature;
+    private static byte[] signedMessage;
 
     @BeforeAll
     public static void init() {
+
+        String consensus_folder;
+        try {
+            consensus_folder = new File("../private-key-client.key").getCanonicalPath();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        mKey = getPrivateKey(consensus_folder);
+
+        msg = CONSENSUS_MESSAGE.getBytes();
+        signature = sign(msg, mKey);
+        signedMessage = concatBytes(msg, signature);
+
 
         Address server1_addr = new Address(2222);
         System.out.println("server 1 : " + server1_addr.getProcessId());
@@ -64,20 +93,14 @@ public class BlockchainTest {
         ibft2 = server2.getConsensusObject();
         ibft3 = server3.getConsensusObject();
         byz4 = server4.getConsensusObject();
-
-        cf1 = new ClientFrontend(new Address(9876), listOfServers);
-
     }
 
     @Test
     @DisplayName("Byzantine member fakes start")
     public void ByzantineStartTest () {
         byz4.setStartByzantine();
-        
-        //byz4.start(0, WRONG_MESSAGE.getBytes());
-        System.out.println("HIIIIIIIIIIIIIIIIIIIIIIIIIIII");
-        //cf1.sendCommand(CONSENSUS_MESSAGE);
-        System.out.println("HIIIIIIIIIIIIIIIIIIIIIIIIIIII2");
+        byz4.start(0, WRONG_MESSAGE.getBytes());
+        ibft1.start(0, signedMessage);
 
         try{
             Thread.sleep(1000);
@@ -99,7 +122,7 @@ public class BlockchainTest {
     @DisplayName("Byzantine member fakes preprepare")
     public void ByzantinePrePrepareTest () {
         byz4.setPrePrepareByzantine();
-        cf1.sendCommand(CONSENSUS_MESSAGE);
+        ibft1.start(1, signedMessage);
 
         try{
             Thread.sleep(1000);
@@ -117,7 +140,8 @@ public class BlockchainTest {
     @DisplayName("Byzantine member fakes prepare")
     public void ByzantinePrepareTest () {
         byz4.setPrepareByzantine();
-        cf1.sendCommand(CONSENSUS_MESSAGE);
+        ibft1.start(2, signedMessage);
+
         try{
             Thread.sleep(1000);
         } catch(InterruptedException e) {
@@ -134,7 +158,8 @@ public class BlockchainTest {
     @DisplayName("Byzantine member fakes commit")
     public void ByzantineCommitTest () {
         byz4.setCommitByzantine();
-        cf1.sendCommand(CONSENSUS_MESSAGE);
+        ibft1.start(3, signedMessage);
+
         try{
             Thread.sleep(1000);
         } catch(InterruptedException e) {
@@ -147,4 +172,100 @@ public class BlockchainTest {
         byz4.clearAllByzantine();
     }
 
+
+    
+    private static PrivateKey getPrivateKey(String file) {
+
+        try {
+            //Encoder enc = Base64.getEncoder();
+            FileInputStream fis = new FileInputStream(file);
+            byte[] bytes = new byte[fis.available()];
+            fis.read(bytes);
+            fis.close();
+            //System.out.println(new String(bytes));
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(bytes);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePrivate(spec);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        //hack
+        PrivateKey k = null;
+        return k;
+    }
+
+    private static PublicKey getPubKey(String file) {
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            byte[] bytes = new byte[fis.available()];
+            fis.read(bytes);
+            fis.close();
+            X509EncodedKeySpec ks = new X509EncodedKeySpec(bytes, "RSA");
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            PublicKey pub = kf.generatePublic(ks);
+            return pub;
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        //hack
+        PublicKey k = null;
+        return k;
+    }
+
+    private byte[] extractSignature(byte[] b, int mlength ,int size){
+        byte[] signature = new byte[size];
+        System.arraycopy( b, mlength - size, signature, 0, size);
+        return signature;
+    }
+
+    private byte[] extractMsg(byte[] b, int mlength){
+        byte[] msg = new byte[mlength];
+        System.arraycopy( b, 0, msg, 0, mlength);
+        return msg;
+    }
+
+    public static byte[] sign(byte[] message, PrivateKey privateKey) {
+        byte[] signedMessage = null;
+        // Sign the message using the private key
+        try {
+
+            System.out.println("SIGNEDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signature.initSign(privateKey);
+            signature.update(message);
+            signedMessage = signature.sign();
+            return signedMessage;
+
+        } catch (SignatureException |NoSuchAlgorithmException | InvalidKeyException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        return signedMessage;
+    }
+
+    private boolean verify(byte[] message, byte[] signature, PublicKey publicKey) {
+        try{
+        // Verify the signature using the public key
+        System.out.println("VERIFYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
+
+            Signature signatureVerifier = Signature.getInstance("SHA256withRSA");
+            signatureVerifier.initVerify(publicKey);
+            signatureVerifier.update(message);
+            return signatureVerifier.verify(signature);
+        } catch (SignatureException |NoSuchAlgorithmException | InvalidKeyException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        return false;
+    }
+
+    public static byte [] concatBytes(byte[] a, byte[] b){
+        byte[] c = new byte[a.length + b.length];
+        System.arraycopy(a, 0, c, 0, a.length);
+        System.arraycopy(b, 0, c, a.length, b.length);
+        return c;
+    }
 }
