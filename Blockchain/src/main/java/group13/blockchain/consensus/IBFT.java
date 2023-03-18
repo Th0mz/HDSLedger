@@ -107,10 +107,10 @@ public class IBFT implements EventListener{
         byte[] signatureClient = extractSignature(value, value.length, 256);
         byte[] payload = extractMsg(value, value.length-256);
 
-        /*if (! verify(payload, signatureClient, clientPKey)) {
+        if (! verify(payload, signatureClient, clientPKey)) {
             return false;
-        }*/
-        System.out.println("CLIENT REQUEST SIGNATURE VERIFIED");
+        }
+        //System.out.println("CLIENT REQUEST SIGNATURE VERIFIED");
 
         this.instance = instance;
         input = new String(payload);
@@ -123,9 +123,9 @@ public class IBFT implements EventListener{
             ///Message ->  0(PRE_PREPARE), instance, round, input, signature
             byte[] msg = new String("0\n" + instance + "\n" + round + "\n" + input).getBytes();
             byte[] signature = sign(msg, myKey);
-            System.out.println("-------------------------");
+            /*System.out.println("-------------------------");
             System.out.println("SENT PRE PREPARE FROM LEADER PID" + pId );
-            System.out.println("-------------------------");
+            System.out.println("-------------------------");*/
 
             broadcast.send(new BEBSend(concatBytes(msg, signature)));
         }
