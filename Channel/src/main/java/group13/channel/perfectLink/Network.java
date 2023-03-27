@@ -1,23 +1,25 @@
 package group13.channel.perfectLink;
-import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.perfectLink.events.NetworkNew;
 import group13.primitives.Address;
 import group13.primitives.EventHandler;
 import group13.primitives.EventListener;
+import group13.primitives.NetworkMessage;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 
 public class Network extends Thread {
+
+    public static int MAX_PACKET_SIZE = 2048;
 
     protected HashMap<String, PerfectLink> links;
     private Address inAddress;
@@ -51,23 +53,29 @@ public class Network extends Thread {
         */
 
         while (true) {
-            byte[] buffer = new byte[500];
+            byte[] buffer = new byte[MAX_PACKET_SIZE];
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
             try {
                 inSocket.receive(packet);
                 byte[] packetData = packet.getData();
-                String outProcessId = this.getProcessId(packetData);
-                int messageType = this.getMessageType(packetData);
 
 
-                if (! this.links.containsKey(outProcessId) && messageType == 2) {
-                    byte[] byte_stream = new byte[packet.getLength() - PerfectLink.HEADER_SIZE];
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(packetData);
+                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                NetworkMessage receivedMessage = null;
+                // extract message object
+                try {
+                    receivedMessage = (NetworkMessage) objectInputStream.readObject();
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
 
-                    //System.out.println();
-                    System.arraycopy(packetData, PerfectLink.HEADER_SIZE, byte_stream, 0, packet.getLength() - PerfectLink.HEADER_SIZE);
 
-                    String payload = new String(byte_stream, StandardCharsets.UTF_8);
+                String outProcessId = receivedMessage.getSenderId();
+                if (! this.links.containsKey(outProcessId) && receivedMessage.isHandshake()) {
+
+                    String payload = new String(receivedMessage.getPayload(), StandardCharsets.UTF_8);
                     String[] parts = payload.split(":");
 
                     if (parts.length != 2) {
@@ -84,23 +92,28 @@ public class Network extends Thread {
                     NetworkNew new_event = new NetworkNew(link);
                     networkHandler.trigger(new_event);
 
-                } else if (!this.links.containsKey(outProcessId) && messageType != 2){
+                } else if (!this.links.containsKey(outProcessId) && receivedMessage.isHandshake()){
                     // process unknown and first message isn't handshake
                     System.err.println("Error : Received message from unknown process id without handshake");
                     this.close();
                     return;
                 }
 
+                NetworkMessage finalReceivedMessage = receivedMessage;
                 Thread thread = new Thread() {
                     @Override
                     public void run() {
                         // deliver contents to respective PerfectLinkIn
-                        links.get(outProcessId).receive(packetData, packet.getLength(), packet.getPort());
+                        links.get(outProcessId).receive(finalReceivedMessage);
                     }
                 };
 
                 thread.start();
                 this.threadPool.add(thread);
+
+
+                inputStream.close();
+                objectInputStream.close();
 
             } catch (SocketException e) {
                 // socket closed
@@ -124,18 +137,6 @@ public class Network extends Thread {
         return this.links.get(processId);
     }
 
-    // message parse
-    public String getProcessId(byte[] packetData) {
-        int processIdStart = PerfectLink.MESSAGE_TYPE_SIZE + PerfectLink.SEQUENCE_NUMBER_SIZE;
-        byte[] processId = new byte[32];
-
-        for (int i = processIdStart; i < processIdStart + PerfectLink.PROCESS_ID_SIZE; i++) {
-            processId[i - processIdStart] = packetData[i];
-        }
-
-        return Base64.getEncoder().encodeToString(processId);
-    }
-
     public void subscribeNew(EventListener listener) {
         networkHandler.subscribe(NetworkNew.EVENT_NAME, listener);
     }
@@ -156,17 +157,5 @@ public class Network extends Thread {
             thread.interrupt();
         }
         this.interrupt();
-    }
-
-    public int getMessageType(byte[] data) {
-
-        if(data[0] == 0x00)
-            return 0; // it's a 'send' message
-        else if (data[0] == 0x01)
-            return 1; // it's an 'ack' message
-        else if (data[0] == 0x02)
-            return 2;
-
-        return -1; //unknown type
     }
 }

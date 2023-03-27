@@ -13,9 +13,9 @@ public class PerfectLinkTester extends PerfectLink {
     }
 
     @Override
-    public void receive (byte[] packetData, int packetLength, int packetPort) {
+    public void receive (NetworkMessage message) {
         if (!inProblems) {
-            super.receive(packetData, packetLength, packetPort);
+            super.receive(message);
         }
     }
 

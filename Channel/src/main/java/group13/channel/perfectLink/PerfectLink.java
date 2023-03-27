@@ -2,6 +2,7 @@ package group13.channel.perfectLink;
 
 import group13.primitives.Address;
 import group13.primitives.EventListener;
+import group13.primitives.NetworkMessage;
 
 import java.util.Map;
 import java.util.Timer;
@@ -60,8 +61,8 @@ public class PerfectLink {
         this.timer.scheduleAtFixedRate(this.retransmitTask, this.RETRANSMIT_DELTA, this.RETRANSMIT_DELTA);
     }
 
-    public void receive (byte[] packetData, int packetLength, int packetPort) {
-        this.inLink.receive(packetData, packetLength, packetPort);
+    public void receive (NetworkMessage message) {
+        this.inLink.receive(message);
     }
 
     public void send(byte[] payload) {
