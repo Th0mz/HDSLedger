@@ -4,6 +4,7 @@ import group13.channel.perfectLink.events.Pp2pDeliver;
 import group13.primitives.Address;
 import group13.primitives.EventHandler;
 import group13.primitives.EventListener;
+import group13.primitives.NetworkMessage;
 
 import java.util.Base64;
 
@@ -21,21 +22,19 @@ public class PerfectLinkIn {
         this.plEventHandler = new EventHandler();
     }
 
-    public void receive (byte[] packetData, int packetLength, int packetPort) {
-        int messageType = this.getMessageType(packetData);
-        int sequenceNumber = this.getSeqNum(packetData);
-        String outProcessId = this.getProcessId(packetData);
+    public void receive (NetworkMessage message) {
+        int sequenceNumber = message.getSequenceNumber();
+        String outProcessId = message.getSenderId();
 
-
-        if ( messageType == 0 ) {
+        if ( message.isSend() ) {
 
             // deliver message
             synchronized (this) {
                 if (this.currentSequenceNumber == sequenceNumber) {
-                    byte[] payload = new byte[packetLength - PerfectLink.HEADER_SIZE];
-                    System.arraycopy(packetData, PerfectLink.HEADER_SIZE, payload, 0, packetLength - PerfectLink.HEADER_SIZE);
 
-                    Pp2pDeliver deliver_event = new Pp2pDeliver(outProcessId, payload, packetPort);
+                    byte[] payload = message.getPayload();
+
+                    Pp2pDeliver deliver_event = new Pp2pDeliver(outProcessId, payload);
                     plEventHandler.trigger(deliver_event);
 
                     // increase sequence number
@@ -48,11 +47,11 @@ public class PerfectLinkIn {
                 }
             }
 
-        } else if (messageType == 1) {
+        } else if ( message.isAck() ) {
             // must notify the respective perfect link out that the
             // message was already received
             this.link.received_ack(sequenceNumber);
-        } else if (messageType == 2) {
+        } else if ( message.isHandshake() ) {
 
             if (this.currentSequenceNumber == sequenceNumber) {
                 this.currentSequenceNumber += 1;
