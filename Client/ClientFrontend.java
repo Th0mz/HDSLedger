@@ -2,10 +2,6 @@ package group13.client;
 
 import group13.primitives.Address;
 import group13.primitives.*;
-import group13.blockchain.commands.BlockchainCommand;
-import group13.blockchain.commands.CheckBalanceCommand;
-import group13.blockchain.commands.RegisterCommand;
-import group13.blockchain.commands.TransferCommand;
 import group13.channel.bestEffortBroadcast.*;
 import group13.channel.bestEffortBroadcast.events.*;
 import group13.channel.perfectLink.PerfectLinkIn;
@@ -13,7 +9,6 @@ import group13.channel.perfectLink.PerfectLinkIn;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -22,7 +17,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.security.SignedObject;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -36,15 +30,15 @@ public class ClientFrontend implements EventListener {
 
     public ClientFrontend(Address inAddress, List<Address> addresses, String pubKeyFile) {
         String consensus_folder;
-        //String publicKeyFile;
+        String publicKeyFile;
         try {
             consensus_folder = new File("../private-key-client.key").getCanonicalPath();
-            //publicKeyFile = new File("./" + pubKeyFile).getCanonicalPath();
+            publicKeyFile = new File("../" + pubKeyFile).getCanonicalPath();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         mKey = getPrivateKey(consensus_folder);
-        myPubKey = getPubKey(pubKeyFile);
+        myPubKey = getPubKey(publicKeyFile);
         
         System.out.println("Client on port " + inAddress.toString());
         beb = new BEBroadcast(inAddress);
@@ -55,38 +49,27 @@ public class ClientFrontend implements EventListener {
         beb.send_handshake();
     }
 
-    public void sendCommand(Serializable unsignedCommand) {
+    public void sendCommand(String message) {
 
-        //byte[] payload = message.getBytes();
-        //byte[] signature = sign(payload, mKey);
-        try {
-            Signature signature = Signature.getInstance("SHA256withRSA");
-	        SignedObject signedObject = new SignedObject(unsignedCommand, mKey, signature);
-            System.out.print("Generated signedObject of type:"+(BlockchainCommand)signedObject.getObject()+"    with signature:"+signedObject.getSignature());
-            //TODO: beb.send(new BEBSend(signedObject));
-        } catch (IOException | InvalidKeyException | SignatureException | 
-                NoSuchAlgorithmException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        //BEBSend send_event = new BEBSend(concatBytes(payload, signature));
-        //beb.send(send_event);
+        byte[] payload = message.getBytes();
+        byte[] signature = sign(payload, mKey);
+        //System.out.println("FRONTEEEEEEEEEEEEEEEND" + beb.getInAddress().getProcessId());
+        BEBSend send_event = new BEBSend(concatBytes(payload, signature));
+        beb.send(send_event);
     }
 
     public void register(){
         System.out.print("Registering client:"+ myPubKey);
-        sendCommand(new RegisterCommand(myPubKey));
         //TODO: create Register object and send to server
     }
 
     public void transfer(PublicKey pKeyDest, int amount){
         System.out.print("Sending " + amount + "from "+ myPubKey + " to " + pKeyDest);
-        sendCommand(new TransferCommand(myPubKey, pKeyDest, amount));
         //TODO: create Transfer object and send to server
     }
 
     public void checkBalance(){
         System.out.print("Checking balance of "+ myPubKey);
-        sendCommand(new CheckBalanceCommand(myPubKey));
         //TODO: create Check object and send to server
     }
 

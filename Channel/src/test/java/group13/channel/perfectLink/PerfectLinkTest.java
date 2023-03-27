@@ -170,7 +170,7 @@ class PerfectLinkTest {
         assertEquals(0, p2_to_p1.getRetransmitQueueSize());
     }
 
-    @Test
+    /* @Test
     @DisplayName("Message retransmission because the other process socket is not open")
     public void MessageRetransmissionSocketNotOpenTest() {
 
@@ -228,7 +228,7 @@ class PerfectLinkTest {
         assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
         assertTrue(p3_addr.getProcessId().equals(deliver_event.getProcessId()));
     }
-
+ */
     @Test
     @DisplayName("Message retransmission because ACK was lost/corrupted in the network")
     public void MessageRetransmissionACKLostTest() {

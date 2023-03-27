@@ -82,11 +82,11 @@ public class IBFT implements EventListener{
         }
 
         // TODO :
-        myKey = getPrivateKey(consensus_folder + "\\" + pId.substring(0, 5) + ".key");
-        clientPKey = getPubKey(consensus_folder + "\\public-key-client.pub");
+        myKey = getPrivateKey(consensus_folder + "/" + pId.substring(0, 5) + ".key");
+        clientPKey = getPubKey(consensus_folder + "/public-key-client.pub");
         for (Address outAddress : beb.getAllAddresses()){
             String outProcessId = outAddress.getProcessId();
-            PublicKey key = getPubKey(consensus_folder + "\\" + outProcessId.substring(0, 5) + ".pub");
+            PublicKey key = getPubKey(consensus_folder + "/" + outProcessId.substring(0, 5) + ".pub");
 
             publicKeys.put(outProcessId, key);
         }
