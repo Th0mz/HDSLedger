@@ -13,4 +13,9 @@ public class CheckBalanceCommand extends BlockchainCommand {
     }
 
     public boolean getIsConsistent() { return isConsistent; }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o) && (isConsistent == ((CheckBalanceCommand) o).getIsConsistent());
+    }
 }

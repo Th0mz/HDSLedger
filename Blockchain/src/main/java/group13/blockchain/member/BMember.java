@@ -1,30 +1,41 @@
 package group13.blockchain.member;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.SignedObject;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.commands.*;
 import group13.blockchain.consensus.IBFT;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.primitives.Address;
 
 public class BMember {
+
+    public final static int FEE = 5;
     protected ArrayList<Address> _serverList = new ArrayList<Address>();
     protected HashMap<PublicKey, Integer> clients = new HashMap<PublicKey, Integer>();
     protected HashSet<PublicKey> pendingClients = new HashSet<PublicKey>();
 
-    protected HashMap<PublicKey, HashSet<Integer>> pendingCommands = new HashMap<PublicKey, HashSet<Integer>>();
-    private ReentrantLock pendingCommandsLock = new ReentrantLock();
+    protected HashMap<PublicKey, HashSet<Integer>> receivedCommands = new HashMap<PublicKey, HashSet<Integer>>();
+    private ReentrantLock receivedCommandsLock = new ReentrantLock();
+
+    private ArrayList<BlockchainCommand> nextCommands = new ArrayList<BlockchainCommand>();
+    private ReentrantLock nextCommandsLock = new ReentrantLock();
 
     protected Integer _nrFaulty;
     protected Integer _nrServers;
@@ -39,6 +50,8 @@ public class BMember {
     protected IBFT _consensus;
     protected HashMap<Integer, String> _ledger = new HashMap<>();
     protected Lock ledgerLock = new ReentrantLock();
+
+    private PublicKey myPubKey;
 
     public BMember(){}
 
@@ -57,6 +70,13 @@ public class BMember {
             beb.addServer(serverAddress);
         }
 
+        try {
+            String consensus_folder = new File("./src/main/java/group13/blockchain/consensus").getCanonicalPath();
+            myPubKey = getPubKey(consensus_folder + "/" + _myInfo.getProcessId().substring(0, 5) + ".pub");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        
         _consensus = new IBFT(_nrServers, _nrFaulty, leaderId, beb, this);
         frontend = new BMemberInterface(interfaceAddress, this);
     }
@@ -99,21 +119,7 @@ public class BMember {
             }
         }
 
-        //TODO : pass this to the inside of each function??
-        ledgerLock.lock();
-        int nextInstance = _nextInstance;
-        _nextInstance += 1;
-
-        //System.out.println("leader : " + nextInstance);
-
-        if(!_consensus.start(nextInstance, bcommand)) {
-            _nextInstance -=1;
-        }
-        /*System.out.println("============================");
-        System.out.println("============================");
-        System.out.println("CONSENSUS STARTED");*/
-        ledgerLock.unlock();
-        this.instances.put(nextInstance, clientId);
+        //this.instances.put(nextInstance, clientId); ???
     }
 
     public void deliver(Integer instance, String message) {
@@ -133,7 +139,7 @@ public class BMember {
     }
 
     public synchronized void create_account(RegisterCommand command) {
-        pendingCommandsLock.lock();
+        receivedCommandsLock.lock();
         PublicKey commandPubKey = command.getPublicKey();
         Integer commandId = command.getSequenceNumber();
 
@@ -141,36 +147,72 @@ public class BMember {
             return;
 
         //Guarantee all commands have a unique id+pubKey 'tuple'
-        if(pendingCommands.containsKey(commandPubKey) && 
-            pendingCommands.get(commandPubKey).contains(commandId))
+        if(receivedCommands.containsKey(commandPubKey) && 
+            receivedCommands.get(commandPubKey).contains(commandId))
             return;
 
         pendingClients.add(commandPubKey);
-        if (!pendingCommands.containsKey(commandPubKey))
-            pendingCommands.put(commandPubKey, new HashSet<Integer>());
+        if (!receivedCommands.containsKey(commandPubKey))
+            receivedCommands.put(commandPubKey, new HashSet<Integer>());
         
-        pendingCommands.get(commandPubKey).add(commandId);
-        pendingCommandsLock.unlock();
+        receivedCommands.get(commandPubKey).add(commandId);
+        receivedCommandsLock.unlock();
+
+        nextCommandsLock.lock();
+        nextCommands.add(command);
+        TransferCommand fee = new TransferCommand(-1, commandPubKey, myPubKey, FEE);
+        nextCommands.add(fee);
+
+        if (nextCommands.size() >= 10) {
+            ledgerLock.lock();
+            int nextInstance = _nextInstance;
+            _nextInstance += 1;
+            ledgerLock.unlock();
+            
+            ArrayList<BlockchainCommand> commandsToSend = nextCommands;
+            IBFTBlock block = new IBFTBlock(commandsToSend, nextInstance);
+            nextCommands = new ArrayList<BlockchainCommand>();
+
+            _consensus.start(nextInstance, block);
+        }
+        nextCommandsLock.unlock();
+
         System.out.println("Called consensus for create_account");
         //TODO: add to next consensus block
     }
 
     public synchronized void check_balance(CheckBalanceCommand command) {
 
-        pendingCommandsLock.lock();
+        receivedCommandsLock.lock();
         PublicKey commandPubKey = command.getPublicKey();
         Integer commandId = command.getSequenceNumber();
 
         //Guarantee all commands have a unique id+pubKey 'tuple'
-        if(pendingCommands.containsKey(commandPubKey) && 
-            pendingCommands.get(commandPubKey).contains(commandId))
+        if(receivedCommands.containsKey(commandPubKey) && 
+            receivedCommands.get(commandPubKey).contains(commandId))
             return;
 
-        if (!pendingCommands.containsKey(commandPubKey))
-            pendingCommands.put(commandPubKey, new HashSet<Integer>());
+        if (!receivedCommands.containsKey(commandPubKey))
+            receivedCommands.put(commandPubKey, new HashSet<Integer>());
         
-        pendingCommands.get(commandPubKey).add(commandId);
-        pendingCommandsLock.unlock();
+        receivedCommands.get(commandPubKey).add(commandId);
+        receivedCommandsLock.unlock();
+
+        nextCommandsLock.lock();
+        nextCommands.add(command);
+        if (nextCommands.size() >= 10) {
+            ledgerLock.lock();
+            int nextInstance = _nextInstance;
+            _nextInstance += 1;
+            ledgerLock.unlock();
+            
+            ArrayList<BlockchainCommand> commandsToSend = nextCommands;
+            IBFTBlock block = new IBFTBlock(commandsToSend, nextInstance);
+            nextCommands = new ArrayList<BlockchainCommand>();
+
+            _consensus.start(nextInstance, block);
+        }
+        nextCommandsLock.unlock();
         System.out.println("Called consensus for check_balance");
         //TODO: DO CONSENSUS FOR STRONGLY CONSISTENT READ
 
@@ -178,20 +220,39 @@ public class BMember {
 
     public synchronized void transfer(TransferCommand command) {
 
-        pendingCommandsLock.lock();
+        receivedCommandsLock.lock();
         PublicKey commandPubKey = command.getPublicKey();
         Integer commandId = command.getSequenceNumber();
 
         //Guarantee all commands have a unique id+pubKey 'tuple'
-        if(pendingCommands.containsKey(commandPubKey) && 
-            pendingCommands.get(commandPubKey).contains(commandId))
+        if(receivedCommands.containsKey(commandPubKey) && 
+            receivedCommands.get(commandPubKey).contains(commandId))
             return;
 
-        if (!pendingCommands.containsKey(commandPubKey))
-            pendingCommands.put(commandPubKey, new HashSet<Integer>());
+        if (!receivedCommands.containsKey(commandPubKey))
+            receivedCommands.put(commandPubKey, new HashSet<Integer>());
         
-        pendingCommands.get(commandPubKey).add(commandId);
-        pendingCommandsLock.unlock();
+        receivedCommands.get(commandPubKey).add(commandId);
+        receivedCommandsLock.unlock();
+
+        nextCommandsLock.lock();
+        nextCommands.add(command);
+        TransferCommand fee = new TransferCommand(-1, commandPubKey, myPubKey, FEE);
+        nextCommands.add(fee);
+
+        if (nextCommands.size() >= 10) {
+            ledgerLock.lock();
+            int nextInstance = _nextInstance;
+            _nextInstance += 1;
+            ledgerLock.unlock();
+            
+            ArrayList<BlockchainCommand> commandsToSend = nextCommands;
+            IBFTBlock block = new IBFTBlock(commandsToSend, nextInstance);
+            nextCommands = new ArrayList<BlockchainCommand>();
+
+            _consensus.start(nextInstance, block);
+        }
+        nextCommandsLock.unlock();
         System.out.println("Called consensus for transfer");
         //TODO: DO CONSENSUS AND CHECK VALIDITY ONLY AFTER DELIVER
     }
@@ -215,4 +276,24 @@ public class BMember {
             next = this._ledger.get(++i);
         }
     }
+
+    private static PublicKey getPubKey(String file) {
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            byte[] bytes = new byte[fis.available()];
+            fis.read(bytes);
+            fis.close();
+            X509EncodedKeySpec ks = new X509EncodedKeySpec(bytes, "RSA");
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            PublicKey pub = kf.generatePublic(ks);
+            return pub;
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        //hack
+        PublicKey k = null;
+        return k;
+    }
+
 }

@@ -14,6 +14,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 
+import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.member.BMember;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBSend;
@@ -32,9 +33,8 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public boolean start(int instance, Object value) {
+    public void start(int instance, IBFTBlock value) {
         //TODO
-        return true;
 /*         if(value.length <= 256) {
             return false;
         }
@@ -66,19 +66,19 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public void prePrepare(byte[] msg, String src) {
-        if(!isPrePrepareByzantine)
+    public void prePrepare(IBFTBlock msg, String src) {
+        /* if(!isPrePrepareByzantine)
             super.prePrepare(msg, src);
         else {
             String[] params = new String(msg).split("\n");
             byte[] wrong = new String("0\n" + params[1]+ "\n" + params[2]+"\n" + "WRONG MESSAGE").getBytes();
             super.prePrepare(wrong, src);
-        }
+        } */
     }
 
     @Override
-    public void prepare(byte[] msg, String src) {
-        String[] params = new String(msg).split("\n");
+    public void prepare(IBFTBlock msg, String src) {
+        /* String[] params = new String(msg).split("\n");
         if(!isPrepareByzantine)
             super.prepare(msg, src);
         else {
@@ -87,17 +87,17 @@ public class IBFTByzantine extends IBFT {
             byte[] signature = sign(payload, super.myKey);
             broadcast.send(new BEBSend(concatBytes(payload, signature)));
             System.out.println("SENT BROADCAST OF WRONG COMMIT");
-        }
+        } */
     }
 
     @Override
-    public void commit(byte[] msg, String src) {
-        String[] params = new String(msg).split("\n");
+    public void commit(IBFTBlock msg, String src) {
+        /* String[] params = new String(msg).split("\n");
         if(!isCommitByzantine)
             super.commit(msg, src);
         else {
             _server.deliver(Integer.parseInt(params[1]), "WRONG_MSG");
-        }
+        } */
     }
 
     private static PrivateKey getPrivateKey(String file) {

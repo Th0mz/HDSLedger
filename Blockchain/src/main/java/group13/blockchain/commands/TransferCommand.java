@@ -15,4 +15,11 @@ public class TransferCommand extends BlockchainCommand {
     }
 
     public PublicKey getDestPublicKey() { return _destPubKey; }
+    public int getAmount() { return _amount; }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o) && (_amount == ((TransferCommand) o).getAmount()) 
+                && _destPubKey.equals(((TransferCommand) o).getDestPublicKey());
+    }
 }

@@ -1,5 +1,10 @@
 package group13.blockchain.consensus;
 
+import group13.blockchain.auxiliary.IBFTBlock;
+import group13.blockchain.auxiliary.IBFTCommit;
+import group13.blockchain.auxiliary.IBFTOperation;
+import group13.blockchain.auxiliary.IBFTPrePrepare;
+import group13.blockchain.auxiliary.IBFTPrepare;
 import group13.blockchain.commands.BlockchainCommand;
 import group13.blockchain.member.BMember;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
@@ -52,6 +57,7 @@ public class IBFT implements EventListener{
     protected HashMap<String, Set<String>> commits = new HashMap<>();
     protected HashMap<String, PublicKey> publicKeys;
     protected PrivateKey myKey;
+    protected PublicKey myPubKey;
     private PublicKey clientPKey;
 
 
@@ -85,6 +91,7 @@ public class IBFT implements EventListener{
 
         // TODO :
         myKey = getPrivateKey(consensus_folder + "/" + pId.substring(0, 5) + ".key");
+        myPubKey = getPubKey(consensus_folder + "/" + pId.substring(0, 5) + ".pub");
         clientPKey = getPubKey(consensus_folder + "/public-key-client.pub");
         for (Address outAddress : beb.getAllAddresses()){
             String outProcessId = outAddress.getProcessId();
@@ -98,44 +105,8 @@ public class IBFT implements EventListener{
         return round % nrProcesses;
     }
 
-    public boolean start(int instance, Object value) {
+    public void start(int instance, IBFTBlock block) {
 
-        //beg = System.currentTimeMillis();
-
-       /*  if(value.length <= 256) {
-            return false;
-        } */
-
-        if (!(value instanceof SignedObject))
-            return false;
-        SignedObject signedObject = (SignedObject) value;
-
-        BlockchainCommand bcommand;
-        try {
-            if (!(signedObject.getObject() instanceof BlockchainCommand))
-                return false;
-            bcommand = (BlockchainCommand) signedObject.getObject();
-
-            if (!signedObject.verify(bcommand.getPublicKey(), Signature.getInstance("SHA256withRSA")))
-                return false;
-            
-        } catch (ClassNotFoundException | IOException | InvalidKeyException | 
-                    SignatureException | NoSuchAlgorithmException  e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-         
-        /* byte[] signatureClient = extractSignature(value, value.length, 256);
-        byte[] payload = extractMsg(value, value.length-256);
-
-        //System.out.println("Verifying " + new String(payload));
-        if (! verify(payload, signatureClient, clientPKey)) {
-           // System.out.println("Did not pass " + new String(payload));
-            return false;
-        }
-        //System.out.println("CLIENT REQUEST SIGNATURE VERIFIED");
- */
-        //TODO: DO CONSENSUS; WHAT WILL BE THE PAYLOAD??
         this.instance = instance;
         //input = new String(payload);
         round = 1;
@@ -143,24 +114,52 @@ public class IBFT implements EventListener{
         preparedValue = null;
 
         if ( leader.equals(pId) ) {
-            //broadcast
-            ///Message ->  0(PRE_PREPARE), instance, round, input, signature
-            byte[] msg = new String("0\n" + instance + "\n" + round + "\n" + input).getBytes();
-            byte[] signature = sign(msg, myKey);
-            /*System.out.println("-------------------------");
-            System.out.println("SENT PRE PREPARE FROM LEADER PID" + pId );
-            System.out.println("-------------------------");*/
-
-            broadcast.send(new BEBSend(concatBytes(msg, signature)));
+            Signature signature;
+            try {
+                IBFTPrePrepare prePrepare = new IBFTPrePrepare(block, myPubKey);
+                signature = Signature.getInstance("SHA256withRSA");
+                SignedObject signedObject = new SignedObject(prePrepare, myKey, signature);
+                System.out.print("Generated signedObject of type:"+(BlockchainCommand)signedObject.getObject()+
+                            "    with signature:"+signedObject.getSignature());
+                broadcast.send(new BEBSend(signedObject)); 
+            } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | 
+                    IOException | ClassNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
-        
-        return true;
-        //no timer for now
     }
 
 
     public void update(Event event) {
-        if (event.getEventName() == BEBDeliver.EVENT_NAME) {
+        if (event.getEventName().equals(BEBDeliver.EVENT_NAME)) {
+            Object payload = ((BEBDeliver)event).getPayload();
+            if (!(payload instanceof SignedObject))
+                return;
+
+            SignedObject signedObject = (SignedObject) payload;
+
+            IBFTOperation op = null;
+            try {
+                if (!(signedObject.getObject() instanceof IBFTOperation))
+                    return;
+                op = (IBFTOperation) signedObject.getObject();
+
+                if (!signedObject.verify(op.getPublicKey(), Signature.getInstance("SHA256withRSA")))
+                    return;
+                
+            } catch (ClassNotFoundException | IOException | InvalidKeyException | 
+                        SignatureException | NoSuchAlgorithmException  e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            if (op.getType().equals(IBFTPrePrepare.constType))
+                prePrepare(op.getBlock(), ((BEBDeliver)event).getProcessId());
+            else if (op.getType().equals(IBFTPrepare.constType))
+                prepare(op.getBlock(), ((BEBDeliver)event).getProcessId());
+            else if (op.getType().equals(IBFTCommit.constType))
+                commit(op.getBlock(), ((BEBDeliver)event).getProcessId());
             /* BEBDeliver typed_event = (BEBDeliver) event;
             Object payload = typed_event.getPayload();
             String src = typed_event.getProcessId();
@@ -198,8 +197,8 @@ public class IBFT implements EventListener{
         }
     }
 
-    protected void prePrepare(byte[] msg, String src){
-        String[] params = new String(msg).split("\n");
+    protected void prePrepare(IBFTBlock msg, String src){
+        //String[] params = new String(msg).split("\n");
         //timer -- maybe not for now
         /*System.out.println("-----------------------");
         System.out.println("-----------------------");
@@ -208,20 +207,20 @@ public class IBFT implements EventListener{
         System.out.println("-----------------------");
         System.out.println("-----------------------");*/
 
-        byte[] payload = new String("1\n" + params[1] + "\n" + params[2] + "\n" + params[3]).getBytes();
+        //byte[] payload = new String("1\n" + params[1] + "\n" + params[2] + "\n" + params[3]).getBytes();
         // Send signedPrePrepare for validation that Prepares are not bogus
         //byte[] signedPrePrepare = concatBytes(msg, validPrePreapares.get(msg));
         //byte[] payloadPlusPrePrepare = concatBytes(payload, signedPrePrepare);
-        byte[] signature = sign(payload, myKey);
-        BEBSend send_event = new BEBSend(concatBytes(payload, signature));
+        //byte[] signature = sign(payload, myKey);
+        //BEBSend send_event = new BEBSend(concatBytes(payload, signature));
 
-        this.broadcast.send(send_event);
+        //this.broadcast.send(send_event);
     }
 
-    protected void prepare(byte[] msg, String src) {
-        String[] params = new String(msg).split("\n");
-        String key = params[1]+params[2]+params[3];
-        Set<String> setPrepares;
+    protected void prepare(IBFTBlock msg, String src) {
+        //String[] params = new String(msg).split("\n");
+        //String key = params[1]+params[2]+params[3];
+        /* Set<String> setPrepares;
 
         lockPrepare.lock();
         if(! prepares.containsKey(key) ) {
@@ -254,14 +253,14 @@ public class IBFT implements EventListener{
                 broadcast.send(send_event);
                 //System.out.println("SENT BROADCAST OF COMMIT");
             }
-        }
+        } */
     }
 
-    protected void commit(byte[] msg, String src) {
+    protected void commit(IBFTBlock msg, String src) {
 
         Set<String> setCommits;
-        String[] params = new String(msg).split("\n");
-        String key = params[1]+params[2]+params[3];
+        //String[] params = new String(msg).split("\n");
+        /* String key = params[1]+params[2]+params[3];
 
         lockCommit.lock();
         if(! commits.containsKey(key) ) {
@@ -293,7 +292,7 @@ public class IBFT implements EventListener{
 
                 _server.deliver(Integer.parseInt(params[1]), params[3]);
             }
-        }
+        } */
     }
 
 
