@@ -2,6 +2,7 @@ package group13.blockchain.consensus;
 
 import java.util.ArrayList;
 
+import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.member.BMember;
 import group13.blockchain.member.BMemberInterface;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
@@ -28,7 +29,7 @@ public class BMemberByzantine extends BMember {
         frontend = new BMemberInterface(interfaceAddress, this);
     }
 
-    public String getConsensusResult(int instance) {
+    public IBFTBlock getConsensusResult(int instance) {
         return _ledger.get(instance);
     }
 

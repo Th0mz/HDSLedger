@@ -19,7 +19,7 @@ import java.util.List;
 
 public class Network extends Thread {
 
-    public static int MAX_PACKET_SIZE = 2048;
+    public static int MAX_PACKET_SIZE = 65000;
 
     protected HashMap<String, PerfectLink> links;
     private Address inAddress;

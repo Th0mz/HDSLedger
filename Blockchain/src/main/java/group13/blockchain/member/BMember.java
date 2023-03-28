@@ -48,7 +48,9 @@ public class BMember {
     protected BMemberInterface frontend;
 
     protected IBFT _consensus;
-    protected HashMap<Integer, String> _ledger = new HashMap<>();
+    protected HashMap<Integer, IBFTBlock> _ledger = new HashMap<>();
+    private int lastApplied = -1;
+    protected Lock lastAppliedLock = new ReentrantLock();
     protected Lock ledgerLock = new ReentrantLock();
 
     private PublicKey myPubKey;
@@ -122,35 +124,52 @@ public class BMember {
         //this.instances.put(nextInstance, clientId); ???
     }
 
-    public void deliver(Integer instance, String message) {
-        // TODO: CHANGE PID AND PORT FOR REAL VALUES BASED ON WHO ASKED FOR OPERATION
-        /*System.out.println("CONSENSUS FINISHED");
-        System.out.println("============================");
-        System.out.println("============================");*/
-
+    public void deliver(Integer instance, IBFTBlock block) {
+        //TODO: Save operations. If in order: 1)validate operation; 2)apply
+        
+        System.out.println("DELIVERED BLOCK: " + block);
         ledgerLock.lock();
-        _ledger.put(instance, message); //TODO: DONT ALLOW BYZANTINE TO FORCE A MSG
+        _ledger.put(instance, block);
+        lastAppliedLock.lock();
+        int next = lastApplied + 1;
+        IBFTBlock nextBlock = _ledger.get(next);
+        while (nextBlock != null) {
+            next++;
+            nextBlock = _ledger.get(next);
+            if(nextBlock != null) {
+                //apply(nextBlock);
+            }
+                
+        }
+        lastApplied = next - 1;
+        lastAppliedLock.unlock();
         ledgerLock.unlock();
 
-        if (_isLeader) {
-            String clientId = instances.get(instance);
-            frontend.ackClient(instance, message, clientId);
-        }
+
+        //if (_isLeader) {
+        //    String clientId = instances.get(instance);
+        //    frontend.ackClient(instance, message, clientId);
+        //}
     }
 
     public synchronized void create_account(RegisterCommand command) {
-        receivedCommandsLock.lock();
+        
         PublicKey commandPubKey = command.getPublicKey();
         Integer commandId = command.getSequenceNumber();
-
-        if(clients.containsKey(commandPubKey) || pendingClients.contains(commandPubKey))
+        
+        receivedCommandsLock.lock();
+        if(clients.containsKey(commandPubKey) || pendingClients.contains(commandPubKey)) {
+            receivedCommandsLock.unlock();
             return;
+        }
 
         //Guarantee all commands have a unique id+pubKey 'tuple'
         if(receivedCommands.containsKey(commandPubKey) && 
-            receivedCommands.get(commandPubKey).contains(commandId))
+            receivedCommands.get(commandPubKey).contains(commandId)) {
+            receivedCommandsLock.unlock();
             return;
-
+        }
+            
         pendingClients.add(commandPubKey);
         if (!receivedCommands.containsKey(commandPubKey))
             receivedCommands.put(commandPubKey, new HashSet<Integer>());
@@ -189,9 +208,11 @@ public class BMember {
 
         //Guarantee all commands have a unique id+pubKey 'tuple'
         if(receivedCommands.containsKey(commandPubKey) && 
-            receivedCommands.get(commandPubKey).contains(commandId))
-            return;
-
+            receivedCommands.get(commandPubKey).contains(commandId)) {
+                receivedCommandsLock.unlock();
+                return; 
+        }
+            
         if (!receivedCommands.containsKey(commandPubKey))
             receivedCommands.put(commandPubKey, new HashSet<Integer>());
         
@@ -226,8 +247,11 @@ public class BMember {
 
         //Guarantee all commands have a unique id+pubKey 'tuple'
         if(receivedCommands.containsKey(commandPubKey) && 
-            receivedCommands.get(commandPubKey).contains(commandId))
-            return;
+            receivedCommands.get(commandPubKey).contains(commandId)) {
+            receivedCommandsLock.unlock();  
+            return;   
+        }
+            
 
         if (!receivedCommands.containsKey(commandPubKey))
             receivedCommands.put(commandPubKey, new HashSet<Integer>());
@@ -258,7 +282,7 @@ public class BMember {
     }
 
 
-    public String getConsensusResult(int instance) {
+    public IBFTBlock getConsensusResult(int instance) {
         return _ledger.get(instance);
     }
 
@@ -267,14 +291,14 @@ public class BMember {
     }
 
     public void printLedger() {
-        System.out.println("Ledger of " + this._myInfo.getProcessId());
+        /* System.out.println("Ledger of " + this._myInfo.getProcessId());
         int i = 0;
         String next = this._ledger.get(i);
         while (next != null) {
             System.out.println(i + " : " + next);
 
             next = this._ledger.get(++i);
-        }
+        } */
     }
 
     private static PublicKey getPubKey(String file) {

@@ -66,7 +66,7 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public void prePrepare(IBFTBlock msg, String src) {
+    public void prePrepare(IBFTBlock msg, PublicKey pKey) {
         /* if(!isPrePrepareByzantine)
             super.prePrepare(msg, src);
         else {
@@ -77,7 +77,7 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public void prepare(IBFTBlock msg, String src) {
+    public void prepare(IBFTBlock msg,  PublicKey pKey) {
         /* String[] params = new String(msg).split("\n");
         if(!isPrepareByzantine)
             super.prepare(msg, src);
@@ -91,7 +91,7 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public void commit(IBFTBlock msg, String src) {
+    public void commit(IBFTBlock msg,  PublicKey pKey) {
         /* String[] params = new String(msg).split("\n");
         if(!isCommitByzantine)
             super.commit(msg, src);

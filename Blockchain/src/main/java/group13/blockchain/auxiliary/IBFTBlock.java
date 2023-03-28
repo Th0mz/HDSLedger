@@ -2,12 +2,14 @@ package group13.blockchain.auxiliary;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import group13.blockchain.commands.BlockchainCommand;
 
 public class IBFTBlock implements Serializable {
     private ArrayList<BlockchainCommand> listOfCommands = new ArrayList<BlockchainCommand>();
     private int instance;
+    private UUID uniqueID = UUID.randomUUID();
 
     public IBFTBlock(ArrayList<BlockchainCommand> commands, int inst) {
         listOfCommands = commands;
@@ -35,5 +37,14 @@ public class IBFTBlock implements Serializable {
                 return false;
         
         return true;
+    }
+
+    public String getId() {
+        return uniqueID.toString();
+    }
+
+    @Override
+    public int hashCode() {
+        return uniqueID.hashCode();
     }
 }
