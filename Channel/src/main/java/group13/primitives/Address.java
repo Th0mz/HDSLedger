@@ -2,6 +2,7 @@ package group13.primitives;
 
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
@@ -9,7 +10,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
 
-public class Address {
+public class Address implements Serializable {
 
     private String processId;
     private String hostname;

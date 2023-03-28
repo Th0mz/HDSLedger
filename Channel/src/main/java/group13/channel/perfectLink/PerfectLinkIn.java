@@ -32,7 +32,7 @@ public class PerfectLinkIn {
             synchronized (this) {
                 if (this.currentSequenceNumber == sequenceNumber) {
 
-                    byte[] payload = message.getPayload();
+                    Object payload = message.getPayload();
 
                     Pp2pDeliver deliver_event = new Pp2pDeliver(outProcessId, payload);
                     plEventHandler.trigger(deliver_event);

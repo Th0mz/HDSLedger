@@ -75,14 +75,17 @@ public class Network extends Thread {
                 String outProcessId = receivedMessage.getSenderId();
                 if (! this.links.containsKey(outProcessId) && receivedMessage.isHandshake()) {
 
-                    String payload = new String(receivedMessage.getPayload(), StandardCharsets.UTF_8);
-                    String[] parts = payload.split(":");
+                    /* String payload = new String(receivedMessage.getPayload(), StandardCharsets.UTF_8);
+                    String[] parts = payload.split(":"); */
 
-                    if (parts.length != 2) {
+                    /* if (parts.length != 2) {
                         System.err.println("Error : Invalid address");
-                    }
+                    } */
+                    Object payload = receivedMessage.getPayload();
+                    if (!(payload instanceof Address))
+                        System.err.println("Error : Invalid address");
 
-                    Address outAddress = new Address(parts[0], Integer.parseInt(parts[1]));
+                    Address outAddress = (Address) payload;
                     if (!outAddress.getProcessId().equals(outProcessId)) {
                         System.err.println("Error : process id doesnt match with the received address");
                     }

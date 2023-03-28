@@ -1,5 +1,6 @@
 package group13.blockchain.consensus;
 
+import group13.blockchain.commands.BlockchainCommand;
 import group13.blockchain.member.BMember;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
@@ -24,6 +25,7 @@ import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.SignedObject;
 import java.security.spec.X509EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -96,15 +98,34 @@ public class IBFT implements EventListener{
         return round % nrProcesses;
     }
 
-    public boolean start(int instance, byte[] value) {
+    public boolean start(int instance, Object value) {
 
         //beg = System.currentTimeMillis();
 
-        if(value.length <= 256) {
+       /*  if(value.length <= 256) {
             return false;
-        }
+        } */
 
-        byte[] signatureClient = extractSignature(value, value.length, 256);
+        if (!(value instanceof SignedObject))
+            return false;
+        SignedObject signedObject = (SignedObject) value;
+
+        BlockchainCommand bcommand;
+        try {
+            if (!(signedObject.getObject() instanceof BlockchainCommand))
+                return false;
+            bcommand = (BlockchainCommand) signedObject.getObject();
+
+            if (!signedObject.verify(bcommand.getPublicKey(), Signature.getInstance("SHA256withRSA")))
+                return false;
+            
+        } catch (ClassNotFoundException | IOException | InvalidKeyException | 
+                    SignatureException | NoSuchAlgorithmException  e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+         
+        /* byte[] signatureClient = extractSignature(value, value.length, 256);
         byte[] payload = extractMsg(value, value.length-256);
 
         //System.out.println("Verifying " + new String(payload));
@@ -113,9 +134,10 @@ public class IBFT implements EventListener{
             return false;
         }
         //System.out.println("CLIENT REQUEST SIGNATURE VERIFIED");
-
+ */
+        //TODO: DO CONSENSUS; WHAT WILL BE THE PAYLOAD??
         this.instance = instance;
-        input = new String(payload);
+        //input = new String(payload);
         round = 1;
         preparedRound = -1;
         preparedValue = null;
@@ -139,8 +161,8 @@ public class IBFT implements EventListener{
 
     public void update(Event event) {
         if (event.getEventName() == BEBDeliver.EVENT_NAME) {
-            BEBDeliver typed_event = (BEBDeliver) event;
-            byte[] payload = typed_event.getPayload();
+            /* BEBDeliver typed_event = (BEBDeliver) event;
+            Object payload = typed_event.getPayload();
             String src = typed_event.getProcessId();
 
             byte[] signature = extractSignature(payload, payload.length, 256);
@@ -151,7 +173,7 @@ public class IBFT implements EventListener{
             //String[] params = msg.split("\n");
 
             //System.out.println(src);
-            boolean signVerified = verify(msg, signature, publicKeys.get(src));
+            boolean signVerified = verify(msg, signature, publicKeys.get(src)); */
             /* 
             System.out.println("-------------------------");
             System.out.println("PID " + pId +" RECEIVED UPDATE WITH MESSAGE: " + msgType + " FROM PID " + src +"\nVERIFY STATUS: " + signVerified);
@@ -161,18 +183,18 @@ public class IBFT implements EventListener{
             //check round matches
             // 0 -> PRE-PREPARE; 1 -> PREPARE; 2-> COMMIT
 
-            if( msgType.equals("0") && leader.equals(src) && signVerified/* && round == Integer.parseInt(params[2])*/) {
-                /*lock.lock();
-                validPrePreapares.put(msg, signature);
-                lock.unlock();*/
+            //if( msgType.equals("0") && leader.equals(src) && signVerified/* && round == Integer.parseInt(params[2])*/) {
+                //lock.lock();
+                //validPrePreapares.put(msg, signature);
+                //lock.unlock();
 
 
-                prePrepare(msg, src);
-            } else if (msgType.equals("1") && signVerified /* && round == Integer.parseInt(params[2])*/) {
-                prepare(msg, src);
-            } else if (msgType.equals("2") && signVerified ) {
-                commit(msg, src);
-            }
+            //    prePrepare(msg, src);
+            //} else if (msgType.equals("1") && signVerified /* && round == Integer.parseInt(params[2])*/) {
+            //    prepare(msg, src);
+            //} else if (msgType.equals("2") && signVerified ) {
+            //    commit(msg, src);
+            //}
         }
     }
 

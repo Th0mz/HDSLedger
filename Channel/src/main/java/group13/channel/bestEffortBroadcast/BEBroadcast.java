@@ -41,7 +41,7 @@ public class BEBroadcast implements EventListener {
         if (eventName == Pp2pDeliver.EVENT_NAME) {
             Pp2pDeliver typed_event = (Pp2pDeliver) event;
             String process_id = typed_event.getProcessId();
-            byte[] payload = typed_event.getPayload();
+            Object payload = typed_event.getPayload();
 
             BEBDeliver triggered_event = new BEBDeliver(process_id, payload);
             bebEventHandler.trigger(triggered_event);
@@ -61,7 +61,7 @@ public class BEBroadcast implements EventListener {
     }
 
     public void send (BEBSend send_event) {
-        byte[] payload = send_event.getPayload();
+        Object payload = send_event.getPayload();
 
         for (PerfectLink link : links) {
             link.send(payload);
@@ -75,7 +75,7 @@ public class BEBroadcast implements EventListener {
     }
 
     public void unicast(String outProcessId, BEBSend send_event) {
-        byte[] payload = send_event.getPayload();
+        Object payload = send_event.getPayload();
         PerfectLink link = this.network.getLink(outProcessId);
 
         if (link != null) {

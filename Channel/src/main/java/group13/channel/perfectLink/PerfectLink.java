@@ -65,7 +65,7 @@ public class PerfectLink {
         this.inLink.receive(message);
     }
 
-    public void send(byte[] payload) {
+    public void send(Object payload) {
         this.outLink.send(payload);
     }
 

@@ -32,9 +32,10 @@ public class IBFTByzantine extends IBFT {
     }
 
     @Override
-    public boolean start(int instance, byte[] value) {
-
-        if(value.length <= 256) {
+    public boolean start(int instance, Object value) {
+        //TODO
+        return true;
+/*         if(value.length <= 256) {
             return false;
         }
         this.instance = instance;
@@ -61,7 +62,7 @@ public class IBFTByzantine extends IBFT {
                 //add signature ???
             }
         }
-        return true;
+        return true; */
     }
 
     @Override

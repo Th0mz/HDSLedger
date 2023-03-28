@@ -35,7 +35,7 @@ public class PerfectLinkOut {
         }
     }
 
-    public void send(byte[] data) {
+    public void send(Object data) {
 
         String senderId = this.inAddress.getProcessId();
         NetworkMessage message = new NetworkMessage(senderId, this.sequenceNumber, data, NetworkMessage.messageTypes.SEND);
@@ -131,10 +131,10 @@ public class PerfectLinkOut {
     public void send_handshake () {
 
         String senderId = this.inAddress.getProcessId();
-        String address = this.inAddress.toString();
-        byte[] payload = address.getBytes(StandardCharsets.UTF_8);
+        /*String address = this.inAddress.toString();
+        byte[] payload = address.getBytes(StandardCharsets.UTF_8); */
 
-        NetworkMessage message = new NetworkMessage(senderId, this.sequenceNumber, payload, NetworkMessage.messageTypes.HANDSHAKE);
+        NetworkMessage message = new NetworkMessage(senderId, this.sequenceNumber, this.inAddress, NetworkMessage.messageTypes.HANDSHAKE);
 
         // Convert message object to byte stream
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

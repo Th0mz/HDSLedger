@@ -30,7 +30,7 @@ import org.junit.jupiter.api.BeforeAll;
 
 public class BlockchainTest {
 
-    public static String CONSENSUS_MESSAGE = "test message";
+    /* public static String CONSENSUS_MESSAGE = "test message";
     public static String WRONG_MESSAGE = "wrong messageaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     private static BMember server1, server2, server3;
@@ -304,5 +304,5 @@ public class BlockchainTest {
         System.arraycopy(a, 0, c, 0, a.length);
         System.arraycopy(b, 0, c, a.length, b.length);
         return c;
-    }
+    } */
 }

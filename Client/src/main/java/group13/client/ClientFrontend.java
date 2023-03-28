@@ -23,16 +23,20 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.SignedObject;
+import java.security.spec.ECFieldF2m;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ClientFrontend implements EventListener {
 
     private BEBroadcast beb;
     private PrivateKey mKey;
     private PublicKey myPubKey;
+    private int mySeqNum = 0;
+    private ReentrantLock seqNumLock = new ReentrantLock();
 
     public ClientFrontend(Address inAddress, List<Address> addresses, String pubKeyFile) {
         String consensus_folder;
@@ -63,30 +67,38 @@ public class ClientFrontend implements EventListener {
             Signature signature = Signature.getInstance("SHA256withRSA");
 	        SignedObject signedObject = new SignedObject(unsignedCommand, mKey, signature);
             System.out.print("Generated signedObject of type:"+(BlockchainCommand)signedObject.getObject()+"    with signature:"+signedObject.getSignature());
-            //TODO: beb.send(new BEBSend(signedObject));
+            BEBSend send_event = new BEBSend(signedObject);
+            beb.send(send_event);
         } catch (IOException | InvalidKeyException | SignatureException | 
                 NoSuchAlgorithmException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-        //BEBSend send_event = new BEBSend(concatBytes(payload, signature));
-        //beb.send(send_event);
     }
 
     public void register(){
+        seqNumLock.lock();
         System.out.print("Registering client:"+ myPubKey);
-        sendCommand(new RegisterCommand(myPubKey));
+        sendCommand(new RegisterCommand(mySeqNum, myPubKey));
+        mySeqNum++;
+        seqNumLock.unlock();
         //TODO: create Register object and send to server
     }
 
     public void transfer(PublicKey pKeyDest, int amount){
+        seqNumLock.lock();
         System.out.print("Sending " + amount + "from "+ myPubKey + " to " + pKeyDest);
-        sendCommand(new TransferCommand(myPubKey, pKeyDest, amount));
+        sendCommand(new TransferCommand(mySeqNum, myPubKey, pKeyDest, amount));
+        mySeqNum++;
+        seqNumLock.unlock();
         //TODO: create Transfer object and send to server
     }
 
     public void checkBalance(){
+        seqNumLock.lock();
         System.out.print("Checking balance of "+ myPubKey);
-        sendCommand(new CheckBalanceCommand(myPubKey));
+        sendCommand(new CheckBalanceCommand(mySeqNum, myPubKey));
+        mySeqNum++;
+        seqNumLock.unlock();
         //TODO: create Check object and send to server
     }
 
@@ -100,11 +112,11 @@ public class ClientFrontend implements EventListener {
         }
         BEBDeliver ev = (BEBDeliver) event;
         
-        byte[] byte_stream = ev.getPayload();
-        String payload = new String(byte_stream, StandardCharsets.UTF_8);
+        //byte[] byte_stream = ev.getPayload();
+        //String payload = new String(byte_stream, StandardCharsets.UTF_8);
         
-        System.out.println("CONSENSUS RESULT: ");
-        System.out.println(payload);
+        //System.out.println("CONSENSUS RESULT: ");
+        //System.out.println(payload);
     }
 
     

@@ -6,10 +6,10 @@ public class Pp2pDeliver extends Event {
 
     public static final String EVENT_NAME = "pp2pDeliver";
     private String processId;
-    private byte[] payload;
+    private Object payload;
 
 
-    public Pp2pDeliver(String processId, byte[] payload) {
+    public Pp2pDeliver(String processId, Object payload) {
         super(EVENT_NAME);
         this.processId = processId;
         this.payload = payload;
@@ -19,7 +19,7 @@ public class Pp2pDeliver extends Event {
         return processId;
     }
 
-    public byte[] getPayload() {
+    public Object getPayload() {
         return payload;
     }
 }

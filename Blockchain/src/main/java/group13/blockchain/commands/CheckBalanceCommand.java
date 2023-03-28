@@ -4,10 +4,11 @@ import java.security.PublicKey;
 
 public class CheckBalanceCommand extends BlockchainCommand {
 
+    public static final String constType = "CHECKBALANCE";
     private boolean isConsistent;
 
-    public CheckBalanceCommand(PublicKey publicKey) {
-        super("CHECKBALANCE", publicKey);
+    public CheckBalanceCommand(int seqNum, PublicKey publicKey) {
+        super(constType, publicKey, seqNum);
         isConsistent = true;
     }
 

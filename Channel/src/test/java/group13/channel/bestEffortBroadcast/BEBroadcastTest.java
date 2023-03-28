@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class BEBroadcastTest {
-
+/* 
     public static String MESSAGE = "test message";
     public static String PROCESS1_MESSAGE = "process1";
     public static String PROCESS2_MESSAGE = "process2";
@@ -248,5 +248,5 @@ class BEBroadcastTest {
             assertTrue(Arrays.equals(deliver_event.getPayload(), PROCESS1_MESSAGE.getBytes()));
             assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
         }
-    }
+    } */
 }

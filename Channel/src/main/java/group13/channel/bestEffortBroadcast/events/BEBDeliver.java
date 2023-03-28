@@ -7,10 +7,10 @@ import java.util.Arrays;
 public class BEBDeliver extends Event {
     public static final String EVENT_NAME = "bebDeliver";
     private String processId;
-    private byte[] payload;
+    private Object payload;
 
 
-    public BEBDeliver (String processId, byte[] payload) {
+    public BEBDeliver (String processId, Object payload) {
         super(EVENT_NAME);
         this.processId = processId;
         this.payload = payload;
@@ -21,7 +21,7 @@ public class BEBDeliver extends Event {
     }
 
 
-    public byte[] getPayload() {
+    public Object getPayload() {
         return payload;
     }
 
@@ -40,6 +40,6 @@ public class BEBDeliver extends Event {
         BEBDeliver deliver = (BEBDeliver) o;
 
         return this.processId.equals(deliver.getProcessId()) &&
-                Arrays.equals(this.payload, deliver.getPayload());
+                this.payload.equals(deliver.getPayload());
     }
 }

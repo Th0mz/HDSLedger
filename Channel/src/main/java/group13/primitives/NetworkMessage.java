@@ -12,18 +12,18 @@ public class NetworkMessage implements Serializable {
     };
 
     private messageTypes type;
-    private byte[] payload;
+    private Object payload;
     private int sequenceNumber;
     private String senderId;
 
-    public NetworkMessage(String senderId, int sequenceNumber, byte[] payload, messageTypes type) {
+    public NetworkMessage(String senderId, int sequenceNumber, Object payload, messageTypes type) {
         this.senderId = senderId;
         this.sequenceNumber = sequenceNumber;
         this.payload = payload;
         this.type = type;
     }
 
-    public byte[] getPayload() {
+    public Object getPayload() {
         return payload;
     }
 

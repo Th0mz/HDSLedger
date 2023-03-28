@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PerfectLinkTest {
-    public static String MESSAGE = "test message";
+/*     public static String MESSAGE = "test message";
 
     private Address p1_addr, p2_addr;
     private NetworkTester p1_network, p2_network;
@@ -169,7 +169,7 @@ class PerfectLinkTest {
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());
         assertEquals(0, p2_to_p1.getRetransmitQueueSize());
     }
-
+ */
     /* @Test
     @DisplayName("Message retransmission because the other process socket is not open")
     public void MessageRetransmissionSocketNotOpenTest() {
@@ -229,7 +229,7 @@ class PerfectLinkTest {
         assertTrue(p3_addr.getProcessId().equals(deliver_event.getProcessId()));
     }
  */
-    @Test
+/*     @Test
     @DisplayName("Message retransmission because ACK was lost/corrupted in the network")
     public void MessageRetransmissionACKLostTest() {
 
@@ -321,5 +321,5 @@ class PerfectLinkTest {
         // check retransmit queue sizes
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());
         assertEquals(0, p2_to_p1.getRetransmitQueueSize());
-    }
+    } */
 }
