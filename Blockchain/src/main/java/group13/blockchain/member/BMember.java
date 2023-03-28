@@ -27,8 +27,10 @@ import group13.primitives.Address;
 public class BMember {
 
     public final static int FEE = 5;
+    public final static int INITIAL_BALANCE = 100;
     protected ArrayList<Address> _serverList = new ArrayList<Address>();
     protected HashMap<PublicKey, Integer> clients = new HashMap<PublicKey, Integer>();
+    protected Lock clientsLock = new ReentrantLock();
     protected HashSet<PublicKey> pendingClients = new HashSet<PublicKey>();
 
     protected HashMap<PublicKey, HashSet<Integer>> receivedCommands = new HashMap<PublicKey, HashSet<Integer>>();
@@ -54,6 +56,7 @@ public class BMember {
     protected Lock ledgerLock = new ReentrantLock();
 
     private PublicKey myPubKey;
+    private PublicKey leaderPubKey;
 
     public BMember(){}
 
@@ -68,13 +71,22 @@ public class BMember {
         _nextInstance = 0;
 
         BEBroadcast beb = new BEBroadcast(myInfo);
-        for (Address serverAddress : serverList) {
-            beb.addServer(serverAddress);
-        }
+        
 
         try {
             String consensus_folder = new File("./src/main/java/group13/blockchain/consensus").getCanonicalPath();
             myPubKey = getPubKey(consensus_folder + "/" + _myInfo.getProcessId().substring(0, 5) + ".pub");
+            leaderPubKey = getPubKey(consensus_folder + "/" + leaderId.substring(0, 5) + ".pub");
+            for (Address serverAddress : serverList) {
+                beb.addServer(serverAddress);
+                String outProcessId = serverAddress.getProcessId();
+                PublicKey key = getPubKey(consensus_folder + "/" + outProcessId.substring(0, 5) + ".pub");
+                
+                clientsLock.lock();
+                clients.put(key, INITIAL_BALANCE);
+                clientsLock.unlock();
+            }
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -124,44 +136,19 @@ public class BMember {
         //this.instances.put(nextInstance, clientId); ???
     }
 
-    public void deliver(Integer instance, IBFTBlock block) {
-        //TODO: Save operations. If in order: 1)validate operation; 2)apply
-        
-        System.out.println("DELIVERED BLOCK: " + block);
-        ledgerLock.lock();
-        _ledger.put(instance, block);
-        lastAppliedLock.lock();
-        int next = lastApplied + 1;
-        IBFTBlock nextBlock = _ledger.get(next);
-        while (nextBlock != null) {
-            next++;
-            nextBlock = _ledger.get(next);
-            if(nextBlock != null) {
-                //apply(nextBlock);
-            }
-                
-        }
-        lastApplied = next - 1;
-        lastAppliedLock.unlock();
-        ledgerLock.unlock();
-
-
-        //if (_isLeader) {
-        //    String clientId = instances.get(instance);
-        //    frontend.ackClient(instance, message, clientId);
-        //}
-    }
-
     public synchronized void create_account(RegisterCommand command) {
         
         PublicKey commandPubKey = command.getPublicKey();
         Integer commandId = command.getSequenceNumber();
         
         receivedCommandsLock.lock();
+        clientsLock.lock();
         if(clients.containsKey(commandPubKey) || pendingClients.contains(commandPubKey)) {
+            clientsLock.unlock();
             receivedCommandsLock.unlock();
             return;
         }
+        clientsLock.unlock();
 
         //Guarantee all commands have a unique id+pubKey 'tuple'
         if(receivedCommands.containsKey(commandPubKey) && 
@@ -179,7 +166,7 @@ public class BMember {
 
         nextCommandsLock.lock();
         nextCommands.add(command);
-        TransferCommand fee = new TransferCommand(-1, commandPubKey, myPubKey, FEE);
+        TransferCommand fee = new TransferCommand(-1, commandPubKey, leaderPubKey, FEE);
         nextCommands.add(fee);
 
         if (nextCommands.size() >= 10) {
@@ -261,7 +248,7 @@ public class BMember {
 
         nextCommandsLock.lock();
         nextCommands.add(command);
-        TransferCommand fee = new TransferCommand(-1, commandPubKey, myPubKey, FEE);
+        TransferCommand fee = new TransferCommand(-1, commandPubKey, leaderPubKey, FEE);
         nextCommands.add(fee);
 
         if (nextCommands.size() >= 10) {
@@ -281,6 +268,73 @@ public class BMember {
         //TODO: DO CONSENSUS AND CHECK VALIDITY ONLY AFTER DELIVER
     }
 
+
+    public void deliver(Integer instance, IBFTBlock block) {
+        //TODO: Save operations. If in order: 1)validate operation; 2)apply
+        
+        System.out.println("DELIVERED BLOCK: " + block);
+        ledgerLock.lock();
+        _ledger.put(instance, block);
+        lastAppliedLock.lock();
+        int next = lastApplied + 1;
+        IBFTBlock nextBlock = _ledger.get(next);
+        while (nextBlock != null) {
+            applyBlock(nextBlock);
+            next++;
+            nextBlock = _ledger.get(next);  
+        }
+        lastApplied = next - 1;
+        lastAppliedLock.unlock();
+        ledgerLock.unlock();
+    }
+
+
+    public synchronized void applyBlock(IBFTBlock block) {
+        for(BlockchainCommand command : block.getCommandsList()) {
+            if(command.getType().equals(RegisterCommand.constType))
+                applyRegister((RegisterCommand) command);
+            else if (command.getType().equals(TransferCommand.constType))
+                applyTransfer((TransferCommand) command);
+            else if (command.getType().equals(CheckBalanceCommand.constType))
+                applyCheckBalance((CheckBalanceCommand) command);
+            else {
+                System.out.println("SHOULD NOT GET HERE");
+            }
+        }
+            
+    }
+
+    public void applyRegister(RegisterCommand command) {
+        clientsLock.lock();
+        if(!clients.containsKey(command.getPublicKey()))
+            clients.put(command.getPublicKey(), INITIAL_BALANCE);
+        clientsLock.unlock();
+        System.out.println("->REGISTERED CLIENT");
+    }
+
+    public void applyTransfer(TransferCommand command) {
+        clientsLock.lock();
+        if(clients.containsKey(command.getPublicKey()) && 
+                clients.containsKey(command.getDestPublicKey()) && 
+                    clients.get(command.getPublicKey()) >= command.getAmount()) {
+            int final_source = clients.get(command.getPublicKey()) - command.getAmount();
+            clients.put(command.getPublicKey(), final_source);
+            int final_dest =  clients.get(command.getDestPublicKey()) + command.getAmount();
+            clients.put(command.getDestPublicKey(), final_dest);
+        }
+        clientsLock.unlock();
+        System.out.println("->APPLIED TRANSFER");
+    }
+
+    public void applyCheckBalance(CheckBalanceCommand command) {
+        clientsLock.lock();
+        if(clients.containsKey(command.getPublicKey())){
+            //TODO: Send to client his balance
+            System.out.println("->CHECK BALANCE Client pubKey: "+ command.getPublicKey() 
+                + "    | Amount: " + clients.get(command.getPublicKey()));
+        }
+        clientsLock.unlock();
+    }
 
     public IBFTBlock getConsensusResult(int instance) {
         return _ledger.get(instance);
