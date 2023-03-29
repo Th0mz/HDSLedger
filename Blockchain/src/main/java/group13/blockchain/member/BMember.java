@@ -50,9 +50,7 @@ public class BMember {
     protected Lock ledgerLock = new ReentrantLock();
 
     private PublicKey myPubKey;
-    private PublicKey leaderPubKey;
 
-    public BMember(){}
 
     public void createBMember(ArrayList<Address> serverList, Integer nrFaulty, Integer nrServers,
                     Address interfaceAddress, Address myInfo, String leaderId) {
@@ -70,7 +68,6 @@ public class BMember {
         try {
             String consensus_folder = new File("./src/main/java/group13/blockchain/consensus").getCanonicalPath();
             myPubKey = getPubKey(consensus_folder + "/" + _myInfo.getProcessId().substring(0, 5) + ".pub");
-            leaderPubKey = getPubKey(consensus_folder + "/" + leaderId.substring(0, 5) + ".pub");
             for (Address serverAddress : serverList) {
                 beb.addServer(serverAddress);
                 String outProcessId = serverAddress.getProcessId();
@@ -144,10 +141,6 @@ public class BMember {
 
         nextCommandsLock.lock();
         nextCommands.add(command);
-
-        // TODO : do this like this? shouldn't be the client to sign this transfer? MORE SECURE
-        TransferCommand fee = new TransferCommand(-1, commandPubKey, leaderPubKey, State.FEE);
-        nextCommands.add(fee);
 
         if (nextCommands.size() >= 10) {
             ledgerLock.lock();
