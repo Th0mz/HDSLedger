@@ -50,11 +50,14 @@ public class IBFT implements EventListener{
 
     protected long beg;
 
+    protected Lock lockBlocks = new ReentrantLock();
     protected Lock lockPrepare = new ReentrantLock();
     protected Lock lockCommit = new ReentrantLock();
     protected int prepared, commited;
     protected HashMap<String, HashMap<Integer, Set<PublicKey>>> prepares = new HashMap<>();
     protected HashMap<String, HashMap<Integer, Set<PublicKey>>> commits = new HashMap<>();
+    protected HashMap<String, IBFTBlock> blocks = new HashMap<>();
+
     protected HashMap<String, PublicKey> publicKeys;
     protected PrivateKey myKey;
     protected PublicKey myPubKey;
@@ -114,7 +117,7 @@ public class IBFT implements EventListener{
         if ( leader.equals(pId) ) {
             Signature signature;
             try {
-                IBFTPrePrepare prePrepare = new IBFTPrePrepare(block, myPubKey);
+                IBFTPrePrepare prePrepare = new IBFTPrePrepare(block, myPubKey, block.getId(), block.getInstance());
                 signature = Signature.getInstance("SHA256withRSA");
                 SignedObject signedObject = new SignedObject(prePrepare, myKey, signature);
                 System.out.print("Generated signedObject of type:"+(IBFTPrePrepare)signedObject.getObject()+
@@ -154,45 +157,11 @@ public class IBFT implements EventListener{
             }
 
             if (op.getType().equals(IBFTPrePrepare.constType) && leader.equals(((BEBDeliver)event).getProcessId())) 
-                prePrepare(op.getBlock(), op.getPublicKey());
+                prePrepare(((IBFTPrePrepare)op).getBlock(), op.getPublicKey());
             else if (op.getType().equals(IBFTPrepare.constType))
-                prepare(op.getBlock(), op.getPublicKey());
+                prepare(op.getId(), op.getInstance(), op.getPublicKey());
             else if (op.getType().equals(IBFTCommit.constType))
-                commit(op.getBlock(), op.getPublicKey());
-            /* BEBDeliver typed_event = (BEBDeliver) event;
-            Object payload = typed_event.getPayload();
-            String src = typed_event.getProcessId();
-
-            byte[] signature = extractSignature(payload, payload.length, 256);
-            byte[] msg = extractMsg(payload, payload.length - 256);
-            //String msg = new String(payload, 0, payload.length - 256);
-            //problema aqui se o input acabar com espaço
-            String msgType = new String(new byte[]{payload[0]});
-            //String[] params = msg.split("\n");
-
-            //System.out.println(src);
-            boolean signVerified = verify(msg, signature, publicKeys.get(src)); */
-            /* 
-            System.out.println("-------------------------");
-            System.out.println("PID " + pId +" RECEIVED UPDATE WITH MESSAGE: " + msgType + " FROM PID " + src +"\nVERIFY STATUS: " + signVerified);
-            System.out.println("-------------------------");*/
-            
-            //verify signature
-            //check round matches
-            // 0 -> PRE-PREPARE; 1 -> PREPARE; 2-> COMMIT
-
-            //if( msgType.equals("0") && leader.equals(src) && signVerified/* && round == Integer.parseInt(params[2])*/) {
-                //lock.lock();
-                //validPrePreapares.put(msg, signature);
-                //lock.unlock();
-
-
-            //    prePrepare(msg, src);
-            //} else if (msgType.equals("1") && signVerified /* && round == Integer.parseInt(params[2])*/) {
-            //    prepare(msg, src);
-            //} else if (msgType.equals("2") && signVerified ) {
-            //    commit(msg, src);
-            //}
+                commit(op.getId(), op.getInstance(), op.getPublicKey());
         }
     }
 
@@ -200,59 +169,57 @@ public class IBFT implements EventListener{
         System.out.println("RECEIVED PREPREPARE");
 
         try {
-            IBFTPrepare prepare = new IBFTPrepare(block, myPubKey);
+            lockBlocks.lock();
+            lockCommit.lock();
+
+            String blockId = block.getId();
+            int instance = block.getInstance();
+            blocks.put(blockId, block);
+
+            IBFTPrepare prepare = new IBFTPrepare(myPubKey, blockId, instance);
             Signature signature = Signature.getInstance("SHA256withRSA");
-            SignedObject signedObject = new SignedObject(prepare, myKey, signature);
+            SignedObject signedObject = new SignedObject(prepare, myKey, signature);           
+            this.broadcast.send(new BEBSend(signedObject)); 
+
+            // Can deliver if it already has a quorum of commits 
+            if(commits.containsKey(blockId) && commits.get(blockId).containsKey(instance) 
+                    && commits.get(blockId).get(instance).size() >= quorum) {
+                _server.deliver(instance, block);
+            }
+
             System.out.print("Generated signedObject of type:"+(IBFTPrepare)signedObject.getObject()+
                         "    with signature:"+signedObject.getSignature());
-            this.broadcast.send(new BEBSend(signedObject)); 
             System.out.println("SENT PREPARE MESSAGE");
+
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | 
                 IOException | ClassNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        } finally {
+            lockCommit.unlock();
+            lockBlocks.unlock();
         }
-
-        //String[] params = new String(msg).split("\n");
-        //timer -- maybe not for now
-        /*System.out.println("-----------------------");
-        System.out.println("-----------------------");
-        System.out.println("PRE PREPARE");
-        System.out.println("Value: " + params[3]);
-        System.out.println("-----------------------");
-        System.out.println("-----------------------");*/
-
-        //byte[] payload = new String("1\n" + params[1] + "\n" + params[2] + "\n" + params[3]).getBytes();
-        // Send signedPrePrepare for validation that Prepares are not bogus
-        //byte[] signedPrePrepare = concatBytes(msg, validPrePreapares.get(msg));
-        //byte[] payloadPlusPrePrepare = concatBytes(payload, signedPrePrepare);
-        //byte[] signature = sign(payload, myKey);
-        //BEBSend send_event = new BEBSend(concatBytes(payload, signature));
-
-        //this.broadcast.send(send_event);
     }
 
-    protected void prepare(IBFTBlock block, PublicKey pKey) {
-        System.out.println("RECEIVED PREPARE with block: "+block.getId());
-        System.out.println("with hash: "+ block.hashCode());
+    protected void prepare(String id, int instance, PublicKey pKey) {
+        System.out.println("RECEIVED PREPARE with block: " + id);
         Set<PublicKey> setPrepares;
         for(String blk : prepares.keySet())
             System.out.println("List of blocks: "+ blk);
-        String id = block.getId();
         lockPrepare.lock();
         if(prepares.containsKey(id) && 
-                !prepares.get(id).containsKey(block.getInstance()) ) {
+                !prepares.get(id).containsKey(instance) ) {
             System.out.println("Contains block but not instance Set");
             setPrepares = new HashSet<PublicKey>();
-            prepares.get(id).put(block.getInstance(), setPrepares);
+            prepares.get(id).put(instance, setPrepares);
             //System.out.println("ADDED KEY: " + key);
         } else if(!prepares.containsKey(id)){
             System.out.println("Does not contain block");
             setPrepares = new HashSet<PublicKey>();
             prepares.put(id, new HashMap<>());
-            prepares.get(id).put(block.getInstance(), setPrepares);
+            prepares.get(id).put(instance, setPrepares);
         }
-        setPrepares = prepares.get(id).get(block.getInstance());
+        setPrepares = prepares.get(id).get(instance);
         lockPrepare.unlock();
 
         int prepareCount = setPrepares.size();
@@ -265,8 +232,8 @@ public class IBFT implements EventListener{
             setPrepares.add(pKey);
             prepareCount = setPrepares.size();
             System.out.println("setPrepares size: " + setPrepares.size());
-            prepares.get(id).put(block.getInstance(), setPrepares);
-            System.out.println("After add, setPrepares size: " + prepares.get(id).get(block.getInstance()).size());
+            prepares.get(id).put(instance, setPrepares);
+            System.out.println("After add, setPrepares size: " + prepares.get(id).get(instance).size());
             //System.out.println(prepares.containsKey(block));
             lockPrepare.unlock();
             //System.out.println("SIZE AFTER: " + prepareCount);
@@ -274,7 +241,7 @@ public class IBFT implements EventListener{
             //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
             if( prepareCount == quorum ) {
                 try {
-                    IBFTCommit prepare = new IBFTCommit(block, myPubKey);
+                    IBFTCommit prepare = new IBFTCommit(myPubKey, id, instance);
                     Signature signature = Signature.getInstance("SHA256withRSA");
                     SignedObject signedObject = new SignedObject(prepare, myKey, signature);
                     System.out.print("Generated signedObject of type:"+(IBFTCommit)signedObject.getObject()+
@@ -288,110 +255,41 @@ public class IBFT implements EventListener{
                 }
             }
         }
-        //String[] params = new String(msg).split("\n");
-        //String key = params[1]+params[2]+params[3];
-        /* Set<String> setPrepares;
-
-        lockPrepare.lock();
-        if(! prepares.containsKey(key) ) {
-            setPrepares = new HashSet<String>();
-            prepares.put(key, setPrepares);
-            //System.out.println("ADDED KEY: " + key);
-        }
-        setPrepares = prepares.get(key);
-        lockPrepare.unlock();
-        int prepareCount = setPrepares.size();
-        
-        if (prepareCount < quorum) {
-
-            //System.out.println("SIZE BEFORE: " + prepareCount);
-            lockPrepare.lock();
-            setPrepares.add(src);
-            prepareCount = setPrepares.size();
-            prepares.put(key, setPrepares);
-            lockPrepare.unlock();
-            //System.out.println("SIZE AFTER: " + prepareCount);
-
-            //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
-            if( prepareCount == quorum ) {
-    
-                preparedRound = Integer.parseInt(params[2]);
-                preparedValue = params[3];
-                byte[] payload = new String("2\n" + params[1] + "\n" + params[2] + "\n" + params[3]).getBytes();
-                byte[] signature = sign(payload, myKey);
-                BEBSend send_event = new BEBSend(concatBytes(payload, signature));
-                broadcast.send(send_event);
-                //System.out.println("SENT BROADCAST OF COMMIT");
-            }
-        } */
     }
 
-    protected void commit(IBFTBlock block, PublicKey pKey) {
+    protected void commit(String id, int instance, PublicKey pKey) {
         System.out.println("RECEIVED COMMIT");
         Set<PublicKey> setCommits;
-        String id = block.getId();
         lockCommit.lock();
         if(commits.containsKey(id) && 
-                !commits.get(id).containsKey(block.getInstance()) ) {
+                !commits.get(id).containsKey(instance) ) {
             setCommits = new HashSet<PublicKey>();
-            commits.get(id).put(block.getInstance(), setCommits);
+            commits.get(id).put(instance, setCommits);
             //System.out.println("ADDED KEY: " + key);
         } else if(!commits.containsKey(id)){
             setCommits = new HashSet<PublicKey>();
             commits.put(id, new HashMap<>());
-            commits.get(id).put(block.getInstance(), setCommits);
+            commits.get(id).put(instance, setCommits);
         }
-        setCommits = commits.get(id).get(block.getInstance());
+        setCommits = commits.get(id).get(instance);
         lockCommit.unlock();
 
         int commitCount = setCommits.size();
 
         if (commitCount < this.quorum) {
+            lockBlocks.lock();
             lockCommit.lock();
             setCommits.add(pKey);
             commitCount = setCommits.size();
-            commits.get(id).put(block.getInstance(), setCommits);
-            lockCommit.unlock();
-    
+            commits.get(id).put(instance, setCommits);
+
             //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
-            if( commitCount == quorum) {
-                _server.deliver(block.getInstance(), block);
+            if(commitCount == quorum && blocks.containsKey(id)) {
+                _server.deliver(instance, blocks.get(id));
             }
-        }
-        //String[] params = new String(msg).split("\n");
-        /* String key = params[1]+params[2]+params[3];
-
-        lockCommit.lock();
-        if(! commits.containsKey(key) ) {
-            setCommits = new HashSet<String>();
-            commits.put(key, setCommits);
-        }
-        setCommits = commits.get(key);
-        lockCommit.unlock();
-        int commitCount = setCommits.size();
-
-        if (commitCount < quorum) {
-            lockCommit.lock();
-            setCommits.add(src);
-            commitCount = setCommits.size();
-            commits.put(key, setCommits);
             lockCommit.unlock();
-    
-            //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
-            if( commitCount == quorum) {
-                //timer stuff
-                //Float time = (System.currentTimeMillis() - beg)/1000F;
-                //System.out.println(time);
-                //System.out.println("-----------------------");
-                System.out.println("\n-----------------------");
-                System.out.println("DECIDE by PID " + pId);
-                System.out.println("Value decided: " + params[3]);
-                System.out.println("-----------------------");
-                //System.out.println("-----------------------");
-
-                _server.deliver(Integer.parseInt(params[1]), params[3]);
-            }
-        } */
+            lockBlocks.unlock();
+        }
     }
 
 

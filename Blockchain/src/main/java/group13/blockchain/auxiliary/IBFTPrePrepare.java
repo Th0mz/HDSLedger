@@ -4,7 +4,11 @@ import java.security.PublicKey;
 
 public class IBFTPrePrepare extends IBFTOperation {
     public static final String constType = "PREPREPARE";
-    public IBFTPrePrepare(IBFTBlock blk, PublicKey pKey) {
-        super(constType, blk, pKey);
+    protected IBFTBlock block;
+    public IBFTPrePrepare(IBFTBlock blk, PublicKey pKey, String id, int instance) {
+        super(constType, pKey, id, instance);
+        block = blk;
     }
+
+    public IBFTBlock getBlock() { return block; }
 }
