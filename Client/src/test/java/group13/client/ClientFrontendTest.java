@@ -17,7 +17,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ClientFrontendTest {
-/* 
+
+    /*
     private static String MESSAGE = "test";
     @Test
     @DisplayName("Check hanshake messages")

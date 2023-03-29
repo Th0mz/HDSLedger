@@ -1,6 +1,7 @@
 package group13.blockchain.auxiliary;
 
 import java.io.Serializable;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -9,11 +10,14 @@ import group13.blockchain.commands.BlockchainCommand;
 public class IBFTBlock implements Serializable {
     private ArrayList<BlockchainCommand> listOfCommands = new ArrayList<BlockchainCommand>();
     private int instance;
+
+    private PublicKey miner;
     private UUID uniqueID = UUID.randomUUID();
 
-    public IBFTBlock(ArrayList<BlockchainCommand> commands, int inst) {
+    public IBFTBlock(PublicKey miner, ArrayList<BlockchainCommand> commands, int inst) {
         listOfCommands = commands;
         instance = inst;
+        this.miner = miner;
     }
 
     public ArrayList<BlockchainCommand> getCommandsList() { return listOfCommands; }
@@ -35,12 +39,17 @@ public class IBFTBlock implements Serializable {
         for(int i = 0; i < listOfCommands.size(); i++)
             if(!listOfCommands.get(i).equals(blk.getCommandsList().get(i)))
                 return false;
-        
-        return true;
+
+        // check if the block was mined by the same entity
+        return this.miner.equals(blk.getMiner());
     }
 
     public String getId() {
         return uniqueID.toString();
+    }
+
+    public PublicKey getMiner() {
+        return miner;
     }
 
     @Override

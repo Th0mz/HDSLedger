@@ -5,9 +5,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import group13.blockchain.consensus.IBFT;
-import group13.channel.bestEffortBroadcast.BEBroadcast;
-import group13.channel.bestEffortBroadcast.events.BEBSend;
 import group13.primitives.Address;
 
 public class StartServer {
@@ -16,15 +13,13 @@ public class StartServer {
     
     public static void main(String[] args){
         BufferedReader reader;
+
         ArrayList<Address> listOfServers = new ArrayList<Address>();
         ArrayList<Integer> portsForBlockchain = new ArrayList<Integer>();
         Integer nrFaulty = -1;
         Integer nrServers = -1;
         Address interfaceAddress = null;
-        Integer myIBFTPort = -1;
         Address myInfo = null;
-        IBFT consensus = null;
-        ArrayList<String> ledger = new ArrayList<String>();
 
         if (args.length != 2) {
             System.out.println("Intended format: mvn exec:java -Dexec.args=\"<config-file> <processId>\"");
@@ -49,7 +44,6 @@ public class StartServer {
                 if(i == serverId){
                     myInfo = new Address(splited[0], Integer.parseInt(splited[1]));
                     interfaceAddress = new Address(Integer.parseInt(splited[2]));
-                    myIBFTPort = Integer.parseInt(splited[1]);
                 }
                     
 			}
@@ -58,13 +52,6 @@ public class StartServer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-        System.out.println(nrFaulty);
-        System.out.println(nrServers);
-        /*for(Address s : listOfServers) {
-            //System.out.println(s);
-        }*/
-        System.out.println(myInfo);
 
         String leaderId = listOfServers.get(0).getProcessId();
         server.createBMember(listOfServers, nrFaulty, nrServers, interfaceAddress,

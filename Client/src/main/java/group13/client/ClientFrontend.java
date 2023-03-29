@@ -40,7 +40,7 @@ public class ClientFrontend implements EventListener {
 
     public ClientFrontend(Address inAddress, List<Address> addresses, String pubKeyFile) {
         String consensus_folder;
-        //String publicKeyFile;
+
         try {
             consensus_folder = new File("../private-key-client.key").getCanonicalPath();
             //publicKeyFile = new File("./" + pubKeyFile).getCanonicalPath();
@@ -61,11 +61,10 @@ public class ClientFrontend implements EventListener {
 
     public void sendCommand(Serializable unsignedCommand) {
 
-        //byte[] payload = message.getBytes();
-        //byte[] signature = sign(payload, mKey);
         try {
             Signature signature = Signature.getInstance("SHA256withRSA");
 	        SignedObject signedObject = new SignedObject(unsignedCommand, mKey, signature);
+
             System.out.print("Generated signedObject of type:"+(BlockchainCommand)signedObject.getObject()+"    with signature:"+signedObject.getSignature());
             BEBSend send_event = new BEBSend(signedObject);
             beb.send(send_event);
@@ -110,13 +109,11 @@ public class ClientFrontend implements EventListener {
         if (!eventType.equals(BEBDeliver.EVENT_NAME)) {
             System.out.println("Should only receive deliver events (??)");
         }
+
         BEBDeliver ev = (BEBDeliver) event;
-        
-        //byte[] byte_stream = ev.getPayload();
-        //String payload = new String(byte_stream, StandardCharsets.UTF_8);
-        
-        //System.out.println("CONSENSUS RESULT: ");
-        //System.out.println(payload);
+        System.out.println("received message");
+
+        // TODO : display received message
     }
 
     
@@ -158,58 +155,5 @@ public class ClientFrontend implements EventListener {
         //hack
         PublicKey k = null;
         return k;
-    }
-
-    private byte[] extractSignature(byte[] b, int mlength ,int size){
-        byte[] signature = new byte[size];
-        System.arraycopy( b, mlength - size, signature, 0, size);
-        return signature;
-    }
-
-    private byte[] extractMsg(byte[] b, int mlength){
-        byte[] msg = new byte[mlength];
-        System.arraycopy( b, 0, msg, 0, mlength);
-        return msg;
-    }
-
-    private byte[] sign(byte[] message, PrivateKey privateKey) {
-        byte[] signedMessage = null;
-        // Sign the message using the private key
-        try {
-
-            Signature signature = Signature.getInstance("SHA256withRSA");
-            signature.initSign(privateKey);
-            signature.update(message);
-            signedMessage = signature.sign();
-            return signedMessage;
-
-        } catch (SignatureException |NoSuchAlgorithmException | InvalidKeyException e) {
-            //System.out.println("ABCBSAHCBKSACBKJSCBKASCBSAKCBAKSJCB");
-            e.printStackTrace();
-            System.exit(-1);
-        }
-        return signedMessage;
-    }
-
-    private boolean verify(byte[] message, byte[] signature, PublicKey publicKey) {
-        try{
-        // Verify the signature using the public key
-        
-            Signature signatureVerifier = Signature.getInstance("SHA256withRSA");
-            signatureVerifier.initVerify(publicKey);
-            signatureVerifier.update(message);
-            return signatureVerifier.verify(signature);
-        } catch (SignatureException |NoSuchAlgorithmException | InvalidKeyException e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
-        return false;
-    }
-
-    private byte [] concatBytes(byte[] a, byte[] b){
-        byte[] c = new byte[a.length + b.length];
-        System.arraycopy(a, 0, c, 0, a.length);
-        System.arraycopy(b, 0, c, a.length, b.length);
-        return c;
     }
 }

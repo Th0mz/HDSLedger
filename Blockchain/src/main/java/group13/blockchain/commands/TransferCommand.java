@@ -6,7 +6,7 @@ public class TransferCommand extends BlockchainCommand {
 
     public static final String constType = "TRANSFER";
     private PublicKey _destPubKey;
-    private int _amount;
+    private float _amount;
 
     public TransferCommand(int seqNum, PublicKey publicKey, PublicKey destPublicKey, int amount) {
         super(constType, publicKey, seqNum);
@@ -15,7 +15,7 @@ public class TransferCommand extends BlockchainCommand {
     }
 
     public PublicKey getDestPublicKey() { return _destPubKey; }
-    public int getAmount() { return _amount; }
+    public float getAmount() { return _amount; }
 
     @Override
     public boolean equals(Object o) {

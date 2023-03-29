@@ -18,7 +18,12 @@ import java.util.Scanner;
 import group13.primitives.Address;
 
 
-public class Client {        
+public class Client {
+
+    public static String REGISTER_CMD = "1";
+    public static String TRANSFER_CMD = "2";
+    public static String CHECK_CMD = "3";
+    public static String QUIT_CMD = "q";
 
     public static void main(String args[]) {
         int nrServers = -1;
@@ -64,19 +69,21 @@ public class Client {
         String command = "";
         while(true) {
             System.out.println("Possible commands: ");
-            System.out.println("1) REGISTER to blockchain");
-            System.out.println("2) TRANSFER tokens ");
-            System.out.println("3) CHECK balance ");
-            System.out.println("q) To close client ");
+            System.out.println(" 1) REGISTER to blockchain");
+            System.out.println(" 2) TRANSFER tokens ");
+            System.out.println(" 3) CHECK balance ");
+            System.out.println(" q) To close client ");
             command = scanner.nextLine();
-            if (command.equals("q")) {
-                System.out.println("Killed");
+
+            if (QUIT_CMD.equals(command)) {
+                System.out.println("closing...");
                 scanner.close();
                 System.exit(0);
-            } else if (command.equals("1")) {
+
+            } else if (REGISTER_CMD.equals(command)) {
                 frontend.register();
             }
-            else if (command.equals("2")) {
+            else if (TRANSFER_CMD.equals(command)) {
                 System.out.println("Name of file of publicKey:");
                 String pubFile = scanner.nextLine();
                 System.out.println("Amount to transfer:");
@@ -85,7 +92,7 @@ public class Client {
 
                 frontend.transfer(pKeyDest, amount);
             }
-            else if (command.equals("3")) {
+            else if (CHECK_CMD.equals(command)) {
                 frontend.checkBalance();
             }
         }
