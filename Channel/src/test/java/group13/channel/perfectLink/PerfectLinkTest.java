@@ -14,13 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PerfectLinkTest {
-/*     public static String MESSAGE = "test message";
+
+    private SendObject MESSAGE = new SendObject("test message");
 
     private Address p1_addr, p2_addr;
     private NetworkTester p1_network, p2_network;
     private PerfectLinkTester p1_to_p2, p2_to_p1;
 
-    private AboveModule am_process1, am_process2;
     private AboveModuleListener el_process1, el_process2;
 
     @BeforeEach
@@ -58,6 +58,7 @@ class PerfectLinkTest {
         }
     }
 
+
     @Test
     @DisplayName("Message exchange between 2 end points")
     public void SendMessagesTest () {
@@ -65,7 +66,7 @@ class PerfectLinkTest {
         System.out.println("============================================");
         System.out.println("Test : Message exchange between 2 end points");
         // process 1 sends a message to process 2
-        p1_to_p2.send(MESSAGE.getBytes());
+        p1_to_p2.send(MESSAGE);
 
         // wait for messages to be received
         try {
@@ -83,14 +84,14 @@ class PerfectLinkTest {
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+        assertTrue(MESSAGE.equals(deliver_event.getPayload()));
         assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
 
          el_process1.clean_events();
          el_process2.clean_events();
 
         // process 2 sends a message to process 1
-        p2_to_p1.send(MESSAGE.getBytes());
+        p2_to_p1.send(MESSAGE);
 
         // wait for messages to be received
         try {
@@ -105,7 +106,7 @@ class PerfectLinkTest {
         received_events = el_process1.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+        assertTrue(MESSAGE.equals(deliver_event.getPayload()));
         assertTrue(p2_addr.getProcessId().equals(deliver_event.getProcessId()));
 
         // check process2 received events
@@ -123,7 +124,7 @@ class PerfectLinkTest {
         p2_to_p1.setInProblems(true);
 
         // process 1 send message to process
-        p1_to_p2.send(MESSAGE.getBytes());
+        p1_to_p2.send(MESSAGE);
 
         // wait for two retransmissions
         try {
@@ -161,7 +162,7 @@ class PerfectLinkTest {
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+        assertTrue(MESSAGE.equals(deliver_event.getPayload()));
         assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
 
 
@@ -169,8 +170,8 @@ class PerfectLinkTest {
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());
         assertEquals(0, p2_to_p1.getRetransmitQueueSize());
     }
- */
-    /* @Test
+
+    @Test
     @DisplayName("Message retransmission because the other process socket is not open")
     public void MessageRetransmissionSocketNotOpenTest() {
 
@@ -188,7 +189,7 @@ class PerfectLinkTest {
         p3_to_p4.subscribeDelivery(am_process1.getEventListner());
 
         // process 1 sends a message to process 2
-        p3_to_p4.send(MESSAGE.getBytes());
+        p3_to_p4.send(MESSAGE);
 
         // wait for two retransmissions
         try {
@@ -225,11 +226,11 @@ class PerfectLinkTest {
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+        assertTrue(MESSAGE.equals(deliver_event.getPayload()));
         assertTrue(p3_addr.getProcessId().equals(deliver_event.getProcessId()));
     }
- */
-/*     @Test
+
+    @Test
     @DisplayName("Message retransmission because ACK was lost/corrupted in the network")
     public void MessageRetransmissionACKLostTest() {
 
@@ -237,7 +238,7 @@ class PerfectLinkTest {
         System.out.println("Test : Message retransmission because ACK was lost/corrupted in the network");
 
         // process 1 send message to process
-        p1_to_p2.send(MESSAGE.getBytes());
+        p1_to_p2.send(MESSAGE);
 
         // network problems will affect all packets
         // that process 2 tries to send to process 1
@@ -262,7 +263,7 @@ class PerfectLinkTest {
         List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         Pp2pDeliver deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+        assertTrue(MESSAGE.equals(deliver_event.getPayload()));
         assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
 
 
@@ -287,7 +288,7 @@ class PerfectLinkTest {
         received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+        assertTrue(MESSAGE.equals(deliver_event.getPayload()));
         assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
 
 
@@ -314,12 +315,12 @@ class PerfectLinkTest {
         received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
         assertEquals(1, received_events.size());
         deliver_event = (Pp2pDeliver) received_events.get(0);
-        assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+        assertTrue(MESSAGE.equals(deliver_event.getPayload()));
         assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
 
 
         // check retransmit queue sizes
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());
         assertEquals(0, p2_to_p1.getRetransmitQueueSize());
-    } */
+    }
 }

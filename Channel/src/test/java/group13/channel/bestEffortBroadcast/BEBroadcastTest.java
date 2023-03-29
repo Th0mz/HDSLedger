@@ -3,10 +3,7 @@ package group13.channel.bestEffortBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.bestEffortBroadcast.events.BEBSend;
 import group13.channel.perfectLink.PerfectLink;
-import group13.primitives.AboveModuleListener;
-import group13.primitives.Address;
-import group13.primitives.BEBroadcastTester;
-import group13.primitives.Event;
+import group13.primitives.*;
 import org.junit.jupiter.api.*;
 
 import java.util.ArrayList;
@@ -16,14 +13,15 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class BEBroadcastTest {
-/* 
-    public static String MESSAGE = "test message";
-    public static String PROCESS1_MESSAGE = "process1";
-    public static String PROCESS2_MESSAGE = "process2";
-    public static String PROCESS3_MESSAGE = "process3";
-    public static String PROCESS4_MESSAGE = "process4";
+
+    private SendObject MESSAGE = new SendObject("test message");
+    private SendObject PROCESS1_MESSAGE = new SendObject("process1");
+    private SendObject PROCESS2_MESSAGE = new SendObject("process2");
+    private SendObject PROCESS3_MESSAGE = new SendObject("process3");
+    private SendObject PROCESS4_MESSAGE = new SendObject("process4");
 
     public static Address p1_addr, p2_addr, p3_addr, p4_addr;
     public static BEBroadcastTester process1, process2, process3, process4;
@@ -102,7 +100,7 @@ class BEBroadcastTest {
         System.out.println("=============================================");
         System.out.println("Test : Broadcast message and check reception");
         // broadcast(message);
-        BEBSend send_event = new BEBSend(MESSAGE.getBytes());
+        BEBSend send_event = new BEBSend(MESSAGE);
         process1.send(send_event);
 
         // wait for messages to be received
@@ -123,10 +121,11 @@ class BEBroadcastTest {
             BEBDeliver deliver_event = (BEBDeliver) received_events.get(0);
 
             // check sender id
-            assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
+            assertTrue(MESSAGE.equals(deliver_event.getPayload()));
             assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
         }
     }
+
 
     @Test
     @DisplayName("All processes broadcast a message")
@@ -136,10 +135,10 @@ class BEBroadcastTest {
         System.out.println("Test : All processes broadcast a message");
 
         // broadcast(message);
-        BEBSend send_event1 = new BEBSend(PROCESS1_MESSAGE.getBytes());
-        BEBSend send_event2 = new BEBSend(PROCESS2_MESSAGE.getBytes());
-        BEBSend send_event3 = new BEBSend(PROCESS3_MESSAGE.getBytes());
-        BEBSend send_event4 = new BEBSend(PROCESS4_MESSAGE.getBytes());
+        BEBSend send_event1 = new BEBSend(PROCESS1_MESSAGE);
+        BEBSend send_event2 = new BEBSend(PROCESS2_MESSAGE);
+        BEBSend send_event3 = new BEBSend(PROCESS3_MESSAGE);
+        BEBSend send_event4 = new BEBSend(PROCESS4_MESSAGE);
 
         process1.send(send_event1);
         process2.send(send_event2);
@@ -154,10 +153,10 @@ class BEBroadcastTest {
         }
 
         List<BEBDeliver> expected_deliver = List.of(
-                new BEBDeliver(p1_addr.getProcessId(), PROCESS1_MESSAGE.getBytes()),
-                new BEBDeliver(p2_addr.getProcessId(), PROCESS2_MESSAGE.getBytes()),
-                new BEBDeliver(p3_addr.getProcessId(), PROCESS3_MESSAGE.getBytes()),
-                new BEBDeliver(p4_addr.getProcessId(), PROCESS4_MESSAGE.getBytes())
+                new BEBDeliver(p1_addr.getProcessId(), PROCESS1_MESSAGE),
+                new BEBDeliver(p2_addr.getProcessId(), PROCESS2_MESSAGE),
+                new BEBDeliver(p3_addr.getProcessId(), PROCESS3_MESSAGE),
+                new BEBDeliver(p4_addr.getProcessId(), PROCESS4_MESSAGE)
         );
 
         // check if each above module received only one BEBDeliver event
@@ -185,6 +184,7 @@ class BEBroadcastTest {
         }
     }
 
+
     @Test
     @DisplayName("Slow processes eventually receive messages")
     public void  SlowProcessTest () {
@@ -196,7 +196,7 @@ class BEBroadcastTest {
         process2.setInProblems(p1_addr, true);
         process3.setInProblems(p1_addr, true);
 
-        BEBSend send_event = new BEBSend(PROCESS1_MESSAGE.getBytes());
+        BEBSend send_event = new BEBSend(PROCESS1_MESSAGE);
         process1.send(send_event);
 
         // wait for messages to be received (and allow for
@@ -217,7 +217,7 @@ class BEBroadcastTest {
             BEBDeliver deliver_event = (BEBDeliver) received_events.get(0);
 
             // check sender id
-            assertTrue(Arrays.equals(deliver_event.getPayload(), PROCESS1_MESSAGE.getBytes()));
+            assertTrue(PROCESS1_MESSAGE.equals(deliver_event.getPayload()));
             assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
         }
 
@@ -245,8 +245,8 @@ class BEBroadcastTest {
             BEBDeliver deliver_event = (BEBDeliver) received_events.get(0);
 
             // check sender id
-            assertTrue(Arrays.equals(deliver_event.getPayload(), PROCESS1_MESSAGE.getBytes()));
+            assertTrue(PROCESS1_MESSAGE.equals(deliver_event.getPayload()));
             assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
         }
-    } */
+    }
 }
