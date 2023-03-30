@@ -73,12 +73,6 @@ public class Network extends Thread {
                 String outProcessId = receivedMessage.getSenderId();
                 if (! this.links.containsKey(outProcessId) && receivedMessage.isHandshake()) {
 
-                    /* String payload = new String(receivedMessage.getPayload(), StandardCharsets.UTF_8);
-                    String[] parts = payload.split(":"); */
-
-                    /* if (parts.length != 2) {
-                        System.err.println("Error : Invalid address");
-                    } */
                     Object payload = receivedMessage.getPayload();
                     if (!(payload instanceof Address))
                         System.err.println("Error : Invalid address");

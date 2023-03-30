@@ -37,6 +37,11 @@ public class PerfectLinkOut {
 
     public void send(Object data) {
 
+        // DEBUG :
+        /*
+        System.out.println("[" + inAddress.getProcessId() + "] Sending object :\n" + data.toString());
+        /**/
+
         String senderId = this.inAddress.getProcessId();
         NetworkMessage message = new NetworkMessage(senderId, this.sequenceNumber, data, NetworkMessage.messageTypes.SEND);
 
@@ -76,7 +81,13 @@ public class PerfectLinkOut {
             throw new RuntimeException(e);
         }
     }
-    public void retransmit (byte[] payload, int sequenceNumber) {
+    public void retransmit (byte[] payload) {
+
+        // DEBUG :
+        /*
+        System.out.println("[" + inAddress.getProcessId() + "] Retransmitting payload :\n" + payload.toString());
+        /**/
+
         DatagramPacket packet = new DatagramPacket(payload, payload.length,
                 this.outAddress.getInetAddress(), this.outAddress.getPort());
 
@@ -93,8 +104,13 @@ public class PerfectLinkOut {
 
     public void send_ack(int ackSequenceNumber) {
 
+        // DEBUG :
+        /*
+        System.out.println("[" + inAddress.getProcessId() + "] " + ackSequenceNumber + " - ACK :\n");
+        /**/
+
         String senderId = this.inAddress.getProcessId();
-        NetworkMessage message = new NetworkMessage(senderId, this.sequenceNumber, null, NetworkMessage.messageTypes.ACK);
+        NetworkMessage message = new NetworkMessage(senderId, ackSequenceNumber , null, NetworkMessage.messageTypes.ACK);
 
         // Convert message object to byte stream
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -129,6 +145,11 @@ public class PerfectLinkOut {
     }
 
     public void send_handshake () {
+
+        // DEBUG :
+        /*
+        System.out.println("[" + inAddress.getProcessId() + "] Sending handshake message");
+        /**/
 
         String senderId = this.inAddress.getProcessId();
         /*String address = this.inAddress.toString();

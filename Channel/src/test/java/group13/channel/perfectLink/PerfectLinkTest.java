@@ -7,6 +7,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,6 +27,7 @@ class PerfectLinkTest {
     private NetworkTester p1_network, p2_network;
     private PerfectLinkTester p1_to_p2, p2_to_p1;
 
+    private  AboveModule am_process1, am_process2;
     private AboveModuleListener el_process1, el_process2;
 
     @BeforeEach
@@ -35,27 +42,27 @@ class PerfectLinkTest {
         p2_to_p1 = p2_network.createLink(p1_addr);
 
         // above module process 1
-        AboveModule am_process1 = new AboveModule();
+        am_process1 = new AboveModule();
         p1_to_p2.subscribeDelivery(am_process1.getEventListner());
         el_process1 = am_process1.getEventListner();
 
         // above module process 2
-        AboveModule am_process2 = new AboveModule();
+        am_process2 = new AboveModule();
         p2_to_p1.subscribeDelivery(am_process2.getEventListner());
         el_process2 = am_process2.getEventListner();
     }
 
     @AfterEach
     void cleanUp () {
-        p1_network.close();
-        p2_network.close();
-
         // wait for packet in the network to disappear
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+        p1_network.close();
+        p2_network.close();
     }
 
 
@@ -322,5 +329,136 @@ class PerfectLinkTest {
         // check retransmit queue sizes
         assertEquals(0, p1_to_p2.getRetransmitQueueSize());
         assertEquals(0, p2_to_p1.getRetransmitQueueSize());
+    }
+
+    public void perfectLinkSend(Address inAddress, Address outAddress, DatagramSocket outSocket, Object data, int sequenceNumber) {
+
+        String senderId = inAddress.getProcessId();
+        NetworkMessage message = new NetworkMessage(senderId, sequenceNumber, data, NetworkMessage.messageTypes.SEND);
+
+        // Convert message object to byte stream
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = null;
+        try {
+            objectOutputStream = new ObjectOutputStream(outputStream);
+            objectOutputStream.writeObject(message);
+            objectOutputStream.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] packetData = outputStream.toByteArray();
+        DatagramPacket packet = new DatagramPacket(packetData, packetData.length,
+                outAddress.getInetAddress(), outAddress.getPort());
+
+        try {
+            outSocket.send(packet);
+        } catch (SocketException e) {
+            // socket closed
+        } catch (IOException e) {
+            // TODO : must die? or just retry?
+            System.out.println("Error : Unable to send packet (must die? or just retry?)");
+            throw new RuntimeException(e);
+        }
+
+        // close open fd
+        try {
+            outputStream.close();
+            objectOutputStream.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    @DisplayName("Sliding window test")
+    public void SlidingWindowTest () {
+
+        System.out.println("============================================");
+        System.out.println("Test : Sliding window test");
+
+        // setup simple process 3 perfect link
+        Address p3_addr = new Address(9999);
+        DatagramSocket p3OutSocket = null;
+        try {
+            p3OutSocket = new DatagramSocket();
+        } catch (SocketException e) {
+            throw new RuntimeException(e);
+        }
+        PerfectLink p2_to_p3 =  p2_network.createLink(p3_addr);
+        p2_to_p3.subscribeDelivery(am_process2.getEventListner());
+
+        System.out.println(" > send messages from p3 to p2 with the following sequence numbers (1, 2, 4, 5)");
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 1);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 1);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 2);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 4);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 5);
+
+        // check process2 received events
+        assertEquals(0, el_process2.get_all_events_num());
+
+        // wait for all packets to arrive
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println(" > send message with sequence number 0 (window base of p2) from p3 to p2");
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 0);
+
+        // wait for all packets to arrive
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        // ckeck if process 2 delivered messages with sequence number 0, 1, 2
+        assertEquals(3, el_process2.get_all_events_num());
+        List<Event> received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
+        assertEquals(3, received_events.size());
+
+        // clean received events
+        el_process2.clean_events();
+
+        System.out.println(" > send messages from p3 to p2 with the following sequence numbers (1, 2, 4, 5, 6, 7, 8)");
+        // out of the window frame
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 1);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 2);
+
+        // on the window frame and above
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 4);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 5);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 6);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 7);
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 8);
+
+        // wait for all packets to arrive
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println(" > send message with sequence number 3 (window base of p2) from p3 to p2");
+        perfectLinkSend(p3_addr, p2_addr, p3OutSocket, MESSAGE, 3);
+
+        assertEquals(0, el_process2.get_all_events_num());
+
+        // wait for all packets to arrive
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        assertEquals(5, el_process2.get_all_events_num());
+        received_events = el_process2.get_events(Pp2pDeliver.EVENT_NAME);
+        assertEquals(5, received_events.size());
+
+        p3OutSocket.close();
     }
 }

@@ -142,7 +142,7 @@ public class BMember {
         nextCommandsLock.lock();
         nextCommands.add(command);
 
-        if (nextCommands.size() >= 10) {
+        if (nextCommands.size() >= IBFTBlock.BLOCK_SIZE) {
             ledgerLock.lock();
             int nextInstance = _nextInstance;
             _nextInstance += 1;

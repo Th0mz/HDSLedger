@@ -8,6 +8,8 @@ import java.util.UUID;
 import group13.blockchain.commands.BlockchainCommand;
 
 public class IBFTBlock implements Serializable {
+
+    public static int BLOCK_SIZE = 10;
     private ArrayList<BlockchainCommand> listOfCommands = new ArrayList<BlockchainCommand>();
     private int instance;
 

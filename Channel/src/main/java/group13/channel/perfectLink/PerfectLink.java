@@ -30,6 +30,8 @@ public class PerfectLink {
 
     protected TreeMap<Integer, byte[]> sentMessages;
 
+    private int backoff = 0;
+
 
 
     public PerfectLink(Address inAddress, Address outAddress) {
@@ -47,10 +49,8 @@ public class PerfectLink {
             public void run() {
 
                 for (Map.Entry<Integer, byte[]> entry : sentMessages.entrySet()) {
-                    int sequenceNumber = entry.getKey();
                     byte[] payload = entry.getValue();
-
-                    retransmit(payload, sequenceNumber);
+                    retransmit(payload);
                 }
 
             }
@@ -58,7 +58,7 @@ public class PerfectLink {
 
         this.timer = new Timer();
         this.retransmitTask = new RetransmitPacketsTask();
-        this.timer.scheduleAtFixedRate(this.retransmitTask, this.RETRANSMIT_DELTA, this.RETRANSMIT_DELTA);
+        this.timer.scheduleAtFixedRate(retransmitTask, RETRANSMIT_DELTA, RETRANSMIT_DELTA);
     }
 
     public void receive (NetworkMessage message) {
@@ -77,8 +77,8 @@ public class PerfectLink {
         this.outLink.send_handshake();
     }
 
-    public void retransmit (byte[] payload, int sequenceNumber) {
-        this.outLink.retransmit(payload, sequenceNumber);
+    public void retransmit (byte[] payload) {
+        this.outLink.retransmit(payload);
     }
 
     public void packet_send(int sequenceNumber, byte[] payload) {
