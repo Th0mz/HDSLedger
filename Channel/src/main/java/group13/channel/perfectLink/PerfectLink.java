@@ -4,19 +4,15 @@ import group13.primitives.Address;
 import group13.primitives.EventListener;
 import group13.primitives.NetworkMessage;
 
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PerfectLink {
 
-    public static int PROCESS_ID_SIZE = 32;
-    public static int SEQUENCE_NUMBER_SIZE = 4;
-    public static int MESSAGE_TYPE_SIZE = 1;
+    public static int RETRANSMIT_DELTA = 200;
 
-    public static int HEADER_SIZE = PROCESS_ID_SIZE + SEQUENCE_NUMBER_SIZE + MESSAGE_TYPE_SIZE;
-    public static int RETRANSMIT_DELTA = 300;
+    public static int RETRANSMIT_RATE = 3;
+
 
 
     private PerfectLinkIn inLink;
@@ -25,40 +21,23 @@ public class PerfectLink {
     private Address inAddress;
     private Address outAddress;
 
-    private Timer timer;
-    private TimerTask retransmitTask;
+    protected ConcurrentHashMap<Integer, RetransmitTask> retransmitTasks;
+    protected Random randomGenerator = new Random();
 
-    protected TreeMap<Integer, byte[]> sentMessages;
+    private Timer timer;
 
     private int backoff = 0;
 
 
-
     public PerfectLink(Address inAddress, Address outAddress) {
+        this.inAddress = inAddress;
         this.outAddress = outAddress;
 
         this.inLink = new PerfectLinkIn(this, inAddress);
         this.outLink = new PerfectLinkOut(this, inAddress, outAddress);
 
-        this.sentMessages = new TreeMap<>();
-
-        // retransmit system
-        class RetransmitPacketsTask extends TimerTask {
-
-            @Override
-            public void run() {
-
-                for (Map.Entry<Integer, byte[]> entry : sentMessages.entrySet()) {
-                    byte[] payload = entry.getValue();
-                    retransmit(payload);
-                }
-
-            }
-        }
-
+        this.retransmitTasks = new ConcurrentHashMap<>();
         this.timer = new Timer();
-        this.retransmitTask = new RetransmitPacketsTask();
-        this.timer.scheduleAtFixedRate(retransmitTask, RETRANSMIT_DELTA, RETRANSMIT_DELTA);
     }
 
     public void receive (NetworkMessage message) {
@@ -82,11 +61,16 @@ public class PerfectLink {
     }
 
     public void packet_send(int sequenceNumber, byte[] payload) {
-        this.sentMessages.put(sequenceNumber, payload);
+        RetransmitTask task = new RetransmitTask(sequenceNumber, payload);
+        this.retransmitTasks.put(sequenceNumber, task);
     }
 
     public void received_ack(int sequenceNumber) {
-        this.sentMessages.remove(sequenceNumber);
+        RetransmitTask task =  this.retransmitTasks.remove(sequenceNumber);
+
+        if (task != null) {
+            task.terminate();
+        }
     }
     public void subscribeDelivery(EventListener listener) {
         this.inLink.subscribeDelivery(listener);
@@ -99,8 +83,59 @@ public class PerfectLink {
     public Address getOutAddress() { return outAddress; }
 
     public void close () {
-        this.retransmitTask.cancel();
-        this.timer.cancel();
+
+        for (int sequenceNumber : this.retransmitTasks.keySet()) {
+            RetransmitTask task = this.retransmitTasks.get(sequenceNumber);
+            task.terminate();
+        }
         this.outLink.close();
+    }
+
+
+    // retransmit system
+    private class RetransmitTask extends TimerTask {
+
+        private int sequenceNumber;
+        private boolean received = false;
+        private byte[] payload;
+        private int tries = 0;
+
+        public RetransmitTask(int sequenceNumber, byte[] payload) {
+            this.sequenceNumber = sequenceNumber;
+            this.payload = payload;
+
+            // schedule task
+            timer.schedule(this, RETRANSMIT_DELTA);
+        }
+
+        public RetransmitTask(int sequenceNumber, byte[] payload, int tries) {
+            this.sequenceNumber = sequenceNumber;
+            this.payload = payload;
+            this.tries = tries;
+
+            // schedule task
+            int delay = RETRANSMIT_DELTA + randomGenerator.nextInt(1 << (this.tries + RETRANSMIT_RATE));
+            timer.schedule(this, delay);
+        }
+
+        @Override
+        public void run() {
+
+            if (!this.received) {
+                retransmit(this.payload);
+                this.tries++;
+
+                // reschedule task
+                RetransmitTask newTask = new RetransmitTask(this.sequenceNumber, this.payload, this.tries);
+                retransmitTasks.put(sequenceNumber, newTask);
+
+                this.cancel();
+            }
+        }
+
+        public void terminate () {
+            this.received = true;
+            this.cancel();
+        }
     }
 }

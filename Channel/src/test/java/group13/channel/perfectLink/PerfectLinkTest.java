@@ -76,8 +76,9 @@ class PerfectLinkTest {
         p1_to_p2.send(MESSAGE);
 
         // wait for messages to be received
+        int delay = maxBoundForMessageRetransmission(1, 1);
         try {
-            Thread.sleep(1000);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -101,8 +102,9 @@ class PerfectLinkTest {
         p2_to_p1.send(MESSAGE);
 
         // wait for messages to be received
+        delay = maxBoundForMessageRetransmission(1, 1);
         try {
-            Thread.sleep(200);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -134,8 +136,9 @@ class PerfectLinkTest {
         p1_to_p2.send(MESSAGE);
 
         // wait for two retransmissions
+        int delay = maxBoundForMessageRetransmission(1, 2) + 30;
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA * 2);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -154,8 +157,9 @@ class PerfectLinkTest {
         p2_to_p1.setInProblems(false);
 
         // wait for process 1 to retransmit
+        delay = maxBoundForMessageRetransmission(3, 4);
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA * 2);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -199,13 +203,13 @@ class PerfectLinkTest {
         p3_to_p4.send(MESSAGE);
 
         // wait for two retransmissions
+        int delay = maxBoundForMessageRetransmission(1, 2) + 30;
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA * 2 - 10);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        // +- 300ms (RETRANSMIT TIME) to create the other endpoint
         Network p4_network = new Network(p4_addr);
         PerfectLink p4_to_p3 = p4_network.createLink(p3_addr);
 
@@ -216,8 +220,9 @@ class PerfectLinkTest {
         // wait for the message to arrive and for the retransmit timer to
         // be triggered again. this time, no message will be retransmitted
         // because the process has acknowledged the receipt of the message.
+        delay = maxBoundForMessageRetransmission(3, 4);
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA * 2);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -255,8 +260,9 @@ class PerfectLinkTest {
         p1_to_p2.setInProblems(true);
 
         // wait for the message to arrive
+        int delay = maxBoundForMessageRetransmission(1, 1);
         try {
-            Thread.sleep(200);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -280,8 +286,9 @@ class PerfectLinkTest {
 
         // process 1 will retransmit the message again and
         // again (process 2 must not deliver the same message)
+        delay = maxBoundForMessageRetransmission(2, 3);
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA * 2);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -307,8 +314,9 @@ class PerfectLinkTest {
         p1_to_p2.setInProblems(false);
 
         // wait for the ack to reach process 1
+        delay = maxBoundForMessageRetransmission(1, 1);
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -460,5 +468,19 @@ class PerfectLinkTest {
         assertEquals(5, received_events.size());
 
         p3OutSocket.close();
+    }
+
+    public int maxBoundForMessageRetransmission (int retriesStart, int retriesEnd) {
+        int timeout = PerfectLink.RETRANSMIT_DELTA * (retriesEnd - retriesStart + 1);
+
+        if (retriesStart == 1) {
+            retriesStart = 2;
+        }
+
+        for (int tries = retriesStart - 1; tries < retriesEnd; tries++) {
+            timeout += 1 << tries + PerfectLink.RETRANSMIT_RATE;
+        }
+
+        return timeout;
     }
 }

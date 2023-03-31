@@ -24,6 +24,6 @@ public class PerfectLinkTester extends PerfectLink {
     }
 
     public int getRetransmitQueueSize () {
-        return super.sentMessages.size();
+        return super.retransmitTasks.size();
     }
 }

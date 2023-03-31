@@ -7,7 +7,6 @@ import group13.primitives.*;
 import org.junit.jupiter.api.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -104,8 +103,9 @@ class BEBroadcastTest {
         process1.send(send_event);
 
         // wait for messages to be received
+        int delay = maxBoundForMessageRetransmission(1, 1);
         try {
-            Thread.sleep(300);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -146,8 +146,9 @@ class BEBroadcastTest {
         process4.send(send_event4);
 
         // wait for messages to be received
+        int delay = maxBoundForMessageRetransmission(1, 2);
         try {
-            Thread.sleep(1000);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -185,6 +186,21 @@ class BEBroadcastTest {
     }
 
 
+    public int maxBoundForMessageRetransmission (int retriesStart, int retriesEnd) {
+        int timeout = PerfectLink.RETRANSMIT_DELTA * (retriesEnd - retriesStart + 1);
+
+        if (retriesStart == 1) {
+            retriesStart = 2;
+        }
+
+        for (int tries = retriesStart - 1; tries < retriesEnd; tries++) {
+            timeout += 1 << tries + PerfectLink.RETRANSMIT_RATE;
+        }
+
+        return timeout;
+    }
+
+
     @Test
     @DisplayName("Slow processes eventually receive messages")
     public void  SlowProcessTest () {
@@ -201,8 +217,9 @@ class BEBroadcastTest {
 
         // wait for messages to be received (and allow for
         // other messages to be retransmitted)
+        int delay = maxBoundForMessageRetransmission(1, 2);
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA * 2 + 10);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -229,8 +246,9 @@ class BEBroadcastTest {
         process3.setInProblems(p1_addr, false);
 
         // wait for retransmission
+        delay = maxBoundForMessageRetransmission(3, 3);
         try {
-            Thread.sleep(PerfectLink.RETRANSMIT_DELTA + 10);
+            Thread.sleep(delay + 30);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
