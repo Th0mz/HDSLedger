@@ -1,6 +1,8 @@
 package group13.primitives;
 
 import java.io.Serializable;
+import java.security.PublicKey;
+import java.security.SignedObject;
 
 public class NetworkMessage implements Serializable {
     private static final long serialVersionUID = 12346790L;
@@ -12,18 +14,18 @@ public class NetworkMessage implements Serializable {
     };
 
     private messageTypes type;
-    private Object payload;
+    private SignedObject payload;
     private int sequenceNumber;
-    private String senderId;
+    private PublicKey senderPK;
 
-    public NetworkMessage(String senderId, int sequenceNumber, Object payload, messageTypes type) {
-        this.senderId = senderId;
+    public NetworkMessage(PublicKey senderPK, int sequenceNumber, SignedObject payload, messageTypes type) {
+        this.senderPK = senderPK;
         this.sequenceNumber = sequenceNumber;
         this.payload = payload;
         this.type = type;
     }
 
-    public Object getPayload() {
+    public SignedObject getPayload() {
         return payload;
     }
 
@@ -43,7 +45,7 @@ public class NetworkMessage implements Serializable {
         return sequenceNumber;
     }
 
-    public String getSenderId() {
-        return senderId;
+    public PublicKey getSenderPK () {
+        return senderPK;
     }
 }

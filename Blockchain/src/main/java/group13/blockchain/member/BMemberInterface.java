@@ -6,6 +6,8 @@ import group13.primitives.Address;
 import group13.primitives.Event;
 import group13.primitives.EventListener;
 
+import java.security.PublicKey;
+
 public class BMemberInterface implements EventListener {
 
     private BEBroadcast beb;
@@ -28,9 +30,9 @@ public class BMemberInterface implements EventListener {
 
 
         BEBDeliver ev = (BEBDeliver) event;
-        String clientId = ev.getProcessId();
+        PublicKey clientPK = ev.getProcessPK();
 
         Object payload = ev.getPayload();
-        _server.processCommand(payload, clientId);
+        _server.processCommand(payload, clientPK);
     }
 }

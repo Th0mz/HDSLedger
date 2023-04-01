@@ -2,22 +2,23 @@ package group13.channel.bestEffortBroadcast.events;
 
 import group13.primitives.Event;
 
+import java.security.PublicKey;
 import java.util.Arrays;
 
 public class BEBDeliver extends Event {
     public static final String EVENT_NAME = "bebDeliver";
-    private String processId;
+    private PublicKey processPK;
     private Object payload;
 
 
-    public BEBDeliver (String processId, Object payload) {
+    public BEBDeliver (PublicKey processPK, Object payload) {
         super(EVENT_NAME);
-        this.processId = processId;
+        this.processPK = processPK;
         this.payload = payload;
     }
 
-    public String getProcessId() {
-        return this.processId;
+    public PublicKey getProcessPK() {
+        return processPK;
     }
 
 
@@ -39,7 +40,7 @@ public class BEBDeliver extends Event {
 
         BEBDeliver deliver = (BEBDeliver) o;
 
-        return this.processId.equals(deliver.getProcessId()) &&
+        return this.processPK.equals(deliver.getProcessPK()) &&
                 this.payload.equals(deliver.getPayload());
     }
 }

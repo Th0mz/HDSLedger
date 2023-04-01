@@ -2,13 +2,16 @@ package group13.primitives;
 
 import group13.channel.perfectLink.PerfectLink;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
+
 public class PerfectLinkTester extends PerfectLink {
 
     // network problems flags
     private boolean inProblems;
 
-    public PerfectLinkTester(Address inAddress, Address outAddress, boolean inProblems) {
-        super(inAddress, outAddress);
+    public PerfectLinkTester(Address inAddress, Address outAddress, PublicKey inPublicKey, PrivateKey inPrivateKey, PublicKey outPublicKey, boolean inProblems) {
+        super(inAddress, outAddress, inPublicKey, inPrivateKey, outPublicKey);
         this.inProblems = inProblems;
     }
 

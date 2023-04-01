@@ -1,9 +1,9 @@
 package group13.primitives;
 
 import group13.channel.perfectLink.Network;
-import group13.channel.perfectLink.PerfectLink;
 
-import java.util.Base64;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 
 public class NetworkTester extends Network {
 
@@ -17,11 +17,9 @@ public class NetworkTester extends Network {
     }
 
     @Override
-    public PerfectLinkTester createLink (Address outAddress) {
-        PerfectLinkTester link = new PerfectLinkTester(this.inAddress, outAddress, false);
-
-        String outProcessId = outAddress.getProcessId();
-        this.links.put(outProcessId, link);
+    public PerfectLinkTester createAuthenticatedLink(Address outAddress, PublicKey inPublicKey, PrivateKey inPrivateKey, PublicKey outPublicKey) {
+        PerfectLinkTester link = new PerfectLinkTester(this.inAddress, outAddress, inPublicKey, inPrivateKey, outPublicKey,false);
+        this.links.put(outPublicKey, link);
 
         return link;
     }

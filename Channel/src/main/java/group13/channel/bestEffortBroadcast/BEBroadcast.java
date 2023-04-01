@@ -12,6 +12,8 @@ import group13.primitives.Event;
 import group13.primitives.EventHandler;
 import group13.primitives.EventListener;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,15 +24,21 @@ public class BEBroadcast implements EventListener {
     protected Network network;
     private Address inAddress;
 
+    private PublicKey inPublicKey;
+    private PrivateKey inPrivateKey;
+
     private EventHandler bebEventHandler = new EventHandler();
 
-    public BEBroadcast (Address inAddress) {
+    public BEBroadcast (Address inAddress, PublicKey inPublicKey, PrivateKey inPrivateKey) {
 
         this.inAddress = inAddress;
 
         // create network (process that listens for packets)
         this.network = new Network(inAddress);
         this.links = new ArrayList<>();
+
+        this.inPublicKey = inPublicKey;
+        this.inPrivateKey = inPrivateKey;
 
         this.network.subscribeNew(this);
     }
@@ -40,21 +48,22 @@ public class BEBroadcast implements EventListener {
         String eventName = event.getEventName();
         if (eventName == Pp2pDeliver.EVENT_NAME) {
             Pp2pDeliver typed_event = (Pp2pDeliver) event;
-            String process_id = typed_event.getProcessId();
+            PublicKey processPK = typed_event.getProcessPK();
             Object payload = typed_event.getPayload();
 
-            BEBDeliver triggered_event = new BEBDeliver(process_id, payload);
+            BEBDeliver triggered_event = new BEBDeliver(processPK, payload);
             bebEventHandler.trigger(triggered_event);
         } else if (eventName == NetworkNew.EVENT_NAME) {
             NetworkNew typed_event = (NetworkNew) event;
-            PerfectLink link = typed_event.getLink();
+            Address outAddress = typed_event.getOutAddress();
+            PublicKey outPublicKey = typed_event.getOutPublicKey();
 
-            link.subscribeDelivery(this);
+            addServer(outAddress, outPublicKey);
         }
     }
 
-    public void addServer(Address outAddress) {
-        PerfectLink link = this.network.createLink(outAddress);
+    public void addServer(Address outAddress, PublicKey outPublicKey) {
+        PerfectLink link = this.network.createAuthenticatedLink(outAddress, this.inPublicKey, this.inPrivateKey, outPublicKey);
         link.subscribeDelivery(this);
 
         this.links.add(link);
@@ -74,9 +83,9 @@ public class BEBroadcast implements EventListener {
         }
     }
 
-    public void unicast(String outProcessId, BEBSend send_event) {
+    public void unicast(PublicKey outProcessPK, BEBSend send_event) {
         Object payload = send_event.getPayload();
-        PerfectLink link = this.network.getLink(outProcessId);
+        PerfectLink link = this.network.getLink(outProcessPK);
 
         if (link != null) {
             link.send(payload);

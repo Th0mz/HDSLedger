@@ -1,12 +1,10 @@
 package group13.channel.perfectLink;
 
 import group13.channel.perfectLink.events.Pp2pDeliver;
-import group13.primitives.Address;
-import group13.primitives.EventHandler;
-import group13.primitives.EventListener;
-import group13.primitives.NetworkMessage;
+import group13.primitives.*;
 
-import java.util.Base64;
+import java.io.IOException;
+import java.security.*;
 import java.util.TreeMap;
 
 public class PerfectLinkIn {
@@ -14,23 +12,58 @@ public class PerfectLinkIn {
     private static int WINDOW_SIZE = 5;
 
     private int receiveBase;
-    private TreeMap<Integer, NetworkMessage> notDeliveredPackets;
+    private TreeMap<Integer, Object> notDeliveredObjects;
 
     private Address inAddress;
     private PerfectLink link;
     private EventHandler plEventHandler;
 
-    public PerfectLinkIn(PerfectLink link, Address inAddress) {
+    private PublicKey outPublicKey;
+
+    public PerfectLinkIn(PerfectLink link, Address inAddress, PublicKey outPublicKey) {
         this.receiveBase = 0;
         this.link = link;
         this.inAddress = inAddress;
         this.plEventHandler = new EventHandler();
-        this.notDeliveredPackets = new TreeMap<>();
+        this.notDeliveredObjects = new TreeMap<>();
+
+        this.outPublicKey = outPublicKey;
     }
 
     public void receive (NetworkMessage message) {
         int sequenceNumber = message.getSequenceNumber();
-        String outProcessId = message.getSenderId();
+
+        // Check if public keys match
+        if (!message.getSenderPK().equals(this.outPublicKey)) {
+            System.err.println("Error : Sender public key doesn't match this link endpoint public key");
+            return;
+        }
+
+        // Check signature
+        SignedObject signedObject = message.getPayload();
+        FreshObject freshObject = null;
+        try {
+            if (!(signedObject.getObject() instanceof FreshObject)) {
+                System.err.println("Error : Signed object is not a FreshObject");
+                return;
+            }
+
+            freshObject = (FreshObject) signedObject.getObject();
+            // signature check
+            if (!signedObject.verify(this.outPublicKey, Signature.getInstance("SHA256withRSA")))
+                return;
+
+        } catch (ClassNotFoundException | IOException | InvalidKeyException |
+                 SignatureException | NoSuchAlgorithmException  e) {
+            e.printStackTrace();
+        }
+
+        // Check freshness
+        if (sequenceNumber != freshObject.getSequenceNumber()) {
+            System.err.println("Error : Received object is not fresh");
+        }
+
+        Object objectToDeliver = freshObject.getObject();
 
         if ( message.isSend() ) {
 
@@ -52,14 +85,13 @@ public class PerfectLinkIn {
                     System.out.println("received base sequence number");
                     /**/
 
-                    this.notDeliveredPackets.put(sequenceNumber, message);
+                    this.notDeliveredObjects.put(sequenceNumber, objectToDeliver);
                     for (int toDeliverSN = this.receiveBase; toDeliverSN < this.receiveBase + WINDOW_SIZE; toDeliverSN++) {
 
-                        if (this.notDeliveredPackets.containsKey(toDeliverSN)) {
-                            NetworkMessage toDeliverMessage = this.notDeliveredPackets.remove(toDeliverSN);
-                            Object payload = toDeliverMessage.getPayload();
+                        if (this.notDeliveredObjects.containsKey(toDeliverSN)) {
+                            Object object = this.notDeliveredObjects.remove(toDeliverSN);
 
-                            Pp2pDeliver deliver_event = new Pp2pDeliver(outProcessId, payload);
+                            Pp2pDeliver deliver_event = new Pp2pDeliver(this.outPublicKey, object);
                             plEventHandler.trigger(deliver_event);
 
                             this.receiveBase += 1;
@@ -98,8 +130,8 @@ public class PerfectLinkIn {
                     /**/
 
                     // if not already in the not delivered list add it
-                    if (!this.notDeliveredPackets.containsKey(sequenceNumber)) {
-                        notDeliveredPackets.put(sequenceNumber, message);
+                    if (!this.notDeliveredObjects.containsKey(sequenceNumber)) {
+                        notDeliveredObjects.put(sequenceNumber, objectToDeliver);
                     }
 
                     // DEBUG :

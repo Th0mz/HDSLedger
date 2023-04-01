@@ -1,6 +1,8 @@
 package group13.channel.perfectLink;
 
+import group13.channel.bestEffortBroadcast.events.BEBSend;
 import group13.primitives.Address;
+import group13.primitives.FreshObject;
 import group13.primitives.NetworkMessage;
 
 import java.io.ByteArrayOutputStream;
@@ -10,6 +12,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.security.*;
 import java.util.Objects;
 
 public class PerfectLinkOut {
@@ -22,11 +25,17 @@ public class PerfectLinkOut {
     private PerfectLink link;
     private DatagramSocket outSocket;
 
-    public PerfectLinkOut(PerfectLink link, Address inAddress, Address outAddress) {
+    private PublicKey inPublicKey;
+    private PrivateKey inPrivateKey;
+
+    public PerfectLinkOut(PerfectLink link, Address inAddress, Address outAddress, PublicKey inPublicKey, PrivateKey inPrivateKey) {
         this.sequenceNumber = 0;
         this.inAddress = inAddress;
         this.outAddress = outAddress;
         this.link = link;
+
+        this.inPublicKey = inPublicKey;
+        this.inPrivateKey = inPrivateKey;
 
         try {
             this.outSocket = new DatagramSocket();
@@ -42,8 +51,18 @@ public class PerfectLinkOut {
         System.out.println("[" + inAddress.getProcessId() + "] Sending object :\n" + data.toString());
         /**/
 
-        String senderId = this.inAddress.getProcessId();
-        NetworkMessage message = new NetworkMessage(senderId, this.sequenceNumber, data, NetworkMessage.messageTypes.SEND);
+        // sign fresh object
+        FreshObject freshObject = new FreshObject(this.sequenceNumber, data);
+        SignedObject signedObject = null;
+        try {
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signedObject = new SignedObject(freshObject, this.inPrivateKey, signature);
+        } catch (IOException | InvalidKeyException | SignatureException |
+                 NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        NetworkMessage message = new NetworkMessage(this.inPublicKey, this.sequenceNumber, signedObject, NetworkMessage.messageTypes.SEND);
 
         // Convert message object to byte stream
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -109,8 +128,18 @@ public class PerfectLinkOut {
         System.out.println("[" + inAddress.getProcessId() + "] " + ackSequenceNumber + " - ACK :\n");
         /**/
 
-        String senderId = this.inAddress.getProcessId();
-        NetworkMessage message = new NetworkMessage(senderId, ackSequenceNumber , null, NetworkMessage.messageTypes.ACK);
+        // sign fresh object
+        FreshObject freshObject = new FreshObject(ackSequenceNumber, null);
+        SignedObject signedObject = null;
+        try {
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signedObject = new SignedObject(freshObject, this.inPrivateKey, signature);
+        } catch (IOException | InvalidKeyException | SignatureException |
+                 NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        NetworkMessage message = new NetworkMessage(this.inPublicKey, ackSequenceNumber , signedObject, NetworkMessage.messageTypes.ACK);
 
         // Convert message object to byte stream
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -151,11 +180,18 @@ public class PerfectLinkOut {
         System.out.println("[" + inAddress.getProcessId() + "] Sending handshake message");
         /**/
 
-        String senderId = this.inAddress.getProcessId();
-        /*String address = this.inAddress.toString();
-        byte[] payload = address.getBytes(StandardCharsets.UTF_8); */
+        // sign fresh object
+        FreshObject freshObject = new FreshObject(this.sequenceNumber, this.inAddress);
+        SignedObject signedObject = null;
+        try {
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signedObject = new SignedObject(freshObject, this.inPrivateKey, signature);
+        } catch (IOException | InvalidKeyException | SignatureException |
+                 NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
 
-        NetworkMessage message = new NetworkMessage(senderId, this.sequenceNumber, this.inAddress, NetworkMessage.messageTypes.HANDSHAKE);
+        NetworkMessage message = new NetworkMessage(this.inPublicKey, this.sequenceNumber, signedObject, NetworkMessage.messageTypes.HANDSHAKE);
 
         // Convert message object to byte stream
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

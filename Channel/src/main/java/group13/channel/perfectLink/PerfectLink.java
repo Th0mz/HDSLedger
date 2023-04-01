@@ -4,6 +4,8 @@ import group13.primitives.Address;
 import group13.primitives.EventListener;
 import group13.primitives.NetworkMessage;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,21 +25,19 @@ public class PerfectLink {
 
     protected ConcurrentHashMap<Integer, RetransmitTask> retransmitTasks;
     protected Random randomGenerator = new Random();
-
     private Timer timer;
 
-    private int backoff = 0;
 
-
-    public PerfectLink(Address inAddress, Address outAddress) {
+    public PerfectLink(Address inAddress, Address outAddress, PublicKey inPublicKey, PrivateKey inPrivateKey, PublicKey outPublicKey) {
         this.inAddress = inAddress;
         this.outAddress = outAddress;
 
-        this.inLink = new PerfectLinkIn(this, inAddress);
-        this.outLink = new PerfectLinkOut(this, inAddress, outAddress);
+        this.inLink = new PerfectLinkIn(this, inAddress, outPublicKey);
+        this.outLink = new PerfectLinkOut(this, inAddress, outAddress, inPublicKey, inPrivateKey);
 
         this.retransmitTasks = new ConcurrentHashMap<>();
         this.timer = new Timer();
+
     }
 
     public void receive (NetworkMessage message) {

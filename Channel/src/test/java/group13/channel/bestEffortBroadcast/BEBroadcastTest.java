@@ -6,6 +6,9 @@ import group13.channel.perfectLink.PerfectLink;
 import group13.primitives.*;
 import org.junit.jupiter.api.*;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +26,7 @@ class BEBroadcastTest {
     private SendObject PROCESS4_MESSAGE = new SendObject("process4");
 
     public static Address p1_addr, p2_addr, p3_addr, p4_addr;
+    public static KeyPair p1_keys, p2_keys, p3_keys, p4_keys;
     public static BEBroadcastTester process1, process2, process3, process4;
     public static AboveModuleListener am_process1, am_process2, am_process3, am_process4;
 
@@ -33,19 +37,31 @@ class BEBroadcastTest {
         p3_addr = new Address(5002);
         p4_addr = new Address(5003);
 
+        // Generate keys
+        try {
+            KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("RSA");
+            keyPairGen.initialize(2048);
+            p1_keys = keyPairGen.generateKeyPair();
+            p2_keys = keyPairGen.generateKeyPair();
+            p3_keys = keyPairGen.generateKeyPair();
+            p4_keys = keyPairGen.generateKeyPair();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
         // broadcast module instances
-        process1 = new BEBroadcastTester(p1_addr);
-        process2 = new BEBroadcastTester(p2_addr);
-        process3 = new BEBroadcastTester(p3_addr);
-        process4 = new BEBroadcastTester(p4_addr);
+        process1 = new BEBroadcastTester(p1_addr, p1_keys.getPublic(), p1_keys.getPrivate());
+        process2 = new BEBroadcastTester(p2_addr, p2_keys.getPublic(), p2_keys.getPrivate());
+        process3 = new BEBroadcastTester(p3_addr, p3_keys.getPublic(), p3_keys.getPrivate());
+        process4 = new BEBroadcastTester(p4_addr, p4_keys.getPublic(), p4_keys.getPrivate());
 
         List<BEBroadcast> broadcast_modules = new ArrayList<>(List.of(process1, process2, process3, process4));
 
         for (BEBroadcast sender_module : broadcast_modules) {
-            sender_module.addServer(process1.getInAddress());
-            sender_module.addServer(process2.getInAddress());
-            sender_module.addServer(process3.getInAddress());
-            sender_module.addServer(process4.getInAddress());
+            sender_module.addServer(process1.getInAddress(), p1_keys.getPublic());
+            sender_module.addServer(process2.getInAddress(), p2_keys.getPublic());
+            sender_module.addServer(process3.getInAddress(), p3_keys.getPublic());
+            sender_module.addServer(process4.getInAddress(), p4_keys.getPublic());
         }
 
         am_process1 = new AboveModuleListener();
@@ -122,7 +138,8 @@ class BEBroadcastTest {
 
             // check sender id
             assertTrue(MESSAGE.equals(deliver_event.getPayload()));
-            assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
+            assertTrue(deliver_event.getProcessPK().equals(p1_keys.getPublic()));
+
         }
     }
 
@@ -154,10 +171,10 @@ class BEBroadcastTest {
         }
 
         List<BEBDeliver> expected_deliver = List.of(
-                new BEBDeliver(p1_addr.getProcessId(), PROCESS1_MESSAGE),
-                new BEBDeliver(p2_addr.getProcessId(), PROCESS2_MESSAGE),
-                new BEBDeliver(p3_addr.getProcessId(), PROCESS3_MESSAGE),
-                new BEBDeliver(p4_addr.getProcessId(), PROCESS4_MESSAGE)
+                new BEBDeliver(p1_keys.getPublic(), PROCESS1_MESSAGE),
+                new BEBDeliver(p2_keys.getPublic(), PROCESS2_MESSAGE),
+                new BEBDeliver(p3_keys.getPublic(), PROCESS3_MESSAGE),
+                new BEBDeliver(p4_keys.getPublic(), PROCESS4_MESSAGE)
         );
 
         // check if each above module received only one BEBDeliver event
@@ -235,7 +252,8 @@ class BEBroadcastTest {
 
             // check sender id
             assertTrue(PROCESS1_MESSAGE.equals(deliver_event.getPayload()));
-            assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
+            assertTrue(deliver_event.getProcessPK().equals(p1_keys.getPublic()));
+
         }
 
         assertEquals(0, am_process2.get_all_events_num());
@@ -264,7 +282,8 @@ class BEBroadcastTest {
 
             // check sender id
             assertTrue(PROCESS1_MESSAGE.equals(deliver_event.getPayload()));
-            assertTrue(p1_addr.getProcessId().equals(deliver_event.getProcessId()));
+            assertTrue(deliver_event.getProcessPK().equals(p1_keys.getPublic()));
+
         }
     }
 }

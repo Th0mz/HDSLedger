@@ -3,9 +3,12 @@ package group13.primitives;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.channel.perfectLink.PerfectLink;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
+
 public class BEBroadcastTester extends BEBroadcast {
-    public BEBroadcastTester (Address inAddress) {
-        super(inAddress);
+    public BEBroadcastTester (Address inAddress, PublicKey inPublicKey, PrivateKey inPrivateKey) {
+        super(inAddress, inPublicKey, inPrivateKey);
 
         super.network.close();
         super.network = new NetworkTester(inAddress);
