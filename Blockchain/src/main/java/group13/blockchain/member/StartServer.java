@@ -27,10 +27,6 @@ public class StartServer {
         }
 
         Integer serverId = Integer.parseInt(args[1]);
-        boolean isLeader = false;
-        if (serverId == 0)
-            isLeader = true;
-
 		try {
 			reader = new BufferedReader(new FileReader(args[0]));
 			nrFaulty = Integer.parseInt(reader.readLine());
@@ -53,9 +49,9 @@ public class StartServer {
 			e.printStackTrace();
 		}
 
-        String leaderId = listOfServers.get(0).getProcessId();
+        Address leaderAddress = listOfServers.get(0);
         server.createBMember(listOfServers, nrFaulty, nrServers, interfaceAddress,
-                            myInfo, leaderId);
+                            myInfo, leaderAddress);
         
     }
 }

@@ -6,6 +6,7 @@ import group13.primitives.Address;
 import group13.primitives.Event;
 import group13.primitives.EventListener;
 
+import java.security.PrivateKey;
 import java.security.PublicKey;
 
 public class BMemberInterface implements EventListener {
@@ -13,9 +14,9 @@ public class BMemberInterface implements EventListener {
     private BEBroadcast beb;
     private BMember _server;
 
-    public BMemberInterface(Address memberAddress, BMember server) {
+    public BMemberInterface(PublicKey publicKey, PrivateKey privateKey, Address memberAddress, BMember server) {
         _server = server;
-        beb = new BEBroadcast(memberAddress);
+        beb = new BEBroadcast(memberAddress, publicKey, privateKey);
         beb.subscribeDelivery(this);
 
         System.out.println("Started process " +  memberAddress.getPort() );
@@ -33,6 +34,6 @@ public class BMemberInterface implements EventListener {
         PublicKey clientPK = ev.getProcessPK();
 
         Object payload = ev.getPayload();
-        _server.processCommand(payload, clientPK);
+        _server.processCommand(payload);
     }
 }

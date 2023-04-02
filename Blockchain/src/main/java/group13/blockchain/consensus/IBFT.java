@@ -53,59 +53,28 @@ public class IBFT implements EventListener{
     protected Lock lockBlocks = new ReentrantLock();
     protected Lock lockPrepare = new ReentrantLock();
     protected Lock lockCommit = new ReentrantLock();
-    protected int prepared, commited;
     protected HashMap<String, HashMap<Integer, Set<PublicKey>>> prepares = new HashMap<>();
     protected HashMap<String, HashMap<Integer, Set<PublicKey>>> commits = new HashMap<>();
     protected HashMap<String, IBFTBlock> blocks = new HashMap<>();
 
-    protected HashMap<String, PublicKey> publicKeys;
     protected PrivateKey myKey;
     protected PublicKey myPubKey;
-    private PublicKey clientPKey;
 
 
     //Timer (eventually)
+    protected PublicKey leaderPK;
+    private boolean isLeader;
 
-    protected String leader;
-    protected String pId;
+    public IBFT(int n, int f, PublicKey leaderPK, boolean isLeader, BEBroadcast beb, BMember server) {
 
-    Base64.Encoder encoder = Base64.getEncoder();
-
-    public IBFT(int n, int f, String leader, BEBroadcast beb, BMember server) {
-        pId = beb.getInAddress().getProcessId();
-
+        this.isLeader = isLeader;
         nrProcesses = n;
         byzantineP = f;
         quorum = (nrProcesses + byzantineP)/2 + 1;
-        this.leader = leader;
+        this.leaderPK = leaderPK;
         _server = server;
         broadcast = beb;
         broadcast.subscribeDelivery(this);
-        publicKeys = new HashMap<String, PublicKey>(nrProcesses);
-
-
-
-        String consensus_folder;
-        try {
-            consensus_folder = new File("./src/main/java/group13/blockchain/consensus").getCanonicalPath();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        // TODO :
-        myKey = getPrivateKey(consensus_folder + "/" + pId.substring(0, 5) + ".key");
-        myPubKey = getPubKey(consensus_folder + "/" + pId.substring(0, 5) + ".pub");
-        clientPKey = getPubKey(consensus_folder + "/public-key-client.pub");
-        for (Address outAddress : beb.getAllAddresses()){
-            String outProcessId = outAddress.getProcessId();
-            PublicKey key = getPubKey(consensus_folder + "/" + outProcessId.substring(0, 5) + ".pub");
-
-            publicKeys.put(outProcessId, key);
-        }
-    }
-
-    private int leader(int instance, int round) {
-        return round % nrProcesses;
     }
 
     public void start(int instance, IBFTBlock block) {
@@ -114,7 +83,7 @@ public class IBFT implements EventListener{
         //input = new String(payload);
         round = 1;
 
-        if ( leader.equals(pId) ) {
+        if ( isLeader ) {
             Signature signature;
             try {
                 IBFTPrePrepare prePrepare = new IBFTPrePrepare(block, myPubKey, block.getId(), block.getInstance());
@@ -156,7 +125,8 @@ public class IBFT implements EventListener{
                 e.printStackTrace();
             }
 
-            if (op.getType().equals(IBFTPrePrepare.constType) && leader.equals(((BEBDeliver)event).getProcessId())) 
+            BEBDeliver typed_event = (BEBDeliver) event;
+            if (op.getType().equals(IBFTPrePrepare.constType) && leaderPK.equals(typed_event.getProcessPK()))
                 prePrepare(((IBFTPrePrepare)op).getBlock(), op.getPublicKey());
             else if (op.getType().equals(IBFTPrepare.constType))
                 prepare(op.getId(), op.getInstance(), op.getPublicKey());

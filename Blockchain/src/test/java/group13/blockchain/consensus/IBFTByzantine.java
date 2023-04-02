@@ -27,8 +27,8 @@ public class IBFTByzantine extends IBFT {
     private boolean isCommitByzantine = false;
     
 
-    public IBFTByzantine(int n, int f, String leader, BEBroadcast beb, BMember server) {
-        super(n, f, leader, beb, server);
+    public IBFTByzantine(int n, int f, PublicKey leaderPk, boolean isLeader, BEBroadcast beb, BMember server) {
+        super(n, f, leaderPk, isLeader, beb, server);
         //System.out.println("BYZANTINOOOOOOOOOOOOOOO" + beb.getInAddress().getProcessId());
     }
 

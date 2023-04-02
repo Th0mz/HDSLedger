@@ -32,30 +32,37 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ClientFrontend implements EventListener {
 
-    private BEBroadcast beb;
-    private PrivateKey mKey;
-    private PublicKey myPubKey;
-    private int mySeqNum = 0;
+    protected BEBroadcast beb;
+    protected PrivateKey mKey;
+    protected PublicKey myPubKey;
+    protected int mySeqNum = 0;
     private ReentrantLock seqNumLock = new ReentrantLock();
 
+    public ClientFrontend() {}
+
     public ClientFrontend(Address inAddress, List<Address> addresses, String pubKeyFile) {
+        String keys_folder;
         String consensus_folder;
 
         try {
-            consensus_folder = new File("../private-key-client.key").getCanonicalPath();
-            //publicKeyFile = new File("./" + pubKeyFile).getCanonicalPath();
+            keys_folder = new File("./src/main/java/group13/client/keys").getCanonicalPath();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        mKey = getPrivateKey(consensus_folder);
+        mKey = getPrivateKey(keys_folder + "/private-key-client.key");
         myPubKey = getPubKey(pubKeyFile);
-        
+
         System.out.println("Client on port " + inAddress.toString());
-        beb = new BEBroadcast(inAddress);
-        for(int i = 0; i < addresses.size(); i++)
-            beb.addServer(addresses.get(i));
+        beb = new BEBroadcast(inAddress, myPubKey, mKey);
+        for(int i = 0; i < addresses.size(); i++) {
+            Address outAddress = addresses.get(i);
+
+            PublicKey outPublicKey = getPubKey(keys_folder + "/" + outAddress.getProcessId().substring(0, 5) + ".pub");
+            beb.addServer(outAddress, outPublicKey);
+        }
 
         beb.subscribeDelivery(this);
+        System.out.println("ClientFrontend : Sending handshake");
         beb.send_handshake();
     }
 

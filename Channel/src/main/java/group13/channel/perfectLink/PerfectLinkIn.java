@@ -92,7 +92,7 @@ public class PerfectLinkIn {
                             Object object = this.notDeliveredObjects.remove(toDeliverSN);
 
                             Pp2pDeliver deliver_event = new Pp2pDeliver(this.outPublicKey, object);
-                            plEventHandler.trigger(deliver_event);
+                            plEventHandler.trigger(deliver_event, EventHandler.Mode.ASYNC);
 
                             this.receiveBase += 1;
                         } else {
@@ -161,7 +161,7 @@ public class PerfectLinkIn {
 
                 // DEBUG :
                 /*
-                System.out.println("[" + inAddress.getProcessId() + "] Received handshake message from " + outProcessId + " with sn = " + sequenceNumber);
+                System.out.println("[" + inAddress.getProcessId() + "] Received handshake message from " + outPublicKey + " with sn = " + sequenceNumber);
                 /**/
 
                 if (this.receiveBase == sequenceNumber) {

@@ -52,7 +52,7 @@ public class BEBroadcast implements EventListener {
             Object payload = typed_event.getPayload();
 
             BEBDeliver triggered_event = new BEBDeliver(processPK, payload);
-            bebEventHandler.trigger(triggered_event);
+            bebEventHandler.trigger(triggered_event, EventHandler.Mode.ASYNC);
         } else if (eventName == NetworkNew.EVENT_NAME) {
             NetworkNew typed_event = (NetworkNew) event;
             Address outAddress = typed_event.getOutAddress();

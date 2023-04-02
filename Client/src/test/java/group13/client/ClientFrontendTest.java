@@ -1,5 +1,6 @@
 package group13.client;
 
+import group13.blockchain.member.BMember;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.bestEffortBroadcast.events.BEBSend;
@@ -7,10 +8,16 @@ import group13.channel.perfectLink.events.Pp2pDeliver;
 import group13.primitives.Address;
 import group13.primitives.Event;
 import group13.prmitives.AboveModuleListener;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import group13.prmitives.BMemberTester;
+import group13.prmitives.ClientFrontendTester;
+import org.junit.jupiter.api.*;
 
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,72 +25,83 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ClientFrontendTest {
 
-    /*
-    private static String MESSAGE = "test";
-    @Test
-    @DisplayName("Check hanshake messages")
-    public void CheckHandshakeMessagesTest () {
+    private static Address client_addr, p1_addr, p2_addr, p3_addr, p4_addr;
+    private static Address p1I_addr, p2I_addr, p3I_addr, p4I_addr;
+    private static KeyPair client_keys, p1_keys, p2_keys, p3_keys, p4_keys;
 
-        Address client_addr = new Address(9876);
-        Address p1_addr = new Address(5001);
-        Address p2_addr = new Address(5002);
+    private BMemberTester p1_bMember, p2_bMember, p3_bMember, p4_bMember;
+    private ClientFrontendTester clientFrontend;
 
-        BEBroadcast p1_beb = new BEBroadcast(new Address(5001));
-        BEBroadcast p2_beb = new BEBroadcast(new Address(5002));
+    @BeforeAll
+    public static void init() {
+        p1_addr = new Address(6000);
+        p2_addr = new Address(6001);
+        p3_addr = new Address(6002);
+        p4_addr = new Address(6003);
 
-        p1_beb.addServer(p2_addr);
-        p2_beb.addServer(p1_addr);
+        p1I_addr = new Address(5000);
+        p2I_addr = new Address(5001);
+        p3I_addr = new Address(5002);
+        p4I_addr = new Address(5003);
 
-        AboveModuleListener am_process1 = new AboveModuleListener();
-        AboveModuleListener am_process2 = new AboveModuleListener();
+        client_addr = new Address(1234);
 
-        p1_beb.subscribeDelivery(am_process1);
-        p2_beb.subscribeDelivery(am_process2);
-
-        ClientFrontend frontend = new ClientFrontend(client_addr, List.of(p1_addr, p2_addr), "../public-key-client.pub");
-        // TODO : frontend wait for handshake responses
+        // Generate keys
         try {
-            Thread.sleep(600);
-        } catch (InterruptedException e) {
+            KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("RSA");
+            keyPairGen.initialize(2048);
+            p1_keys = keyPairGen.generateKeyPair();
+            p2_keys = keyPairGen.generateKeyPair();
+            p3_keys = keyPairGen.generateKeyPair();
+            p4_keys = keyPairGen.generateKeyPair();
+            client_keys = keyPairGen.generateKeyPair();
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+    }
 
-        BEBSend send_event = new BEBSend("yoooo".getBytes());
-        p2_beb.unicast(client_addr.getProcessId(), send_event);
+    @BeforeEach
+    void setup() {
+        List<Address> addresses = List.of(p1_addr, p2_addr, p3_addr, p4_addr);
+        List<PublicKey> serverPKs = List.of(
+                p1_keys.getPublic(), p2_keys.getPublic(), p3_keys.getPublic(), p4_keys.getPublic()
+        );
 
-        // TODO : frontend wait for handshake responses
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        ArrayList<Address> serverList = new ArrayList<>(addresses);
+        p1_bMember = new BMemberTester(); p1_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p1I_addr, p1_addr, p1_keys, p1_addr);
+        p2_bMember = new BMemberTester(); p2_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p2I_addr, p2_addr, p2_keys, p1_addr);
+        p3_bMember = new BMemberTester(); p3_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p3I_addr, p3_addr, p3_keys, p1_addr);
+        p4_bMember = new BMemberTester(); p4_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p4I_addr, p4_addr, p4_keys, p1_addr);
 
-        // client sends command
-        frontend.sendCommand(MESSAGE);
-
+        // wait for servers to stabilize
         try {
             Thread.sleep(400);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        // check process 1 received deliveries
-        assertEquals(1, am_process1.get_all_events_num());
+        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys);
 
-        List<Event> received_events = am_process1.get_events(BEBDeliver.EVENT_NAME);
-        assertEquals(1, received_events.size());
-        BEBDeliver deliver_event = (BEBDeliver) received_events.get(0);
-        //assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertTrue(client_addr.getProcessId().equals(deliver_event.getProcessId()));
+        // wait for handshake to be propagated
+        try {
+            Thread.sleep(400);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-        // check process 2 received deliveries
-        assertEquals(1, am_process2.get_all_events_num());
+    @AfterEach
+    void cleanup() {
 
-        received_events = am_process2.get_events(BEBDeliver.EVENT_NAME);
-        assertEquals(1, received_events.size());
-        deliver_event = (BEBDeliver) received_events.get(0);
-        //assertTrue(Arrays.equals(deliver_event.getPayload(), MESSAGE.getBytes()));
-        assertTrue(client_addr.getProcessId().equals(deliver_event.getProcessId()));
+    }
 
-    } */
+    @Test
+    @DisplayName("Check handshake messages")
+    public void CheckHandshakeMessagesTest () {
+        System.out.println("===============================");
+        System.out.println("Test : Check handshake messages");
+
+
+        System.out.println("finish");
+    }
 }

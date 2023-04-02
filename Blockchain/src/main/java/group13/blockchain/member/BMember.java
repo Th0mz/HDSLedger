@@ -3,14 +3,9 @@ package group13.blockchain.member;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.SignatureException;
-import java.security.SignedObject;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +35,7 @@ public class BMember {
     protected Address _myInfo;
     protected boolean _isLeader;
 
-    private int _nextInstance;
+    protected int _nextInstance;
     protected BMemberInterface frontend;
 
     protected IBFT _consensus;
@@ -49,33 +44,44 @@ public class BMember {
     protected Lock lastAppliedLock = new ReentrantLock();
     protected Lock ledgerLock = new ReentrantLock();
 
-    private PublicKey myPubKey;
+    protected PublicKey myPubKey;
+    protected PrivateKey myPrivKey;
 
 
     public void createBMember(ArrayList<Address> serverList, Integer nrFaulty, Integer nrServers,
-                    Address interfaceAddress, Address myInfo, String leaderId) {
+                    Address interfaceAddress, Address myInfo, Address leaderAddress) {
 
         _serverList = serverList;
         _nrFaulty = nrFaulty;
         _nrServers = nrServers;
         _myInfo = myInfo;
-        _isLeader = myInfo.getProcessId().equals(leaderId);
+        _isLeader = leaderAddress.equals(_myInfo);
         _nextInstance = 0;
 
-        BEBroadcast beb = new BEBroadcast(myInfo);
-        
-
+        PublicKey leaderPK = null;
+        BEBroadcast beb = null;
         try {
+            String inProcessId = _myInfo.getProcessId();
             String consensus_folder = new File("./src/main/java/group13/blockchain/consensus").getCanonicalPath();
-            myPubKey = getPubKey(consensus_folder + "/" + _myInfo.getProcessId().substring(0, 5) + ".pub");
+
+            myPubKey = getPubKey(consensus_folder + "/" + inProcessId.substring(0, 5) + ".pub");
+            myPrivKey = getPrivateKey(consensus_folder + "/" + inProcessId.substring(0, 5) + ".key");
+            beb = new BEBroadcast(myInfo, myPubKey, myPrivKey);
+
             for (Address serverAddress : serverList) {
-                beb.addServer(serverAddress);
                 String outProcessId = serverAddress.getProcessId();
-                PublicKey key = getPubKey(consensus_folder + "/" + outProcessId.substring(0, 5) + ".pub");
+                PublicKey outPublicKey = getPubKey(consensus_folder + "/" + outProcessId.substring(0, 5) + ".pub");
+
+                // set leader public key
+                if (leaderAddress.equals(serverAddress)) {
+                    leaderPK = outPublicKey;
+                }
+
+                beb.addServer(serverAddress, outPublicKey);
 
                 // TODO : hard code for now, but best practice is probably include
                 // their registration on the first block of the blockchain
-                RegisterCommand command = new RegisterCommand(-1, key);
+                RegisterCommand command = new RegisterCommand(-1, outPublicKey);
                 tesState.applyRegister(command);
             }
 
@@ -83,11 +89,11 @@ public class BMember {
             throw new RuntimeException(e);
         }
         
-        _consensus = new IBFT(_nrServers, _nrFaulty, leaderId, beb, this);
-        frontend = new BMemberInterface(interfaceAddress, this);
+        _consensus = new IBFT(_nrServers, _nrFaulty, leaderPK, _isLeader, beb, this);
+        frontend = new BMemberInterface(myPubKey, myPrivKey, interfaceAddress, this);
     }
 
-    public void processCommand(Object command, String clientId) {
+    public void processCommand(Object command) {
         if (!_isLeader)
             return;
 
@@ -152,11 +158,11 @@ public class BMember {
             IBFTBlock block = new IBFTBlock(this.myPubKey, commandsToSend, nextInstance);
             nextCommands = new ArrayList<BlockchainCommand>();
 
+            System.out.println("Calling consensus for block : " + block);
             _consensus.start(nextInstance, block);
         }
         nextCommandsLock.unlock();
 
-        System.out.println("Called consensus for create_account");
         //TODO: add to next consensus block
     }
 
@@ -204,6 +210,27 @@ public class BMember {
         }
         //hack
         PublicKey k = null;
+        return k;
+    }
+
+    private static PrivateKey getPrivateKey(String file) {
+
+        try {
+            //Encoder enc = Base64.getEncoder();
+            FileInputStream fis = new FileInputStream(file);
+            byte[] bytes = new byte[fis.available()];
+            fis.read(bytes);
+            fis.close();
+            //System.out.println(new String(bytes));
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(bytes);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePrivate(spec);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        //hack
+        PrivateKey k = null;
         return k;
     }
 

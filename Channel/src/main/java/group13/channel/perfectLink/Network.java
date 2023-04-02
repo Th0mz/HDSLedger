@@ -65,7 +65,7 @@ public class Network extends Thread {
 
                     Object receivedObject = objectInputStream.readObject();
                     if (!(receivedObject instanceof NetworkMessage)) {
-                        System.out.println("Error : received message that isn't a NetworkMessage");
+                        System.err.println("Error : received message that isn't a NetworkMessage");
                         continue;
                     }
 
@@ -95,10 +95,10 @@ public class Network extends Thread {
                     }
 
                     Address outAddress = (Address) payload;
-
                     // notify about the new link
                     NetworkNew new_event = new NetworkNew(outAddress, outPublicKey);
-                    networkHandler.trigger(new_event);
+                    networkHandler.trigger(new_event, EventHandler.Mode.SYNC);
+
 
                 } else if (!this.links.containsKey(outPublicKey) && receivedMessage.isHandshake()){
                     // process unknown and first message isn't handshake
@@ -108,17 +108,21 @@ public class Network extends Thread {
                 }
 
                 NetworkMessage finalReceivedMessage = receivedMessage;
-                Thread thread = new Thread() {
-                    @Override
-                    public void run() {
-                        // deliver contents to respective PerfectLinkIn
-                        links.get(outPublicKey).receive(finalReceivedMessage);
-                    }
-                };
+                if (links.containsKey(outPublicKey)) {
+                    PerfectLink link = links.get(outPublicKey);
+                    Thread thread = new Thread() {
+                        @Override
+                        public void run() {
+                            // deliver contents to respective PerfectLinkIn
+                            link.receive(finalReceivedMessage);
+                        }
+                    };
 
-                thread.start();
-                this.threadPool.add(thread);
-
+                    thread.start();
+                    this.threadPool.add(thread);
+                } else {
+                    System.err.println("Error : Unknown link");
+                }
 
                 inputStream.close();
                 objectInputStream.close();
@@ -126,7 +130,7 @@ public class Network extends Thread {
             } catch (SocketException e) {
                 // socket closed
             } catch (IOException e) {
-                System.out.println("Error : Couldn't read or write to socket");
+                System.err.println("Error : Couldn't read or write to socket");
                 throw new RuntimeException(e);
             }
         }

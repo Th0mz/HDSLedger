@@ -85,7 +85,7 @@ public class PerfectLinkOut {
             // socket closed
         } catch (IOException e) {
             // TODO : must die? or just retry?
-            System.out.println("Error : Unable to send packet (must die? or just retry?)");
+            System.err.println("Error : Unable to send packet (must die? or just retry?)");
             throw new RuntimeException(e);
         }
 
@@ -116,7 +116,7 @@ public class PerfectLinkOut {
             // socket closed
         } catch (IOException e) {
             // TODO : must die? or just retry?
-            System.out.println("Error : Unable to send packet (must die? or just retry?)");
+            System.err.println("Error : Unable to send packet (must die? or just retry?)");
             throw new RuntimeException(e);
         }
     }
@@ -160,7 +160,7 @@ public class PerfectLinkOut {
             this.outSocket.send(packet);
         } catch (IOException e) {
             // TODO : must die? or just retry?
-            System.out.println("Error : Unable to send packet (must die? or just retry?)");
+            System.err.println("Error : Unable to send packet (must die? or just retry?)");
             throw new RuntimeException(e);
         }
 
@@ -211,7 +211,7 @@ public class PerfectLinkOut {
             this.outSocket.send(packet);
         } catch (IOException e) {
             // TODO : must die? or just retry?
-            System.out.println("Error : Unable to send packet (must die? or just retry?)");
+            System.err.println("Error : Unable to send packet (must die? or just retry?)");
             throw new RuntimeException(e);
         }
 
