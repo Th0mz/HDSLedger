@@ -89,7 +89,7 @@ public class BMember {
             throw new RuntimeException(e);
         }
         
-        _consensus = new IBFT(_nrServers, _nrFaulty, leaderPK, _isLeader, beb, this);
+        _consensus = new IBFT(_nrServers, _nrFaulty, myPubKey, myPrivKey, leaderPK, beb, this);
         frontend = new BMemberInterface(myPubKey, myPrivKey, interfaceAddress, this);
     }
 
@@ -121,6 +121,7 @@ public class BMember {
             return;
         }
 
+        System.out.println("Added command of type " + bcommand.getType());
         addCommand(bcommand);
     }
 
@@ -161,8 +162,8 @@ public class BMember {
             System.out.println("Calling consensus for block : " + block);
             _consensus.start(nextInstance, block);
         }
-        nextCommandsLock.unlock();
 
+        nextCommandsLock.unlock();
         //TODO: add to next consensus block
     }
 

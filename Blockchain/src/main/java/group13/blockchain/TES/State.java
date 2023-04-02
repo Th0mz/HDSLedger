@@ -7,6 +7,8 @@ import group13.blockchain.commands.RegisterCommand;
 import group13.blockchain.commands.TransferCommand;
 
 import java.security.PublicKey;
+import java.security.interfaces.RSAKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.HashMap;
 
 public class State {
@@ -31,6 +33,8 @@ public class State {
                 System.out.println("Error : Unknown command");
             }
         }
+
+        this.print();
     }
 
     public void applyRegister(RegisterCommand command) {
@@ -80,5 +84,18 @@ public class State {
             System.out.println("->CHECK BALANCE Client pubKey: "+ command.getPublicKey()
                     + "    | Amount: " + balance);
         }
+    }
+
+    public void print() {
+        System.out.println("==========================================");
+        System.out.println("                TES STATE                 ");
+        System.out.println("==========================================");
+        for (PublicKey key : accounts.keySet()) {
+            Account account = accounts.get(key);
+            RSAPublicKey rsaKey = (RSAPublicKey) key;
+            System.out.println("Id : " + rsaKey.getPublicExponent() + "   Amount = " + account.getBalance());
+        }
+
+        System.out.println("==========================================");
     }
 }

@@ -72,18 +72,17 @@ public class ClientFrontend implements EventListener {
             Signature signature = Signature.getInstance("SHA256withRSA");
 	        SignedObject signedObject = new SignedObject(unsignedCommand, mKey, signature);
 
-            System.out.print("Generated signedObject of type:"+(BlockchainCommand)signedObject.getObject()+"    with signature:"+signedObject.getSignature());
             BEBSend send_event = new BEBSend(signedObject);
             beb.send(send_event);
         } catch (IOException | InvalidKeyException | SignatureException | 
-                NoSuchAlgorithmException | ClassNotFoundException e) {
+                NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
     }
 
     public void register(){
         seqNumLock.lock();
-        System.out.print("Registering client:"+ myPubKey);
+        System.out.println("Registering client");
         sendCommand(new RegisterCommand(mySeqNum, myPubKey));
         mySeqNum++;
         seqNumLock.unlock();
@@ -92,7 +91,7 @@ public class ClientFrontend implements EventListener {
 
     public void transfer(PublicKey pKeyDest, int amount){
         seqNumLock.lock();
-        System.out.print("Sending " + amount + "from "+ myPubKey + " to " + pKeyDest);
+        System.out.println("Sending " + amount);
         sendCommand(new TransferCommand(mySeqNum, myPubKey, pKeyDest, amount));
         mySeqNum++;
         seqNumLock.unlock();
@@ -101,7 +100,7 @@ public class ClientFrontend implements EventListener {
 
     public void checkBalance(){
         seqNumLock.lock();
-        System.out.print("Checking balance of "+ myPubKey);
+        System.out.println("Checking balance");
         sendCommand(new CheckBalanceCommand(mySeqNum, myPubKey));
         mySeqNum++;
         seqNumLock.unlock();

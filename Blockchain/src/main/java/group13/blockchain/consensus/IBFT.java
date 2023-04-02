@@ -65,9 +65,9 @@ public class IBFT implements EventListener{
     protected PublicKey leaderPK;
     private boolean isLeader;
 
-    public IBFT(int n, int f, PublicKey leaderPK, boolean isLeader, BEBroadcast beb, BMember server) {
+    public IBFT(int n, int f, PublicKey inPublicKey, PrivateKey inPrivateKey, PublicKey leaderPK, BEBroadcast beb, BMember server) {
 
-        this.isLeader = isLeader;
+        this.isLeader = leaderPK.equals(inPublicKey);
         nrProcesses = n;
         byzantineP = f;
         quorum = (nrProcesses + byzantineP)/2 + 1;
@@ -75,6 +75,9 @@ public class IBFT implements EventListener{
         _server = server;
         broadcast = beb;
         broadcast.subscribeDelivery(this);
+
+        myKey = inPrivateKey;
+        myPubKey = inPublicKey;
     }
 
     public void start(int instance, IBFTBlock block) {

@@ -45,7 +45,7 @@ public class BMemberTester extends BMember {
             tesState.applyRegister(command);
         }
 
-        _consensus = new IBFT(_nrServers, _nrFaulty, leaderPK, _isLeader, beb, this);
+        _consensus = new IBFT(_nrServers, _nrFaulty, myPubKey, myPrivKey, leaderPK, beb, this);
         frontend = new BMemberInterface(myPubKey, myPrivKey, interfaceAddress, this);
     }
 }

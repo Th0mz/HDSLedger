@@ -101,7 +101,22 @@ class ClientFrontendTest {
         System.out.println("===============================");
         System.out.println("Test : Check handshake messages");
 
+        clientFrontend.register();
+        clientFrontend.transfer(p2_keys.getPublic(), 5);
+        clientFrontend.transfer(p3_keys.getPublic(), 10);
+        clientFrontend.transfer(p4_keys.getPublic(), 15);
+        clientFrontend.checkBalance();
+        clientFrontend.checkBalance();
+        clientFrontend.checkBalance();
+        clientFrontend.checkBalance();
+        clientFrontend.checkBalance();
+        clientFrontend.checkBalance();
 
-        System.out.println("finish");
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(400);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
