@@ -6,7 +6,9 @@ import group13.blockchain.commands.CheckBalanceCommand;
 import group13.blockchain.commands.RegisterCommand;
 import group13.blockchain.commands.TransferCommand;
 
+import java.io.IOException;
 import java.security.PublicKey;
+import java.security.SignedObject;
 import java.security.interfaces.RSAKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.HashMap;
@@ -21,16 +23,22 @@ public class State {
     public void applyBlock(IBFTBlock block) {
         PublicKey minerPK = block.getMiner();
 
-        for(BlockchainCommand command : block.getCommandsList()) {
-            String commandType = command.getType();
-            if(RegisterCommand.constType.equals(commandType))
-                applyRegister((RegisterCommand) command);
-            else if (TransferCommand.constType.equals(commandType))
-                applyTransfer((TransferCommand) command, minerPK);
-            else if (CheckBalanceCommand.constType.equals(commandType))
-                applyCheckBalance((CheckBalanceCommand) command);
-            else {
-                System.out.println("Error : Unknown command");
+        for(SignedObject obj : block.getCommandsList()) {
+            try {
+                BlockchainCommand command = (BlockchainCommand) obj.getObject();
+                String commandType = command.getType();
+                if(RegisterCommand.constType.equals(commandType))
+                    applyRegister((RegisterCommand) command);
+                else if (TransferCommand.constType.equals(commandType))
+                    applyTransfer((TransferCommand) command, minerPK);
+                else if (CheckBalanceCommand.constType.equals(commandType))
+                    applyCheckBalance((CheckBalanceCommand) command);
+                else {
+                    System.out.println("Error : Unknown command");
+                }
+            } catch (ClassNotFoundException | IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
         }
 

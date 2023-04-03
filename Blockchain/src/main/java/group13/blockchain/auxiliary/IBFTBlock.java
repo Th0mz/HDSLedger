@@ -2,6 +2,7 @@ package group13.blockchain.auxiliary;
 
 import java.io.Serializable;
 import java.security.PublicKey;
+import java.security.SignedObject;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -10,19 +11,19 @@ import group13.blockchain.commands.BlockchainCommand;
 public class IBFTBlock implements Serializable {
 
     public static int BLOCK_SIZE = 10;
-    private ArrayList<BlockchainCommand> listOfCommands = new ArrayList<BlockchainCommand>();
+    private ArrayList<SignedObject> listOfCommands = new ArrayList<SignedObject>();
     private int instance;
 
     private PublicKey miner;
     private UUID uniqueID = UUID.randomUUID();
 
-    public IBFTBlock(PublicKey miner, ArrayList<BlockchainCommand> commands, int inst) {
+    public IBFTBlock(PublicKey miner, ArrayList<SignedObject> commands, int inst) {
         listOfCommands = commands;
         instance = inst;
         this.miner = miner;
     }
 
-    public ArrayList<BlockchainCommand> getCommandsList() { return listOfCommands; }
+    public ArrayList<SignedObject> getCommandsList() { return listOfCommands; }
 
     public int getInstance() { return instance; }
 

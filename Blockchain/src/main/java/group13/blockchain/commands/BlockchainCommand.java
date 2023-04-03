@@ -21,8 +21,6 @@ public abstract class BlockchainCommand implements Serializable{
     @Override
     public boolean equals(Object o) {
         //instead of instanceof => to ensure subclass != baseclass
-        if (!(o == null || o.getClass() != getClass()))
-            return false;
         BlockchainCommand c = (BlockchainCommand) o;
 
         if(!this.type.equals(c.getType()))

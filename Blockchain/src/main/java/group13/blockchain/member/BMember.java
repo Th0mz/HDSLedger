@@ -27,7 +27,7 @@ public class BMember {
     protected HashMap<PublicKey, HashSet<Integer>> receivedCommands = new HashMap<PublicKey, HashSet<Integer>>();
     private ReentrantLock receivedCommandsLock = new ReentrantLock();
 
-    private ArrayList<BlockchainCommand> nextCommands = new ArrayList<BlockchainCommand>();
+    private ArrayList<SignedObject> nextCommands = new ArrayList<SignedObject>();
     private ReentrantLock nextCommandsLock = new ReentrantLock();
 
     protected Integer _nrFaulty;
@@ -94,8 +94,8 @@ public class BMember {
     }
 
     public void processCommand(Object command) {
-        if (!_isLeader)
-            return;
+        //if (!_isLeader)
+        //    return;
 
         if (!(command instanceof SignedObject))
             return;
@@ -122,12 +122,27 @@ public class BMember {
         }
 
         System.out.println("Added command of type " + bcommand.getType());
-        addCommand(bcommand);
+        if(_isLeader) {
+            addCommand(signedObject);
+        } else {
+            _consensus.waitForCommand(bcommand);
+        }
+            
     }
 
     // add command to the received list and initiate a new consensus instance if
     // there are sufficient commands to complete the block
-    public void addCommand(BlockchainCommand command) {
+    public void addCommand(SignedObject obj) {
+        BlockchainCommand command;
+        try {
+            if (!(obj.getObject() instanceof BlockchainCommand))
+                return;
+            command = (BlockchainCommand) obj.getObject();
+        } catch (ClassNotFoundException | IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return;
+        }
         PublicKey commandPubKey = command.getPublicKey();
         Integer commandId = command.getSequenceNumber();
 
@@ -147,7 +162,7 @@ public class BMember {
         receivedCommandsLock.unlock();
 
         nextCommandsLock.lock();
-        nextCommands.add(command);
+        nextCommands.add(obj);
 
         if (nextCommands.size() >= IBFTBlock.BLOCK_SIZE) {
             ledgerLock.lock();
@@ -155,9 +170,9 @@ public class BMember {
             _nextInstance += 1;
             ledgerLock.unlock();
 
-            ArrayList<BlockchainCommand> commandsToSend = nextCommands;
+            ArrayList<SignedObject> commandsToSend = nextCommands;
             IBFTBlock block = new IBFTBlock(this.myPubKey, commandsToSend, nextInstance);
-            nextCommands = new ArrayList<BlockchainCommand>();
+            nextCommands = new ArrayList<SignedObject>();
 
             System.out.println("Calling consensus for block : " + block);
             _consensus.start(nextInstance, block);

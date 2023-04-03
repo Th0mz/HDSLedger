@@ -17,6 +17,8 @@ import javax.swing.plaf.synth.SynthTextAreaUI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.io.File;
@@ -34,12 +36,13 @@ import java.security.SignedObject;
 import java.security.spec.X509EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-
-
+import java.util.ArrayList;
 import java.util.Base64;
 
 
 public class IBFT implements EventListener{
+
+    private static final int CHECKRECEPTION = 10000; //500ms
 
     protected int nrProcesses, byzantineP, quorum;
     protected int instance;
@@ -53,15 +56,24 @@ public class IBFT implements EventListener{
     protected Lock lockBlocks = new ReentrantLock();
     protected Lock lockPrepare = new ReentrantLock();
     protected Lock lockCommit = new ReentrantLock();
+    protected Lock lockPending = new ReentrantLock();
+    protected Lock lockReceived = new ReentrantLock();
     protected HashMap<String, HashMap<Integer, Set<PublicKey>>> prepares = new HashMap<>();
     protected HashMap<String, HashMap<Integer, Set<PublicKey>>> commits = new HashMap<>();
     protected HashMap<String, IBFTBlock> blocks = new HashMap<>();
 
+    // tuple key <sequenceNumber, ClientPublicKey> -> List of pending BlockchainCommand's
+    protected HashMap<PublicKey, HashMap<Integer, BlockchainCommand>> pendingCommands = new HashMap<>();
+    protected HashMap<PublicKey, HashMap<Integer, BlockchainCommand>> receivedCommands = new HashMap<>();
+    protected HashMap<PublicKey, HashMap<Integer, CheckReceptionTask>> receptionTimers = new HashMap<>();
+
     protected PrivateKey myKey;
     protected PublicKey myPubKey;
 
+    protected boolean leaderFailed = false;
 
-    //Timer (eventually)
+
+    private Timer timer;
     protected PublicKey leaderPK;
     private boolean isLeader;
 
@@ -78,6 +90,62 @@ public class IBFT implements EventListener{
 
         myKey = inPrivateKey;
         myPubKey = inPublicKey;
+
+        timer = new Timer();
+    }
+
+    private class CheckReceptionTask extends TimerTask {
+
+        private int sequenceNumber;
+        private PublicKey pKey;
+
+        public CheckReceptionTask(int sequenceNumber, PublicKey pKey) {
+            this.sequenceNumber = sequenceNumber;
+            this.pKey = pKey;
+
+            // schedule task
+            timer.schedule(this, CHECKRECEPTION);
+        }
+
+        @Override
+        public void run() {
+            lockPending.lock();
+            lockReceived.lock();
+            if (!receivedCommands.containsKey(pKey) || !receivedCommands.get(pKey).containsKey(sequenceNumber)) {
+                System.out.println("LEADER FAILED: HASNT SENT THE PREPREPARE YET");
+                leaderFailed = true;
+                lockReceived.unlock();
+                lockPending.unlock();
+                this.cancel();
+                return;                
+            } 
+            lockReceived.unlock();
+            lockPending.unlock();
+            this.cancel();
+        }
+
+        public void terminate() {
+            this.cancel();
+        }
+    }
+
+    public void waitForCommand(BlockchainCommand command) {
+        PublicKey pKey = command.getPublicKey();
+        int seqNum = command.getSequenceNumber();
+
+        lockPending.lock();
+        //TODO: se ja existir na lista de comandos recebidos nao faz nada
+        if(!pendingCommands.containsKey(pKey))
+            pendingCommands.put(pKey, new HashMap<Integer, BlockchainCommand>());
+        if(!pendingCommands.get(pKey).containsKey(command.getSequenceNumber())) {
+            pendingCommands.get(pKey).put(command.getSequenceNumber(), command);
+        }
+
+        HashMap<Integer, CheckReceptionTask> hmp = new HashMap<Integer, CheckReceptionTask>();
+        hmp.put(seqNum, new CheckReceptionTask(seqNum, pKey));
+        receptionTimers.put(pKey, hmp);
+        
+        lockPending.unlock();
     }
 
     public void start(int instance, IBFTBlock block) {
@@ -147,6 +215,75 @@ public class IBFT implements EventListener{
 
             String blockId = block.getId();
             int instance = block.getInstance();
+
+            //1ST: CHECK THAT THE COMMANDS INDEED CAME FROM THE CLIENT
+            //2ND: CHECK THAT THE LEADER DIDNT SEND REPEATED COMMANDS
+            //3RD: CHECK THAT THE LEADER DIDNT SEND REPEATED COMMANDS WITHIN BLOCK
+            lockReceived.lock();
+            for (SignedObject signedObject : block.getCommandsList()) {
+                try {
+                    if (!(signedObject.getObject() instanceof BlockchainCommand)) {
+                        lockReceived.unlock();
+                        lockCommit.unlock();
+                        lockBlocks.unlock();
+                        return;
+                    }
+        
+                    BlockchainCommand bcommand = (BlockchainCommand) signedObject.getObject();
+                    if (!signedObject.verify(bcommand.getPublicKey(), Signature.getInstance("SHA256withRSA"))) {
+                        lockReceived.unlock();
+                        lockCommit.unlock();
+                        lockBlocks.unlock();
+                        return;
+                    }
+                    
+                    if (receivedCommands.containsKey(bcommand.getPublicKey()) && 
+                        receivedCommands.get(bcommand.getPublicKey()).containsKey(bcommand.getSequenceNumber())) {
+                        System.out.println("LEADER FAILED: SENT REPEATED COMMANDS");
+                        leaderFailed = true;
+                        lockReceived.unlock();
+                        lockCommit.unlock();
+                        lockBlocks.unlock();
+                        return;
+                    }
+                } catch (ClassNotFoundException | IOException | InvalidKeyException | 
+                            SignatureException | NoSuchAlgorithmException  e) {
+                    e.printStackTrace();
+                }
+            }
+        
+            boolean removeEntireBlock = false;
+            for (SignedObject signedObject : block.getCommandsList()) {
+                BlockchainCommand command = (BlockchainCommand) signedObject.getObject();
+                if (receivedCommands.containsKey(command.getPublicKey()) && 
+                        receivedCommands.get(command.getPublicKey()).containsKey(command.getSequenceNumber())){
+                    removeEntireBlock = true; //REPEATED COMMANDS WITHIN BLOCK
+                }
+                if (!pendingCommands.get(command.getPublicKey()).get(command.getSequenceNumber()).equals(command)) {
+                    System.out.println("INCORRECT BEHAVIOR: COMMAND FROM CLIENT DIFFERENT FROM WHAT LEADER SENT"); //COMMAND DOESNT MATCH THE ONE SENT BY CLIENT
+                    continue;
+                }
+
+                if(!receivedCommands.containsKey(pKey))
+                    receivedCommands.put(pKey, new HashMap<Integer, BlockchainCommand>());
+                if(!receivedCommands.get(pKey).containsKey(command.getSequenceNumber())) {
+                    receivedCommands.get(pKey).put(command.getSequenceNumber(), command);
+                }
+            }
+
+            if(removeEntireBlock) {
+                System.out.println("LEADER FAILED: SENT REPEATED COMMANDS WITHIN BLOCK");
+                leaderFailed = true;
+                for (SignedObject signedObject : block.getCommandsList()) {
+                    BlockchainCommand command = (BlockchainCommand) signedObject.getObject();
+                    receivedCommands.get(pKey).remove(command.getSequenceNumber());
+                }
+                lockReceived.unlock();
+                lockCommit.unlock();
+                lockBlocks.unlock();
+                return;
+            }
+
             blocks.put(blockId, block);
 
             IBFTPrepare prepare = new IBFTPrepare(myPubKey, blockId, instance);
@@ -171,6 +308,7 @@ public class IBFT implements EventListener{
         } finally {
             lockCommit.unlock();
             lockBlocks.unlock();
+            lockReceived.unlock();
         }
     }
 
