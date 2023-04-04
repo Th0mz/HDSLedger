@@ -70,7 +70,7 @@ public class IBFT implements EventListener{
     protected PrivateKey myKey;
     protected PublicKey myPubKey;
 
-    protected boolean leaderFailed = false;
+    public boolean leaderFailed = false;
 
 
     private Timer timer;
@@ -223,6 +223,7 @@ public class IBFT implements EventListener{
             for (SignedObject signedObject : block.getCommandsList()) {
                 try {
                     if (!(signedObject.getObject() instanceof BlockchainCommand)) {
+                        leaderFailed = true;
                         lockReceived.unlock();
                         lockCommit.unlock();
                         lockBlocks.unlock();
@@ -231,6 +232,8 @@ public class IBFT implements EventListener{
         
                     BlockchainCommand bcommand = (BlockchainCommand) signedObject.getObject();
                     if (!signedObject.verify(bcommand.getPublicKey(), Signature.getInstance("SHA256withRSA"))) {
+                        System.out.println("LEADER FAILED: WRONG SIGNATURE");
+                        leaderFailed = true;
                         lockReceived.unlock();
                         lockCommit.unlock();
                         lockBlocks.unlock();
@@ -260,6 +263,7 @@ public class IBFT implements EventListener{
                 if (receivedCommands.containsKey(commPKey) && 
                         receivedCommands.get(commPKey).containsKey(command.getSequenceNumber())){
                     removeEntireBlock = true; //REPEATED COMMANDS WITHIN BLOCK
+                    leaderFailed = true;
                 }
                 if (pendingCommands.containsKey(commPKey) &&
                     pendingCommands.get(commPKey).containsKey(seqNumber) &&
