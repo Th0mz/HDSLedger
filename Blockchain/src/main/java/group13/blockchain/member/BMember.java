@@ -250,4 +250,9 @@ public class BMember {
         return k;
     }
 
+    public void close() {
+        _consensus.close();
+        frontend.close();
+    }
+
 }

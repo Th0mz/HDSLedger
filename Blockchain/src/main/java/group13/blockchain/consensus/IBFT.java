@@ -503,4 +503,8 @@ public class IBFT implements EventListener{
         System.arraycopy(b, 0, c, a.length, b.length);
         return c;
     }
+
+    public void close() {
+        broadcast.close();
+    }
 }

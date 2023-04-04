@@ -92,7 +92,10 @@ class ClientFrontendTest {
 
     @AfterEach
     void cleanup() {
-
+        p1_bMember.close();
+        p2_bMember.close();
+        p3_bMember.close();
+        p4_bMember.close();
     }
 
     @Test

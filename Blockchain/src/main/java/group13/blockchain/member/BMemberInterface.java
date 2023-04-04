@@ -36,4 +36,8 @@ public class BMemberInterface implements EventListener {
         Object payload = ev.getPayload();
         _server.processCommand(payload);
     }
+
+    public void close() {
+        beb.close();
+    }
 }
