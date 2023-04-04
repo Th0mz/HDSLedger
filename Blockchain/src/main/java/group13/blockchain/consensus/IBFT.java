@@ -255,19 +255,23 @@ public class IBFT implements EventListener{
             boolean removeEntireBlock = false;
             for (SignedObject signedObject : block.getCommandsList()) {
                 BlockchainCommand command = (BlockchainCommand) signedObject.getObject();
-                if (receivedCommands.containsKey(command.getPublicKey()) && 
-                        receivedCommands.get(command.getPublicKey()).containsKey(command.getSequenceNumber())){
+                PublicKey commPKey = command.getPublicKey();
+                int seqNumber = command.getSequenceNumber();
+                if (receivedCommands.containsKey(commPKey) && 
+                        receivedCommands.get(commPKey).containsKey(command.getSequenceNumber())){
                     removeEntireBlock = true; //REPEATED COMMANDS WITHIN BLOCK
                 }
-                if (!pendingCommands.get(command.getPublicKey()).get(command.getSequenceNumber()).equals(command)) {
+                if (pendingCommands.containsKey(commPKey) &&
+                    pendingCommands.get(commPKey).containsKey(seqNumber) &&
+                    !pendingCommands.get(commPKey).get(seqNumber).equals(command)) {
                     System.out.println("INCORRECT BEHAVIOR: COMMAND FROM CLIENT DIFFERENT FROM WHAT LEADER SENT"); //COMMAND DOESNT MATCH THE ONE SENT BY CLIENT
                     continue;
                 }
-
-                if(!receivedCommands.containsKey(pKey))
-                    receivedCommands.put(pKey, new HashMap<Integer, BlockchainCommand>());
-                if(!receivedCommands.get(pKey).containsKey(command.getSequenceNumber())) {
-                    receivedCommands.get(pKey).put(command.getSequenceNumber(), command);
+                
+                if(!receivedCommands.containsKey(commPKey))
+                    receivedCommands.put(commPKey, new HashMap<Integer, BlockchainCommand>());
+                if(!receivedCommands.get(commPKey).containsKey(seqNumber)) {
+                    receivedCommands.get(commPKey).put(seqNumber, command);
                 }
             }
 
