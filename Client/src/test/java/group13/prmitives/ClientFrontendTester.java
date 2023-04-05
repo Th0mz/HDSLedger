@@ -10,10 +10,13 @@ import java.security.PublicKey;
 import java.util.List;
 
 public class ClientFrontendTester extends ClientFrontend {
-    public ClientFrontendTester(Address inAddress, List<Address> addresses, List<PublicKey> serversPKs, KeyPair keys) {
+    public ClientFrontendTester(Address inAddress, List<Address> addresses, List<PublicKey> serversPKs, KeyPair keys, int nrFaulty) {
+
+        super();
 
         mKey = keys.getPrivate();
         myPubKey = keys.getPublic();
+        faulty = nrFaulty;
 
         System.out.println("Client on port " + inAddress.toString());
         beb = new BEBroadcast(inAddress, myPubKey, mKey);

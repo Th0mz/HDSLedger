@@ -83,13 +83,17 @@ public class BEBroadcast implements EventListener {
         }
     }
 
-    public void unicast(PublicKey outProcessPK, BEBSend send_event) {
+    public boolean unicast(PublicKey outProcessPK, BEBSend send_event) {
+        boolean sent = false;
         Object payload = send_event.getPayload();
         PerfectLink link = this.network.getLink(outProcessPK);
 
         if (link != null) {
             link.send(payload);
+            sent = true;
         }
+
+        return sent;
     }
 
     public Address getInAddress() {

@@ -1,5 +1,6 @@
 package group13.client;
 
+import group13.blockchain.TES.ClientResponse;
 import group13.primitives.Address;
 import group13.primitives.*;
 import group13.blockchain.commands.BlockchainCommand;
@@ -8,26 +9,17 @@ import group13.blockchain.commands.RegisterCommand;
 import group13.blockchain.commands.TransferCommand;
 import group13.channel.bestEffortBroadcast.*;
 import group13.channel.bestEffortBroadcast.events.*;
-import group13.channel.perfectLink.PerfectLinkIn;
+import group13.primitives.EventListener;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.SignatureException;
-import java.security.SignedObject;
-import java.security.spec.ECFieldF2m;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ClientFrontend implements EventListener {
@@ -36,13 +28,20 @@ public class ClientFrontend implements EventListener {
     protected PrivateKey mKey;
     protected PublicKey myPubKey;
     protected int mySeqNum = 0;
+
+    private int lastResponseDelivered = 0;
+    private HashSet<Integer> responsesDelivered = new HashSet<>();
+    private HashMap<Integer, ReentrantLock> commandLock = new HashMap<>();
+    private HashMap<Integer, HashMap<String, Integer>> responsesReceived = new HashMap<>();
+
+    protected int faulty;
     private ReentrantLock seqNumLock = new ReentrantLock();
 
     public ClientFrontend() {}
 
-    public ClientFrontend(Address inAddress, List<Address> addresses, String pubKeyFile) {
+    public ClientFrontend(Address inAddress, List<Address> addresses, String pubKeyFile, int faulty) {
         String keys_folder;
-        String consensus_folder;
+        this.faulty = faulty;
 
         try {
             keys_folder = new File("./src/main/java/group13/client/keys").getCanonicalPath();
@@ -74,7 +73,12 @@ public class ClientFrontend implements EventListener {
 
             BEBSend send_event = new BEBSend(signedObject);
             beb.send(send_event);
-        } catch (IOException | InvalidKeyException | SignatureException | 
+
+            if (unsignedCommand instanceof BlockchainCommand) {
+                commandLock.put(((BlockchainCommand) unsignedCommand).getSequenceNumber(), new ReentrantLock());
+            }
+
+        } catch (IOException | InvalidKeyException | SignatureException |
                 NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -116,10 +120,100 @@ public class ClientFrontend implements EventListener {
             System.out.println("Should only receive deliver events (??)");
         }
 
-        BEBDeliver ev = (BEBDeliver) event;
-        System.out.println("received message");
+        BEBDeliver typed_event = (BEBDeliver) event;
+        Object object = typed_event.getPayload();
 
-        // TODO : display received message
+        if (!(object instanceof ClientResponse)) {
+            System.err.println("Error : Client received a response that was not an instance of ClientResponse");
+            return;
+        }
+
+        ClientResponse response = (ClientResponse) object;
+        int sequenceNumber = response.getSequenceNumber();
+
+        // don't allow an attacker to send multiple responses to
+        // commands that weren't sent by the client yet
+        if (sequenceNumber >= mySeqNum) {
+            System.err.println("Error : Server is responding to commands that weren't yet sent");
+            return;
+        }
+
+        // check if the value was already delivered
+        if (lastResponseDelivered > sequenceNumber || responsesDelivered.contains(sequenceNumber)) {
+            return;
+        }
+
+        // get lock
+        if (!commandLock.containsKey(sequenceNumber)) {
+            System.err.println("Error : Command lock wasn't found");
+            return;
+        }
+        ReentrantLock lock = commandLock.get(sequenceNumber);
+        lock.lock();
+
+        HashMap<String, Integer> received = null;
+        if (!responsesReceived.containsKey(sequenceNumber)) {
+            received = new HashMap<>();
+            this.responsesReceived.put(sequenceNumber, received);
+        } else {
+            received = responsesReceived.get(sequenceNumber);
+        }
+
+        String hash = hashResponse(response);
+        int counter = 1;
+        if (received.containsKey(hash)) {
+            counter = received.get(hash) + 1;
+        }
+        // update number of times that this response was seen
+        received.put(hash, counter);
+
+        // check if a majority of equal responses was reached
+        if (counter >= 2 * faulty + 1) {
+            // deliver response to the client
+            System.out.println(response);
+
+            responsesReceived.remove(sequenceNumber);
+            commandLock.remove(sequenceNumber);
+            responsesDelivered.add(sequenceNumber);
+
+            if (sequenceNumber == lastResponseDelivered) {
+                for (int i = sequenceNumber; i < mySeqNum; i++) {
+                    if (!responsesDelivered.contains(sequenceNumber)) {
+                        break;
+                    }
+
+                    responsesDelivered.remove(sequenceNumber);
+                    lastResponseDelivered = lastResponseDelivered + 1;
+                }
+            }
+        }
+
+        lock.unlock();
+    }
+
+    private String hashResponse(ClientResponse response) {
+        MessageDigest messageDigest = null;
+
+        try {
+            messageDigest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
+        // get response attributes and compute the hash
+        int sequenceNumber = response.getSequenceNumber();
+        String commandType = response.getCommandType();
+        boolean applied = response.wasApplied();
+        Object object = response.getResponse();
+
+        String attributeMerge = sequenceNumber + commandType + applied;
+        if (object != null) {
+            attributeMerge += object.toString();
+        }
+        
+        byte[] digest = messageDigest.digest(attributeMerge.getBytes());
+        String hash = Base64.getEncoder().encodeToString(digest);
+        return hash;
     }
 
     

@@ -10,9 +10,11 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import group13.blockchain.TES.ClientResponse;
 import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.commands.*;
 import group13.blockchain.consensus.IBFT;
@@ -192,7 +194,10 @@ public class BMember {
         int next = lastApplied + 1;
         IBFTBlock nextBlock = _ledger.get(next);
         while (nextBlock != null) {
-            this.tesState.applyBlock(nextBlock);
+
+            List<ClientResponse> responses = this.tesState.applyBlock(nextBlock);
+            frontend.sendResponses(responses);
+
             next++;
             nextBlock = _ledger.get(next);  
         }

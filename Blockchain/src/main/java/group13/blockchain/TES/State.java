@@ -9,9 +9,10 @@ import group13.blockchain.commands.TransferCommand;
 import java.io.IOException;
 import java.security.PublicKey;
 import java.security.SignedObject;
-import java.security.interfaces.RSAKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class State {
 
@@ -20,22 +21,31 @@ public class State {
 
     public HashMap<PublicKey, Account> accounts = new HashMap<>();
 
-    public void applyBlock(IBFTBlock block) {
+    public List<ClientResponse> applyBlock(IBFTBlock block) {
         PublicKey minerPK = block.getMiner();
+        List<ClientResponse> responses = new ArrayList<>();
+        ClientResponse response = null;
 
         for(SignedObject obj : block.getCommandsList()) {
             try {
                 BlockchainCommand command = (BlockchainCommand) obj.getObject();
                 String commandType = command.getType();
+
                 if(RegisterCommand.constType.equals(commandType))
-                    applyRegister((RegisterCommand) command);
+                    response = applyRegister((RegisterCommand) command);
                 else if (TransferCommand.constType.equals(commandType))
-                    applyTransfer((TransferCommand) command, minerPK);
+                    response = applyTransfer((TransferCommand) command, minerPK);
                 else if (CheckBalanceCommand.constType.equals(commandType))
-                    applyCheckBalance((CheckBalanceCommand) command);
+                    response = applyCheckBalance((CheckBalanceCommand) command);
                 else {
                     System.out.println("Error : Unknown command");
+                    response = null;
                 }
+
+                if (response != null) {
+                    responses.add(response);
+                }
+
             } catch (ClassNotFoundException | IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -43,19 +53,25 @@ public class State {
         }
 
         this.print();
+        return responses;
     }
 
-    public void applyRegister(RegisterCommand command) {
+    public ClientResponse applyRegister(RegisterCommand command) {
+        boolean applied = false;
         PublicKey accountPK = command.getPublicKey();
         if(!accounts.containsKey(accountPK)) {
             Account newAccount = new Account(accountPK, INITIAL_BALANCE);
             accounts.put(accountPK, newAccount);
+            applied = true;
         }
 
         System.out.println("->REGISTERED CLIENT");
+        ClientResponse response = new ClientResponse(command, applied);
+        return response;
     }
 
-    public void applyTransfer(TransferCommand command, PublicKey minerPK) {
+    public ClientResponse applyTransfer(TransferCommand command, PublicKey minerPK) {
+        boolean applied = false;
         PublicKey senderPK = command.getPublicKey();
         PublicKey destinationPK = command.getDestPublicKey();
 
@@ -68,7 +84,7 @@ public class State {
             Account sender = accounts.get(senderPK);
             float amount = command.getAmount();
 
-            boolean applied = sender.send(amount, FEE);
+            applied = sender.send(amount, FEE);
             if (applied) {
                 Account destination = accounts.get(destinationPK);
                 Account miner = accounts.get(minerPK);
@@ -79,19 +95,26 @@ public class State {
         }
 
         System.out.println("->APPLIED TRANSFER");
+        ClientResponse response = new ClientResponse(command, applied);
+        return response;
     }
 
-    public void applyCheckBalance(CheckBalanceCommand command) {
+    public ClientResponse applyCheckBalance(CheckBalanceCommand command) {
+        boolean applied = false;
+        float balance = -1;
 
         PublicKey accountPK = command.getPublicKey();
         if(accounts.containsKey(accountPK)){
             Account account = accounts.get(accountPK);
-            float balance = account.getBalance();
+            balance = account.getBalance();
+            applied = true;
 
             //TODO: Send to client his balance
-            System.out.println("->CHECK BALANCE Client pubKey: "+ command.getPublicKey()
-                    + "    | Amount: " + balance);
+            System.out.println("->CHECK BALANCE    | Amount: " + balance);
         }
+
+        ClientResponse response = new ClientResponse(command, balance, applied);
+        return response;
     }
 
     public void print() {

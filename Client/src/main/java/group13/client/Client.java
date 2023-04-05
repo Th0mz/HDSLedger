@@ -54,7 +54,7 @@ public class Client {
 			}
 
 
-            frontend = new ClientFrontend(new Address(9876), listOfServers, args[1]);
+            frontend = new ClientFrontend(new Address(9876), listOfServers, args[1], nrFaulty);
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
