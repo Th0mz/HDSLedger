@@ -210,7 +210,7 @@ public class ClientFrontend implements EventListener {
         if (object != null) {
             attributeMerge += object.toString();
         }
-        
+
         byte[] digest = messageDigest.digest(attributeMerge.getBytes());
         String hash = Base64.getEncoder().encodeToString(digest);
         return hash;

@@ -110,7 +110,7 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
-        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys);
+        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys, 1);
 
         // wait for handshake to be propagated
         try {
@@ -184,7 +184,7 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
-        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys);
+        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys, 1);
 
         // wait for handshake to be propagated
         try {
@@ -258,7 +258,7 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
-        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys);
+        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys, 1);
 
         // wait for handshake to be propagated
         try {
@@ -332,7 +332,7 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
-        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys);
+        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys, 1);
 
         // wait for handshake to be propagated
         try {
