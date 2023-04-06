@@ -256,4 +256,8 @@ public class ClientFrontend implements EventListener {
         PublicKey k = null;
         return k;
     }
+
+    public void close () {
+        this.beb.close();
+    }
 }

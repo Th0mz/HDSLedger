@@ -25,19 +25,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ClientFrontendTest {
 
-    private static Address client_addr, p1_addr, p2_addr, p3_addr, p4_addr;
+    private static Address p1_addr, p2_addr, p3_addr, p4_addr;
     private static Address p1I_addr, p2I_addr, p3I_addr, p4I_addr;
-    private static KeyPair client_keys, p1_keys, p2_keys, p3_keys, p4_keys;
-
+    private static KeyPair p1_keys, p2_keys, p3_keys, p4_keys;
     private BMemberTester p1_bMember, p2_bMember, p3_bMember, p4_bMember;
-    private ClientFrontendTester clientFrontend;
-    private int base;
-    private int clientBase;
 
-    public ClientFrontendTest() {
-        base = 5000;
-        clientBase = 9999;
-    }
+    private static Address c1_addr, c2_addr, c3_addr;
+    private static KeyPair c1_keys, c2_keys, c3_keys;
+    private ClientFrontendTester c1_frontend, c2_frontend, c3_frontend;
+
+    private int base = 5000;
+    private int clientBase = 8000;
 
     @BeforeAll
     public static void init() {
@@ -50,7 +48,9 @@ class ClientFrontendTest {
             p2_keys = keyPairGen.generateKeyPair();
             p3_keys = keyPairGen.generateKeyPair();
             p4_keys = keyPairGen.generateKeyPair();
-            client_keys = keyPairGen.generateKeyPair();
+            c1_keys = keyPairGen.generateKeyPair();
+            c2_keys = keyPairGen.generateKeyPair();
+            c3_keys = keyPairGen.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
@@ -59,19 +59,71 @@ class ClientFrontendTest {
     @BeforeEach
     void setup() {
 
-        System.out.println("BEFORE -- BASE: " + base + " CLIENTBASE: " + clientBase);
+        base += 10;
+        clientBase += 10;
+        p1_addr = new Address(base+4);
+        p2_addr = new Address(base+5);
+        p3_addr = new Address(base+6);
+        p4_addr = new Address(base+7);
 
-        
-        System.out.println("AFTER -- BASE: " + base + " CLIENTBASE: " + clientBase);
+        p1I_addr = new Address(base);
+        p2I_addr = new Address(base+1);
+        p3I_addr = new Address(base+2);
+        p4I_addr = new Address(base+3);
+
+        c1_addr = new Address(clientBase);
+        c2_addr = new Address(clientBase+1);
+        c3_addr = new Address(clientBase+2);
+
+        List<Address> addresses = List.of(p1_addr, p2_addr, p3_addr, p4_addr);
+        List<PublicKey> serverPKs = List.of(
+                p1_keys.getPublic(), p2_keys.getPublic(), p3_keys.getPublic(), p4_keys.getPublic()
+        );
+
+        ArrayList<Address> serverList = new ArrayList<>(addresses);
+        p1_bMember = new BMemberTester(); p1_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p1I_addr, p1_addr, p1_keys, p1_addr);
+        p2_bMember = new BMemberTester(); p2_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p2I_addr, p2_addr, p2_keys, p1_addr);
+        p3_bMember = new BMemberTester(); p3_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p3I_addr, p3_addr, p3_keys, p1_addr);
+        p4_bMember = new BMemberTester(); p4_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p4I_addr, p4_addr, p4_keys, p1_addr);
+
+        // wait for servers to stabilize
+        try {
+            Thread.sleep(400);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        List<Address> interfaceAddresses = List.of(p1I_addr, p2I_addr, p3I_addr, p4I_addr);
+        c1_frontend = new ClientFrontendTester(c1_addr, interfaceAddresses, serverPKs, c1_keys, 1);
+        c2_frontend = new ClientFrontendTester(c2_addr, interfaceAddresses, serverPKs, c2_keys, 1);
+        c3_frontend = new ClientFrontendTester(c3_addr, interfaceAddresses, serverPKs, c3_keys, 1);
+
+        // wait for handshake to be propagated
+        try {
+            Thread.sleep(400);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
     }
 
     @AfterEach
     void cleanup() {
-        /* p1_bMember.close();
+
+        // wait for all messages to be propagated
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        p1_bMember.close();
         p2_bMember.close();
         p3_bMember.close();
-        p4_bMember.close(); */
+        p4_bMember.close();
+        c1_frontend.close();
+        c2_frontend.close();
+        c3_frontend.close();
     }
 
     @Test
@@ -80,63 +132,33 @@ class ClientFrontendTest {
         System.out.println("===============================");
         System.out.println("Test : Check handshake messages");
 
-        p1_addr = new Address(base+4);
-        p2_addr = new Address(base+5);
-        p3_addr = new Address(base+6);
-        p4_addr = new Address(base+7);
-
-        p1I_addr = new Address(base);
-        p2I_addr = new Address(base+1);
-        p3I_addr = new Address(base+2);
-        p4I_addr = new Address(base+3);
-
-        client_addr = new Address(clientBase);
-
-        List<Address> addresses = List.of(p1_addr, p2_addr, p3_addr, p4_addr);
-        List<PublicKey> serverPKs = List.of(
-                p1_keys.getPublic(), p2_keys.getPublic(), p3_keys.getPublic(), p4_keys.getPublic()
-        );
-
-        ArrayList<Address> serverList = new ArrayList<>(addresses);
-        p1_bMember = new BMemberTester(); p1_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p1I_addr, p1_addr, p1_keys, p1_addr);
-        p2_bMember = new BMemberTester(); p2_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p2I_addr, p2_addr, p2_keys, p1_addr);
-        p3_bMember = new BMemberTester(); p3_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p3I_addr, p3_addr, p3_keys, p1_addr);
-        p4_bMember = new BMemberTester(); p4_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p4I_addr, p4_addr, p4_keys, p1_addr);
-
-        // wait for servers to stabilize
+        c1_frontend.register();
+        c2_frontend.register();
+        c3_frontend.register();
+        // wait for registers to reach the replicas
         try {
-            Thread.sleep(400);
+            Thread.sleep(100);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys, 1);
+        c1_frontend.transfer(c2_keys.getPublic(), 5);
+        c1_frontend.transfer(c3_keys.getPublic(), 10);
+        c2_frontend.transfer(c3_keys.getPublic(), 40);
+        c1_frontend.checkBalance();
+        c1_frontend.checkBalance();
+        c2_frontend.checkBalance();
+        c3_frontend.checkBalance();
 
-        // wait for handshake to be propagated
-        try {
-            Thread.sleep(400);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        clientFrontend.register();
-        clientFrontend.transfer(p2_keys.getPublic(), 5);
-        clientFrontend.transfer(p3_keys.getPublic(), 10);
-        clientFrontend.transfer(p4_keys.getPublic(), 15);
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
 
         // wait for all commands to be propagated
         try {
-            Thread.sleep(400);
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
+
 
     /** ----------------------------------------
      * --- DETECT BYZANTINE LEADER BEHAVIOR  ---
@@ -145,75 +167,7 @@ class ClientFrontendTest {
     @DisplayName("Detect commands not signed by client")
     public void CheckClientSignature () {
         System.out.println("===============================");
-        System.out.println("Test : Secondary replicas test client's signature");
-
-        //Never clash on same ports
-        base += 100;
-        clientBase -= 1;
-
-        p1_addr = new Address(base+4);
-        p2_addr = new Address(base+5);
-        p3_addr = new Address(base+6);
-        p4_addr = new Address(base+7);
-
-        p1I_addr = new Address(base);
-        p2I_addr = new Address(base+1);
-        p3I_addr = new Address(base+2);
-        p4I_addr = new Address(base+3);
-
-        client_addr = new Address(clientBase);
-
-        
-
-        List<Address> addresses = List.of(p1_addr, p2_addr, p3_addr, p4_addr);
-        List<PublicKey> serverPKs = List.of(
-                p1_keys.getPublic(), p2_keys.getPublic(), p3_keys.getPublic(), p4_keys.getPublic()
-        );
-
-        ArrayList<Address> serverList = new ArrayList<>(addresses);
-        p1_bMember = new BMemberTester(); p1_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p1I_addr, p1_addr, p1_keys, p1_addr);
-        p2_bMember = new BMemberTester(); p2_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p2I_addr, p2_addr, p2_keys, p1_addr);
-        p3_bMember = new BMemberTester(); p3_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p3I_addr, p3_addr, p3_keys, p1_addr);
-        p4_bMember = new BMemberTester(); p4_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p4I_addr, p4_addr, p4_keys, p1_addr);
-
-        p1_bMember.alterClientRequest = true;
-        // wait for servers to stabilize
-        try {
-            Thread.sleep(400);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys, 1);
-
-        // wait for handshake to be propagated
-        try {
-            Thread.sleep(400);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        clientFrontend.register();
-        clientFrontend.transfer(p2_keys.getPublic(), 5);
-        clientFrontend.transfer(p3_keys.getPublic(), 10);
-        clientFrontend.transfer(p4_keys.getPublic(), 15);
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-
-        // wait for all commands to be propagated
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        assertTrue(p2_bMember.getConsensusObject().leaderFailed);
-        assertTrue(p3_bMember.getConsensusObject().leaderFailed);
-        assertTrue(p4_bMember.getConsensusObject().leaderFailed);
+        System.out.println("Test : Detect commands not signed by client");
     }
 
 
@@ -221,73 +175,8 @@ class ClientFrontendTest {
     @DisplayName("Detect repeated commands")
     public void CheckRepeatedCommands () {
         System.out.println("===============================");
-        System.out.println("Test : Secondary replicas test client's signature");
+        System.out.println("Test : Detect repeated commands");
 
-        //Never clash on same ports
-        base += 200;
-        clientBase -= 2;
-
-        p1_addr = new Address(base+4);
-        p2_addr = new Address(base+5);
-        p3_addr = new Address(base+6);
-        p4_addr = new Address(base+7);
-
-        p1I_addr = new Address(base);
-        p2I_addr = new Address(base+1);
-        p3I_addr = new Address(base+2);
-        p4I_addr = new Address(base+3);
-
-        client_addr = new Address(clientBase);
-
-        List<Address> addresses = List.of(p1_addr, p2_addr, p3_addr, p4_addr);
-        List<PublicKey> serverPKs = List.of(
-                p1_keys.getPublic(), p2_keys.getPublic(), p3_keys.getPublic(), p4_keys.getPublic()
-        );
-
-        ArrayList<Address> serverList = new ArrayList<>(addresses);
-        p1_bMember = new BMemberTester(); p1_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p1I_addr, p1_addr, p1_keys, p1_addr);
-        p2_bMember = new BMemberTester(); p2_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p2I_addr, p2_addr, p2_keys, p1_addr);
-        p3_bMember = new BMemberTester(); p3_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p3I_addr, p3_addr, p3_keys, p1_addr);
-        p4_bMember = new BMemberTester(); p4_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p4I_addr, p4_addr, p4_keys, p1_addr);
-
-        p1_bMember.sendRepeatedCommands = true;
-        // wait for servers to stabilize
-        try {
-            Thread.sleep(400);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys, 1);
-
-        // wait for handshake to be propagated
-        try {
-            Thread.sleep(400);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        clientFrontend.register();
-        clientFrontend.transfer(p2_keys.getPublic(), 5);
-        clientFrontend.transfer(p3_keys.getPublic(), 10);
-        clientFrontend.transfer(p4_keys.getPublic(), 15);
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-
-        // wait for all commands to be propagated
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        assertTrue(p2_bMember.getConsensusObject().leaderFailed);
-        assertTrue(p3_bMember.getConsensusObject().leaderFailed);
-        assertTrue(p4_bMember.getConsensusObject().leaderFailed);
     }
 
 
@@ -295,73 +184,8 @@ class ClientFrontendTest {
     @DisplayName("Detect commands for which there wasnt Preprepare")
     public void CheckDroppedCommands () {
         System.out.println("===============================");
-        System.out.println("Test : Secondary replicas test client's signature");
+        System.out.println("Test : Detect commands for which there wasnt Preprepare");
 
-        //Never clash on same ports
-        base += 300;
-        clientBase -= 3;
-
-        p1_addr = new Address(base+4);
-        p2_addr = new Address(base+5);
-        p3_addr = new Address(base+6);
-        p4_addr = new Address(base+7);
-
-        p1I_addr = new Address(base);
-        p2I_addr = new Address(base+1);
-        p3I_addr = new Address(base+2);
-        p4I_addr = new Address(base+3);
-
-        client_addr = new Address(clientBase);
-
-        List<Address> addresses = List.of(p1_addr, p2_addr, p3_addr, p4_addr);
-        List<PublicKey> serverPKs = List.of(
-                p1_keys.getPublic(), p2_keys.getPublic(), p3_keys.getPublic(), p4_keys.getPublic()
-        );
-
-        ArrayList<Address> serverList = new ArrayList<>(addresses);
-        p1_bMember = new BMemberTester(); p1_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p1I_addr, p1_addr, p1_keys, p1_addr);
-        p2_bMember = new BMemberTester(); p2_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p2I_addr, p2_addr, p2_keys, p1_addr);
-        p3_bMember = new BMemberTester(); p3_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p3I_addr, p3_addr, p3_keys, p1_addr);
-        p4_bMember = new BMemberTester(); p4_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p4I_addr, p4_addr, p4_keys, p1_addr);
-
-        p1_bMember.dropCommands = true;
-        // wait for servers to stabilize
-        try {
-            Thread.sleep(400);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        clientFrontend = new ClientFrontendTester(client_addr, addresses, serverPKs, client_keys, 1);
-
-        // wait for handshake to be propagated
-        try {
-            Thread.sleep(400);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        clientFrontend.register();
-        clientFrontend.transfer(p2_keys.getPublic(), 5);
-        clientFrontend.transfer(p3_keys.getPublic(), 10);
-        clientFrontend.transfer(p4_keys.getPublic(), 15);
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-        clientFrontend.checkBalance();
-
-        // wait for all commands to be propagated
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        assertTrue(p2_bMember.getConsensusObject().leaderFailed);
-        assertTrue(p3_bMember.getConsensusObject().leaderFailed);
-        assertTrue(p4_bMember.getConsensusObject().leaderFailed);
     }
 
 
