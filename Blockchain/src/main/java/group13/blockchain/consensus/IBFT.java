@@ -77,6 +77,8 @@ public class IBFT implements EventListener{
     protected PublicKey leaderPK;
     private boolean isLeader;
 
+    private int maxSeenValidInstance = -1;
+
     public IBFT(int n, int f, PublicKey inPublicKey, PrivateKey inPrivateKey, PublicKey leaderPK, BEBroadcast beb, BMember server) {
 
         this.isLeader = leaderPK.equals(inPublicKey);
@@ -146,6 +148,10 @@ public class IBFT implements EventListener{
         receptionTimers.put(pKey, hmp);
         
         lockPending.unlock();
+    }
+
+    public int getMaxSeenValidInstance(){
+        return maxSeenValidInstance;
     }
 
     public void start(int instance, IBFTBlock block) {
@@ -360,6 +366,10 @@ public class IBFT implements EventListener{
             //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
             if( prepareCount == quorum ) {
                 try {
+                    lockPrepare.lock();
+                    if (instance > maxSeenValidInstance) maxSeenValidInstance = instance;
+                    lockPrepare.unlock();
+
                     IBFTCommit prepare = new IBFTCommit(myPubKey, id, instance);
                     Signature signature = Signature.getInstance("SHA256withRSA");
                     SignedObject signedObject = new SignedObject(prepare, myKey, signature);
@@ -404,6 +414,9 @@ public class IBFT implements EventListener{
 
             //SEND AS SOON AS QUORUM REACHED AND NO NEED AFTER
             if(commitCount == quorum && blocks.containsKey(id)) {
+                lockPrepare.lock();
+                    if (instance > maxSeenValidInstance) maxSeenValidInstance = instance;
+                lockPrepare.unlock();
                 _server.deliver(instance, blocks.get(id));
             }
             lockCommit.unlock();

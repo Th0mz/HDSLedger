@@ -45,10 +45,15 @@ public class BMember {
     private int lastApplied = -1;
     protected Lock lastAppliedLock = new ReentrantLock();
     protected Lock ledgerLock = new ReentrantLock();
+    protected Lock tentativeReadLock = new ReentrantLock();
 
     protected PublicKey myPubKey;
     protected PrivateKey myPrivKey;
 
+    protected int _snapShotInstance = -1;
+
+    private HashMap<Integer, ArrayList<CheckBalanceCommand>> tentativeReads = new HashMap<>();
+    private HashMap<PublicKey, HashMap<Integer, HashMap<PublicKey,byte[]>>> snapShot;
 
     public void createBMember(ArrayList<Address> serverList, Integer nrFaulty, Integer nrServers,
                     Address interfaceAddress, Address myInfo, Address leaderAddress) {
@@ -123,12 +128,61 @@ public class BMember {
             return;
         }
 
-        System.out.println("Added command of type " + bcommand.getType());
-        if(_isLeader) {
-            addCommand(signedObject);
+        //IF -> READS;   ELSE -> TRANSFERS/REGISTERS 
+        if( bcommand.getType().equals("CHECK_BALANCE")){
+            CheckBalanceCommand readCommand = (CheckBalanceCommand)bcommand;
+            int lastSeenClient = readCommand.getLastViewSeen();
+            PublicKey client = readCommand.getPublicKey();
+            // STRONG READ & WEAK READ
+            if (readCommand.getIsConsistent()) {
+                
+                lastAppliedLock.lock();
+                int lastInstance = _consensus.getMaxSeenValidInstance(); //_nextInstance - 1;
+                
+
+                if (lastInstance >= lastSeenClient && lastInstance == lastApplied) {
+                    float balance = tesState.accounts.get(client).getBalance();
+
+                    System.out.println("STRONG READ @instance " + lastInstance + "client Balance = " + balance );
+                    
+                    List<ClientResponse> responses = new ArrayList<>();
+                    responses.add(new ClientResponse(bcommand, balance, true, lastApplied));
+                    frontend.sendResponses(responses);
+
+                } else if (lastInstance >= lastSeenClient && lastInstance > lastApplied) {
+                    //wait for tentative operations to apply then respond
+                    //tentativeReadLock.lock();
+                    ArrayList<CheckBalanceCommand> waitinReads = tentativeReads.get(lastInstance);
+                    if(waitinReads == null) {
+                        tentativeReads.put(lastInstance, new ArrayList<CheckBalanceCommand>());
+                    }
+                    waitinReads = tentativeReads.get(lastInstance);
+                    //add read to waiting list
+                    waitinReads.add(readCommand);
+
+                    //tentativeReadLock.unlock();
+                } else {
+                    List<ClientResponse> responses = new ArrayList<>();
+                    responses.add(new ClientResponse(bcommand, -1, false));
+                    frontend.sendResponses(responses);
+                }
+
+                lastAppliedLock.unlock();
+
+            } else {
+                //TODO - weak read; snapshots;
+            }
+
         } else {
-            _consensus.waitForCommand(bcommand);
+
+            System.out.println("Added command of type " + bcommand.getType());
+            if(_isLeader) {
+                addCommand(signedObject);
+            } else {
+                _consensus.waitForCommand(bcommand);
+            }
         }
+
             
     }
 
@@ -190,21 +244,46 @@ public class BMember {
         System.out.println("DELIVERED BLOCK: " + block);
         ledgerLock.lock();
         _ledger.put(instance, block);
-        lastAppliedLock.lock();
+        //lastAppliedLock.lock();
         int next = lastApplied + 1;
         IBFTBlock nextBlock = _ledger.get(next);
         while (nextBlock != null) {
 
+            lastAppliedLock.lock();
             List<ClientResponse> responses = this.tesState.applyBlock(nextBlock);
+            lastAppliedLock.unlock();
             frontend.sendResponses(responses);
 
+            lastAppliedLock.lock();
+            lastApplied = next;
+
+            if(tentativeReads.get(nextBlock.getInstance()) != null) {
+                ArrayList<CheckBalanceCommand> waitinReads = tentativeReads.get(nextBlock.getInstance());
+                tentativeReads.remove(lastApplied);
+                sendWaitingReads(waitinReads);
+            }
+
+            lastAppliedLock.unlock();
+
+            
             next++;
             nextBlock = _ledger.get(next);  
         }
 
-        lastApplied = next - 1;
-        lastAppliedLock.unlock();
+        //lastApplied = next - 1;
+        //lastAppliedLock.unlock();
         ledgerLock.unlock();
+    }
+
+    private void sendWaitingReads(List<CheckBalanceCommand> reads) {
+        List<ClientResponse> responses = new ArrayList<>();
+        for (CheckBalanceCommand cmd : reads) {
+            float balance = tesState.accounts.get(cmd.getPublicKey()).getBalance();
+            System.out.println("STRONG READ (waited) @instance " + lastApplied + "client Balance = " + balance );
+            
+            responses.add(new ClientResponse(cmd, balance, true, lastApplied));
+        }
+        frontend.sendResponses(responses);
     }
 
     public IBFTBlock getConsensusResult(int instance) {

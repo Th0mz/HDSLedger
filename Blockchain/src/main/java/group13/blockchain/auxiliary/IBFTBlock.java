@@ -10,7 +10,7 @@ import group13.blockchain.commands.BlockchainCommand;
 
 public class IBFTBlock implements Serializable {
 
-    public static int BLOCK_SIZE = 10;
+    public static int BLOCK_SIZE = 1;
     private ArrayList<SignedObject> listOfCommands = new ArrayList<SignedObject>();
     private int instance;
 

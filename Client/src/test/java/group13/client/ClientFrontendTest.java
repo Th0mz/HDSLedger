@@ -145,10 +145,10 @@ class ClientFrontendTest {
         c1_frontend.transfer(c2_keys.getPublic(), 5);
         c1_frontend.transfer(c3_keys.getPublic(), 10);
         c2_frontend.transfer(c3_keys.getPublic(), 40);
-        c1_frontend.checkBalance();
-        c1_frontend.checkBalance();
-        c2_frontend.checkBalance();
-        c3_frontend.checkBalance();
+        c1_frontend.checkBalance("s");
+        c1_frontend.checkBalance("s");
+        c2_frontend.checkBalance("s");
+        c3_frontend.checkBalance("s");
 
 
         // wait for all commands to be propagated

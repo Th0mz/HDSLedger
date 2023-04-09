@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.DrbgParameters.Reseed;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ public class Client {
     public static String REGISTER_CMD = "1";
     public static String TRANSFER_CMD = "2";
     public static String CHECK_CMD = "3";
+    public static String WEAK_READ = "w";
+    public static String STRONG_READ = "s";
     public static String QUIT_CMD = "q";
 
     public static void main(String args[]) {
@@ -93,7 +96,18 @@ public class Client {
                 frontend.transfer(pKeyDest, amount);
             }
             else if (CHECK_CMD.equals(command)) {
-                frontend.checkBalance();
+                System.out.println("Possible balance checks: ");
+                System.out.println(" s) STRONG READ");
+                System.out.println(" w) WEAK READ");
+                String readType = scanner.nextLine();
+
+                if (readType.equals(STRONG_READ) || readType.equals(WEAK_READ)) {
+
+                    frontend.checkBalance(readType);
+                } else {
+                    System.out.println("Invalid type of read! Select one of the available options");
+                }
+                 
             }
         }
     }

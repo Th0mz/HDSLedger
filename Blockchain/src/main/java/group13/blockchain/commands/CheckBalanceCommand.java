@@ -6,12 +6,15 @@ public class CheckBalanceCommand extends BlockchainCommand {
 
     public static final String constType = "CHECK_BALANCE";
     private boolean isConsistent;
+    private int latestViewSeen;
 
-    public CheckBalanceCommand(int seqNum, PublicKey publicKey) {
+    public CheckBalanceCommand(int seqNum, PublicKey publicKey, int lastViewSeen, boolean consistencyLevel) {
         super(constType, publicKey, seqNum);
-        isConsistent = true;
+        latestViewSeen = lastViewSeen;
+        isConsistent = consistencyLevel;
     }
 
+    public int getLastViewSeen() { return latestViewSeen; }
     public boolean getIsConsistent() { return isConsistent; }
 
     @Override

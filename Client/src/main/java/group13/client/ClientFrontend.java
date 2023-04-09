@@ -28,6 +28,7 @@ public class ClientFrontend implements EventListener {
     protected PrivateKey mKey;
     protected PublicKey myPubKey;
     protected int mySeqNum = 0;
+    protected int latestViewSeen = -1;
 
     private int lastResponseDelivered = 0;
     private HashSet<Integer> responsesDelivered = new HashSet<>();
@@ -36,6 +37,7 @@ public class ClientFrontend implements EventListener {
 
     protected int faulty;
     private ReentrantLock seqNumLock = new ReentrantLock();
+    private ReentrantLock lockView = new ReentrantLock();
 
     public ClientFrontend() {}
 
@@ -102,10 +104,16 @@ public class ClientFrontend implements EventListener {
         //TODO: create Transfer object and send to server
     }
 
-    public void checkBalance(){
+    public void checkBalance(String readType){
         seqNumLock.lock();
         System.out.println("Checking balance");
-        sendCommand(new CheckBalanceCommand(mySeqNum, myPubKey));
+        CheckBalanceCommand checkCommand;
+        if (readType.equals("w")){
+            checkCommand = new CheckBalanceCommand(mySeqNum, myPubKey, latestViewSeen, false);
+        } else {
+            checkCommand = new CheckBalanceCommand(mySeqNum, myPubKey, latestViewSeen, true);
+        }
+        sendCommand(checkCommand);
         mySeqNum++;
         seqNumLock.unlock();
         //TODO: create Check object and send to server
@@ -148,6 +156,115 @@ public class ClientFrontend implements EventListener {
             System.err.println("Error : Command lock wasn't found");
             return;
         }
+
+
+        if(response.getCommandType().equals("CHECK_BALANCE")) {
+            if (response.getTypeRead().equals("s")) {
+                processStrongReadResponse(response, sequenceNumber);
+            } else if (response.getTypeRead().equals("w")) {
+                processWeakReadResponse(response, sequenceNumber);
+            }
+
+        } else  {
+            processNonReadResponse(response, sequenceNumber);
+        }
+        
+    }
+
+    private void processStrongReadResponse(ClientResponse response, int sequenceNumber) {
+        ReentrantLock lock = commandLock.get(sequenceNumber);
+        if (lock != null) {
+
+            lock.lock();
+            Boolean readQuorum = false;
+            HashMap<String, Integer> received = null;
+            if (!responsesReceived.containsKey(sequenceNumber)) {
+                received = new HashMap<>();
+                this.responsesReceived.put(sequenceNumber, received);
+            } else {
+                received = responsesReceived.get(sequenceNumber);
+            }
+    
+            String hash = hashResponse(response);
+            int counter = 1;
+            if (received.containsKey(hash)) {
+                counter = received.get(hash) + 1;
+            }
+            // update number of times that this response was seen
+            received.put(hash, counter);
+
+
+            int sum = received.values().stream().reduce(0, (a,b) -> a + b);
+            OptionalInt max = received.values().stream().mapToInt(v -> v).max();
+
+
+            //IF IMPOSSIBLE TO GET QUORUM
+            if( ((2*faulty + 1) - max.getAsInt()) > ((3*faulty + 1) - sum )) {
+                System.out.println("[" + response.getCommandType() + "] SN : " + response.getSequenceNumber() 
+                + " NO QUORUM REACHED DUE TO POSSIBLE CONCURRENCY NEW READ REQUEST SENT" );
+
+                responsesReceived.remove(sequenceNumber);
+                commandLock.remove(sequenceNumber);
+                responsesDelivered.add(sequenceNumber);
+    
+                if (sequenceNumber == lastResponseDelivered) {
+                    for (int i = sequenceNumber; i < mySeqNum; i++) {
+                        if (!responsesDelivered.contains(sequenceNumber)) {
+                            break;
+                        }
+    
+                        responsesDelivered.remove(sequenceNumber);
+                        lastResponseDelivered = lastResponseDelivered + 1;
+                    }
+                }
+
+                checkBalance("s");
+
+            }
+    
+            // check if a majority of equal responses was reached
+            if (counter >= 2 * faulty + 1) {
+                // deliver response to the client
+
+                //TODO - CHECK IF OK
+                lockView.lock();
+                if (response.getViewSeen() < latestViewSeen) {
+                    System.out.println("======= STALE READ RESPONSE OMMITED (POSSIBLE DELAY) =======");
+                    System.out.println("====== CLIENT HAS ALREADY SEEN A MORE UP TO DATE VIEW =====");
+                    
+                } else {
+
+                    System.out.println(response);
+                    latestViewSeen = response.getViewSeen();
+                }
+                lockView.unlock();
+    
+                responsesReceived.remove(sequenceNumber);
+                commandLock.remove(sequenceNumber);
+                responsesDelivered.add(sequenceNumber);
+    
+                if (sequenceNumber == lastResponseDelivered) {
+                    for (int i = sequenceNumber; i < mySeqNum; i++) {
+                        if (!responsesDelivered.contains(sequenceNumber)) {
+                            break;
+                        }
+    
+                        responsesDelivered.remove(sequenceNumber);
+                        lastResponseDelivered = lastResponseDelivered + 1;
+                    }
+                }
+            }
+    
+            lock.unlock();
+        }
+    }
+    
+    private void processWeakReadResponse(ClientResponse response, int sequenceNumber) {
+
+    }
+
+
+    private void processNonReadResponse(ClientResponse response, int sequenceNumber) {
         ReentrantLock lock = commandLock.get(sequenceNumber);
         lock.lock();
 
@@ -190,6 +307,7 @@ public class ClientFrontend implements EventListener {
 
         lock.unlock();
     }
+
 
     private String hashResponse(ClientResponse response) {
         MessageDigest messageDigest = null;
