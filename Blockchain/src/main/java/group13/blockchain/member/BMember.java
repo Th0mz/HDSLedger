@@ -8,13 +8,17 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import group13.blockchain.TES.AmountSigned;
 import group13.blockchain.TES.ClientResponse;
+import group13.blockchain.TES.Snapshot;
+import group13.blockchain.TES.SnapshotAccount;
 import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.commands.*;
 import group13.blockchain.consensus.IBFT;
@@ -24,6 +28,7 @@ import group13.blockchain.TES.State;
 public class BMember {
 
     protected ArrayList<Address> _serverList = new ArrayList<Address>();
+    private static int SNAPSHOT_PERIOD = 1;
 
     protected State tesState = new State();
     protected HashMap<PublicKey, HashSet<Integer>> receivedCommands = new HashMap<PublicKey, HashSet<Integer>>();
@@ -51,19 +56,24 @@ public class BMember {
     protected PrivateKey myPrivKey;
 
     protected int _snapShotInstance = -1;
+    private Snapshot snapshot;
 
     private HashMap<Integer, ArrayList<CheckBalanceCommand>> tentativeReads = new HashMap<>();
-    private HashMap<PublicKey, HashMap<Integer, HashMap<PublicKey,byte[]>>> snapShot;
+
+    private ReentrantLock snapLock = new ReentrantLock();
+
 
     public void createBMember(ArrayList<Address> serverList, Integer nrFaulty, Integer nrServers,
                     Address interfaceAddress, Address myInfo, Address leaderAddress) {
 
+        
         _serverList = serverList;
         _nrFaulty = nrFaulty;
         _nrServers = nrServers;
         _myInfo = myInfo;
         _isLeader = leaderAddress.equals(_myInfo);
         _nextInstance = 0;
+        
 
         PublicKey leaderPK = null;
         BEBroadcast beb = null;
@@ -92,6 +102,7 @@ public class BMember {
                 tesState.applyRegister(command);
             }
 
+            snapshot = new Snapshot(myPubKey, myPrivKey, _nrFaulty);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -171,6 +182,28 @@ public class BMember {
 
             } else {
                 //TODO - weak read; snapshots;
+                List<ClientResponse> responses = new ArrayList<>();
+                snapLock.lock();
+                System.out.println("[WEAK READ]");
+                System.out.println(snapshot.isValidSnapshot());
+                System.out.println(snapshot.getValidVersion());
+                if (snapshot.isValidSnapshot() && (lastSeenClient <= snapshot.getValidVersion())) {
+                    System.out.println("WEAK READ BEING PROCESSED @node: " + Base64.getEncoder().encodeToString(myPubKey.getEncoded()));
+                    SnapshotAccount accBalance = snapshot.getBalance(client);
+                    int version = snapshot.getValidVersion();
+                    snapLock.unlock();
+                    
+                    responses.add(new ClientResponse(bcommand, accBalance, true, version));
+                    System.out.println("WR - nr of signatures:" + accBalance.getSignatures().size());
+                } else {
+                    snapLock.unlock();
+                    responses.add(new ClientResponse(bcommand, -1, false));
+
+                }
+
+                System.out.println("WEAK READ SENT BACK TO CLIENT");
+                frontend.sendResponses(responses);
+
             }
 
         } else {
@@ -263,6 +296,13 @@ public class BMember {
                 sendWaitingReads(waitinReads);
             }
 
+            if(lastApplied % SNAPSHOT_PERIOD == 0) { 
+                snapLock.lock();
+                snapshot.takeSnapShot(new ArrayList<>(tesState.accounts.values()), lastApplied);
+                snapLock.unlock();
+                _consensus.sendSnapShot(snapshot.getSnapshot(), lastApplied);
+            }
+
             lastAppliedLock.unlock();
 
             
@@ -284,6 +324,15 @@ public class BMember {
             responses.add(new ClientResponse(cmd, balance, true, lastApplied));
         }
         frontend.sendResponses(responses);
+    }
+
+    public void deliverSnapShot(HashMap<PublicKey, SignedObject> snap, PublicKey sender, int version) {
+        if (!sender.equals(myPubKey)){
+            snapLock.lock();
+            snapshot.recieveSnapShot(snap, sender, version);
+            snapLock.unlock();
+
+        }
     }
 
     public IBFTBlock getConsensusResult(int instance) {

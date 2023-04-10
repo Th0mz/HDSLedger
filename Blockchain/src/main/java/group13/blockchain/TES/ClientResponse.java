@@ -79,7 +79,13 @@ public class ClientResponse implements Serializable {
     public String toString() {
         String result = "[" + this.commandType + "] SN : " + this.sequenceNumber + "    Applied : " + this.applied;
         if (this.response != null) {
-            result += "    Result : " + this.response;
+
+            if(this.response instanceof SnapshotAccount) {
+                SnapshotAccount aux = (SnapshotAccount)this.response;
+                result += "    Result : " + aux.getBalance();
+            } else {
+                result += "    Result : " + this.response;
+            }
         }
 
         return result;

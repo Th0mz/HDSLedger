@@ -1,6 +1,8 @@
 package group13.client;
 
 import group13.blockchain.TES.ClientResponse;
+import group13.blockchain.TES.SnapshotAccount;
+import group13.blockchain.auxiliary.SnapOperation;
 import group13.primitives.Address;
 import group13.primitives.*;
 import group13.blockchain.commands.BlockchainCommand;
@@ -22,6 +24,8 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.swing.UIDefaults.ProxyLazyValue;
+
 public class ClientFrontend implements EventListener {
 
     protected BEBroadcast beb;
@@ -38,6 +42,8 @@ public class ClientFrontend implements EventListener {
     protected int faulty;
     private ReentrantLock seqNumLock = new ReentrantLock();
     private ReentrantLock lockView = new ReentrantLock();
+
+    private HashMap<PublicKey, String> keys = new HashMap();
 
     public ClientFrontend() {}
 
@@ -59,6 +65,7 @@ public class ClientFrontend implements EventListener {
             Address outAddress = addresses.get(i);
 
             PublicKey outPublicKey = getPubKey(keys_folder + "/" + outAddress.getProcessId().substring(0, 5) + ".pub");
+            keys.put(outPublicKey, outAddress.getProcessId().substring(0, 5));
             beb.addServer(outAddress, outPublicKey);
         }
 
@@ -260,7 +267,149 @@ public class ClientFrontend implements EventListener {
     }
     
     private void processWeakReadResponse(ClientResponse response, int sequenceNumber) {
+        ReentrantLock lock = commandLock.get(sequenceNumber);
+        //System.out.println("HERE " + response.getIssuer().toString());
+        if (lock != null) {
+            lock.lock();
+           // System.out.println("HERE1 " + response.getIssuer().toString());
 
+            if (responsesDelivered.contains(sequenceNumber)) {
+                //System.out.println("WEAK READ ALREADY DELIVERED  SN:" + sequenceNumber);
+                lock.unlock();
+                return;
+            }
+
+            HashMap<String, Integer> received = null;
+            if (!responsesReceived.containsKey(sequenceNumber)) {
+                received = new HashMap<>();
+                this.responsesReceived.put(sequenceNumber, received);
+            } else {
+                received = responsesReceived.get(sequenceNumber);
+            }
+            //System.out.println("HERE2");
+
+            String id = Integer.toString(sequenceNumber);
+            int responseCounter = 1;
+            if (received.containsKey(id)) {
+                responseCounter = received.get(id) + 1;
+            }
+            // update number of times that this response was seen
+            received.put(id, responseCounter);
+
+
+            //int sum = received.values().stream().reduce(0, (a,b) -> a + b);
+            //System.out.println(response);
+            if (!(response.getResponse() instanceof SnapshotAccount)) {
+                boolean finished = false;
+                if(responseCounter == (3*faulty + 1)) {
+                    finished = true;
+                    System.out.println("NO VALID UP TO DATE RESPONSE WAS ATTAINED FOR WEAK READ [SN]:" + sequenceNumber);
+                }
+                //TODO - REFACTOR THIS - UGLY
+
+                System.out.println("HERE3");
+
+                if(finished) {
+                    responsesReceived.remove(sequenceNumber);
+                    commandLock.remove(sequenceNumber);
+                    responsesDelivered.add(sequenceNumber);
+        
+                    if (sequenceNumber == lastResponseDelivered) {
+                        for (int i = sequenceNumber; i < mySeqNum; i++) {
+                            if (!responsesDelivered.contains(sequenceNumber)) {
+                                break;
+                            }
+        
+                            responsesDelivered.remove(sequenceNumber);
+                            lastResponseDelivered = lastResponseDelivered + 1;
+                        }
+                    }
+                }
+                lock.unlock();
+                return;
+            }
+
+            Boolean valid = false;
+            SnapshotAccount acc = (SnapshotAccount)response.getResponse();
+
+            int responseView = acc.getVersion();
+            int SignatureCounter = 0;
+            float balance = acc.getBalance();
+            HashMap<PublicKey, SignedObject> signatures = acc.getSignatures();
+            System.out.println("SIGNATURES SIZE:" + signatures.size());
+
+            for (PublicKey key : signatures.keySet()) {
+                //TO MAKE SURE ITS AN ACTUAL KNOWN KEY AND NOT FORGED ONES
+                if ( keys.get(key) == null){
+                  System.out.println("NULL");  
+                  continue;
+                } 
+                SignedObject so = signatures.get(key);
+                // IGNORE INVALID SIGNATURES
+                try {
+                    if(!verify(so, key) || (balance != (float)so.getObject()) ){
+                        continue;
+                    }
+                } catch (ClassNotFoundException | IOException e) {
+                    e.printStackTrace();
+                }
+                SignatureCounter++;
+                if(SignatureCounter >= (2*faulty + 1)) {
+                    valid = true;
+                    break;
+                } 
+            }
+            //System.out.println("HERE4");
+
+
+            boolean finished = false;
+            if( valid) {
+                //TODO - CHECK IF OK
+                lockView.lock();
+                if (response.getViewSeen() < latestViewSeen) {
+                    System.out.println("======= STALE READ RESPONSE OMMITED (POSSIBLE DELAY) =======");
+                    System.out.println("====== CLIENT HAS ALREADY SEEN A MORE UP TO DATE VIEW =====");
+                    
+                } else {
+   
+                    System.out.println(response);
+                    finished = true;
+                    latestViewSeen = response.getViewSeen();
+                }
+                lockView.unlock();
+
+                
+            }
+            
+            //System.out.println(responseCounter);
+            //System.out.println(responseCounter == (3*faulty + 1));
+            //case where valid (but stale) or invalid response is last one
+            if(responseCounter == (3*faulty + 1)  && !finished) {
+                finished = true;
+                System.out.println("NO VALID UP TO DATE RESPONSE WAS ATTAINED FOR WEAK READ [SN]:" + sequenceNumber);
+            }
+
+            if(finished) {
+                responsesReceived.remove(sequenceNumber);
+                commandLock.remove(sequenceNumber);
+                responsesDelivered.add(sequenceNumber);
+    
+                /*if (sequenceNumber == lastResponseDelivered) {
+                    for (int i = sequenceNumber; i < mySeqNum; i++) {
+                        if (!responsesDelivered.contains(sequenceNumber)) {
+                            break;
+                        }
+    
+                        responsesDelivered.remove(sequenceNumber);
+                    }
+                }*/
+                lastResponseDelivered = lastResponseDelivered + 1;
+            }
+           // System.out.println("HERE5");
+
+
+            lock.unlock();
+        }
     }
 
 
@@ -334,6 +483,16 @@ public class ClientFrontend implements EventListener {
         return hash;
     }
 
+    private boolean verify(SignedObject signedObject, PublicKey publicKey) {
+        try {
+            //System.out.println("VERIFICATION");
+            //System.out.println(signedObject.verify(publicKey, Signature.getInstance("SHA256withRSA")));
+            return signedObject.verify(publicKey, Signature.getInstance("SHA256withRSA"));
+        } catch (InvalidKeyException | SignatureException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
     
     private static PrivateKey getPrivateKey(String file) {
 

@@ -1,10 +1,12 @@
 package group13.blockchain.consensus;
 
+import group13.blockchain.TES.AmountSigned;
 import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.auxiliary.IBFTCommit;
 import group13.blockchain.auxiliary.IBFTOperation;
 import group13.blockchain.auxiliary.IBFTPrePrepare;
 import group13.blockchain.auxiliary.IBFTPrepare;
+import group13.blockchain.auxiliary.SnapOperation;
 import group13.blockchain.commands.BlockchainCommand;
 import group13.blockchain.member.BMember;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
@@ -16,6 +18,7 @@ import group13.primitives.*;
 import javax.swing.plaf.synth.SynthTextAreaUI;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -178,14 +181,28 @@ public class IBFT implements EventListener{
         }
     }
 
+    public void sendSnapShot(HashMap<PublicKey, SignedObject > snap, int version) {
+        this.broadcast.send(new BEBSend(new SnapOperation(myPubKey, snap, version)));
+    }
 
     public void update(Event event) {
         if (event.getEventName().equals(BEBDeliver.EVENT_NAME)) {
             Object payload = ((BEBDeliver)event).getPayload();
+
+            // for snapshots
+            if ((payload instanceof SnapOperation)) {
+                    System.out.println("SNAPSHOT RECEIVED @IBFT");
+                    SnapOperation operation = ((SnapOperation)payload);
+                    _server.deliverSnapShot(operation.GetSignedSnap(), ((BEBDeliver)event).getProcessPK(), operation.getVersion());
+                    return;
+            }
+
+
             if (!(payload instanceof SignedObject))
                 return;
 
             SignedObject signedObject = (SignedObject) payload;
+
 
             IBFTOperation op = null;
             try {
@@ -385,6 +402,8 @@ public class IBFT implements EventListener{
             }
         }
     }
+
+    
 
     protected void commit(String id, int instance, PublicKey pKey) {
         System.out.println("RECEIVED COMMIT");
