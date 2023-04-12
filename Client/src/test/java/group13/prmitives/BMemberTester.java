@@ -1,5 +1,8 @@
 package group13.prmitives;
 
+import group13.blockchain.TES.ClientResponse;
+import group13.blockchain.TES.Snapshot;
+import group13.blockchain.TES.SnapshotAccount;
 import group13.blockchain.commands.BlockchainCommand;
 import group13.blockchain.commands.RegisterCommand;
 import group13.blockchain.consensus.IBFT;
@@ -54,6 +57,7 @@ public class BMemberTester extends BMember {
             RegisterCommand command = new RegisterCommand(-1, outPublicKey);
             tesState.applyRegister(command);
         }
+        snapshot = new Snapshot(myPubKey, myPrivKey, _nrFaulty);
 
         _consensus = new IBFT(_nrServers, _nrFaulty, myPubKey, myPrivKey, leaderPK, beb, this);
         frontend = new BMemberInterfaceTester(myPubKey, myPrivKey, interfaceAddress, this);
@@ -62,7 +66,7 @@ public class BMemberTester extends BMember {
     @Override
     public void processCommand(Object command) {
 
-        System.out.println("PROCESS COMMAND CALLED");
+        //System.out.println("PROCESS COMMAND CALLED");
         if (!(command instanceof SignedObject))
             return;
 
@@ -87,27 +91,34 @@ public class BMemberTester extends BMember {
             return;
         }
 
-        System.out.println("Added command of type " + bcommand.getType());
-        if(_isLeader && !dropCommands) {
-            if (alterClientRequest) {
-                try {
-                    Signature signature = Signature.getInstance("SHA256withRSA");
-                    SignedObject signed = new SignedObject(bcommand, myPrivKey, signature);
-                    super.addCommand(signed);
-                    System.out.println("LEADER SENT WRONGFULLY SIGNED");
-                } catch (IOException | InvalidKeyException | SignatureException | 
-                        NoSuchAlgorithmException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                if (sendRepeatedCommands) {
+        //IF -> READS;   ELSE -> TRANSFERS/REGISTERS 
+        if( bcommand.getType().equals("CHECK_BALANCE")){
+            //System.out.println("READ COMMAND RECEIVED");
+            super.processReads(bcommand);
+        } else {
+            //System.out.println("Added command of type " + bcommand.getType());
+            if(_isLeader && !dropCommands) {
+                if (alterClientRequest) {
+                    try {
+                        Signature signature = Signature.getInstance("SHA256withRSA");
+                        SignedObject signed = new SignedObject(bcommand, myPrivKey, signature);
+                        super.addCommand(signed);
+                        System.out.println("LEADER SENT WRONGFULLY SIGNED");
+                    } catch (IOException | InvalidKeyException | SignatureException | 
+                            NoSuchAlgorithmException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    if (sendRepeatedCommands) {
+                        super.addCommand(signedObject);
+                    }
                     super.addCommand(signedObject);
                 }
-                super.addCommand(signedObject);
+                
+            } else {
+                super._consensus.waitForCommand(bcommand);
             }
-            
-        } else {
-            super._consensus.waitForCommand(bcommand);
+
         }
             
     }

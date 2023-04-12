@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.Objects;
 
+import javax.sql.rowset.spi.SyncResolver;
+
 public class PerfectLinkOut {
 
     private int sequenceNumber;
@@ -44,7 +46,7 @@ public class PerfectLinkOut {
         }
     }
 
-    public void send(Object data) {
+    public synchronized void send(Object data) {
 
         // DEBUG :
         /*
@@ -173,7 +175,7 @@ public class PerfectLinkOut {
         }
     }
 
-    public void send_handshake () {
+    public synchronized void send_handshake () {
 
         // DEBUG :
         /*

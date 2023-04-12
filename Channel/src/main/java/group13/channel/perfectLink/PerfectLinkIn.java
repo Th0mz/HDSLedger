@@ -61,6 +61,7 @@ public class PerfectLinkIn {
         // Check freshness
         if (sequenceNumber != freshObject.getSequenceNumber()) {
             System.err.println("Error : Received object is not fresh");
+            return;
         }
 
         Object objectToDeliver = freshObject.getObject();

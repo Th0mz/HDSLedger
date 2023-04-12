@@ -34,6 +34,14 @@ public class ClientFrontend implements EventListener {
     protected int mySeqNum = 0;
     protected int latestViewSeen = -1;
 
+
+    //* FOR TESTING PURPOSES */
+    protected boolean readRetried = false;
+    protected Float readResult = null;
+    protected boolean readSuccesful = false;
+    protected String reasonReadFailed = null;
+    //*======================= */
+
     private int lastResponseDelivered = 0;
     private HashSet<Integer> responsesDelivered = new HashSet<>();
     private HashMap<Integer, ReentrantLock> commandLock = new HashMap<>();
@@ -43,7 +51,7 @@ public class ClientFrontend implements EventListener {
     private ReentrantLock seqNumLock = new ReentrantLock();
     private ReentrantLock lockView = new ReentrantLock();
 
-    private HashMap<PublicKey, String> keys = new HashMap();
+    public HashMap<PublicKey, String> keys = new HashMap<>();
 
     public ClientFrontend() {}
 
@@ -112,8 +120,9 @@ public class ClientFrontend implements EventListener {
     }
 
     public void checkBalance(String readType){
+        //System.out.println("HEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
         seqNumLock.lock();
-        System.out.println("Checking balance");
+       // System.out.println("Checking balance");
         CheckBalanceCommand checkCommand;
         if (readType.equals("w")){
             checkCommand = new CheckBalanceCommand(mySeqNum, myPubKey, latestViewSeen, false);
@@ -148,10 +157,14 @@ public class ClientFrontend implements EventListener {
 
         // don't allow an attacker to send multiple responses to
         // commands that weren't sent by the client yet
+        seqNumLock.lock();
         if (sequenceNumber >= mySeqNum) {
+            System.out.println (sequenceNumber + "   " + mySeqNum);
             System.err.println("Error : Server is responding to commands that weren't yet sent");
+            seqNumLock.unlock();
             return;
         }
+        seqNumLock.unlock();
 
         // check if the value was already delivered
         if (lastResponseDelivered > sequenceNumber || responsesDelivered.contains(sequenceNumber)) {
@@ -180,9 +193,14 @@ public class ClientFrontend implements EventListener {
 
     private void processStrongReadResponse(ClientResponse response, int sequenceNumber) {
         ReentrantLock lock = commandLock.get(sequenceNumber);
+        System.out.println("\n========================\n========================\n========================");
+        System.out.println("TENTATIVE RESPONSE @client: " + myPubKey.hashCode());
+        System.out.println(response);
+        System.out.println("\n========================\n========================\n========================");
         if (lock != null) {
 
             lock.lock();
+
             Boolean readQuorum = false;
             HashMap<String, Integer> received = null;
             if (!responsesReceived.containsKey(sequenceNumber)) {
@@ -210,6 +228,9 @@ public class ClientFrontend implements EventListener {
                 System.out.println("[" + response.getCommandType() + "] SN : " + response.getSequenceNumber() 
                 + " NO QUORUM REACHED DUE TO POSSIBLE CONCURRENCY NEW READ REQUEST SENT" );
 
+                readSuccesful = false;
+                
+
                 responsesReceived.remove(sequenceNumber);
                 commandLock.remove(sequenceNumber);
                 responsesDelivered.add(sequenceNumber);
@@ -225,6 +246,8 @@ public class ClientFrontend implements EventListener {
                     }
                 }
 
+                readRetried = true;
+                reasonReadFailed = "NO_QUORUM";
                 checkBalance("s");
 
             }
@@ -241,15 +264,23 @@ public class ClientFrontend implements EventListener {
                     
                 } else {
 
+                    System.out.println("\n========================\n========================\n========================");
+                    System.out.println("VALID RESPONSE");
                     System.out.println(response);
+                    System.out.println("\n========================\n========================\n========================");
+
                     latestViewSeen = response.getViewSeen();
+
+                    //for tests
+                    readSuccesful = true;
+                    readResult = (Float)response.getResponse();
                 }
                 lockView.unlock();
     
                 responsesReceived.remove(sequenceNumber);
                 commandLock.remove(sequenceNumber);
                 responsesDelivered.add(sequenceNumber);
-    
+                
                 if (sequenceNumber == lastResponseDelivered) {
                     for (int i = sequenceNumber; i < mySeqNum; i++) {
                         if (!responsesDelivered.contains(sequenceNumber)) {
@@ -307,7 +338,8 @@ public class ClientFrontend implements EventListener {
                 }
                 //TODO - REFACTOR THIS - UGLY
 
-                System.out.println("HERE3");
+                readSuccesful = false;
+                reasonReadFailed = "NO_QUORUM";
 
                 if(finished) {
                     responsesReceived.remove(sequenceNumber);
@@ -341,6 +373,7 @@ public class ClientFrontend implements EventListener {
             for (PublicKey key : signatures.keySet()) {
                 //TO MAKE SURE ITS AN ACTUAL KNOWN KEY AND NOT FORGED ONES
                 if ( keys.get(key) == null){
+                  reasonReadFailed = "FAILED_SIGNATURES";
                   System.out.println("NULL");  
                   continue;
                 } 
@@ -348,6 +381,7 @@ public class ClientFrontend implements EventListener {
                 // IGNORE INVALID SIGNATURES
                 try {
                     if(!verify(so, key) || (balance != (float)so.getObject()) ){
+                        reasonReadFailed = "FAILED_SIGNATURES";
                         continue;
                     }
                 } catch (ClassNotFoundException | IOException e) {
@@ -374,6 +408,8 @@ public class ClientFrontend implements EventListener {
    
                     System.out.println(response);
                     finished = true;
+                    readSuccesful = true;
+                    readResult = balance;
                     latestViewSeen = response.getViewSeen();
                 }
                 lockView.unlock();
@@ -386,6 +422,7 @@ public class ClientFrontend implements EventListener {
             //case where valid (but stale) or invalid response is last one
             if(responseCounter == (3*faulty + 1)  && !finished) {
                 finished = true;
+                readSuccesful = false;
                 System.out.println("NO VALID UP TO DATE RESPONSE WAS ATTAINED FOR WEAK READ [SN]:" + sequenceNumber);
             }
 
@@ -492,6 +529,22 @@ public class ClientFrontend implements EventListener {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public boolean retryStrongRead(){
+        return readRetried;
+    }
+
+    public boolean getReadSuccessful(){
+        return readSuccesful;
+    }
+
+    public String getReasonFailed() {
+        return reasonReadFailed;
+    }
+    public Float getReadResult(){
+
+        return readResult;
     }
     
     private static PrivateKey getPrivateKey(String file) {

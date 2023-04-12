@@ -64,8 +64,8 @@ public class State {
             accounts.put(accountPK, newAccount);
             applied = true;
         }
+        
 
-        System.out.println("->REGISTERED CLIENT");
         ClientResponse response = new ClientResponse(command, applied);
         return response;
     }
@@ -93,8 +93,11 @@ public class State {
                 miner.receive(FEE);
             }
         }
+        //System.out.println("\n========================\n========================\n========================");
 
-        System.out.println("->APPLIED TRANSFER");
+       // System.out.println("->APPLIED TRANSFER");
+       // System.out.println("\n========================\n========================\n========================");
+
         ClientResponse response = new ClientResponse(command, applied);
         return response;
     }
@@ -110,7 +113,7 @@ public class State {
             applied = true;
 
             //TODO: Send to client his balance
-            System.out.println("->CHECK BALANCE    | Amount: " + balance);
+            //System.out.println("->CHECK BALANCE    | Amount: " + balance);
         }
 
         ClientResponse response = new ClientResponse(command, balance, applied);
@@ -118,6 +121,7 @@ public class State {
     }
 
     public void print() {
+        /* 
         System.out.println("==========================================");
         System.out.println("                TES STATE                 ");
         System.out.println("==========================================");
@@ -127,6 +131,6 @@ public class State {
             System.out.println("Id : " + rsaKey.getPublicExponent() + "   Amount = " + account.getBalance());
         }
 
-        System.out.println("==========================================");
+        System.out.println("==========================================");*/
     }
 }

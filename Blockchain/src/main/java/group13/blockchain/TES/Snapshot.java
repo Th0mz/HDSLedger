@@ -72,13 +72,13 @@ public class Snapshot {
 
         //check snapshots received for current version if not add own to others for weak read purposes
         if(outsideSnapshots.get(version) != null) {
-            System.out.println("TAKE SNAP MAP EXISTS");
+           // System.out.println("TAKE SNAP MAP EXISTS");
             for (PublicKey node : outsideSnapshots.get(version).keySet()) {
                 
                 updateSameSnap(version, node);
             }
         } else {
-            System.out.println("TAKE SNAP CREATE THE MAP");
+           // System.out.println("TAKE SNAP CREATE THE MAP");
             HashMap<PublicKey, HashMap<PublicKey, SignedObject>> aux = new HashMap<>();
             aux.put(mPublicKey, mySnapshot);
             outsideSnapshots.put(version, aux);
@@ -100,7 +100,7 @@ public class Snapshot {
 
         //first to present signatures for this version of snapshot
         if (outsideSnapshots.get(version) == null ) {
-            System.out.println("RECEIVE SNAP CREATE THE MAP");
+          //  System.out.println("RECEIVE SNAP CREATE THE MAP");
             HashMap<PublicKey, HashMap<PublicKey, SignedObject>> aux = new HashMap<>();
             aux.put(sender, snap);
             outsideSnapshots.put(version, aux);
@@ -108,13 +108,13 @@ public class Snapshot {
 
         //version exists but not for this node
         if(outsideSnapshots.get(version) !=null && outsideSnapshots.get(version).get(sender) == null) {
-            System.out.println("RECEIVE SNAP EXISTS MAP");
+          //  System.out.println("RECEIVE SNAP EXISTS MAP");
             outsideSnapshots.get(version).put(sender, snap);
         } 
 
         //if on curr version update counter of validSignatures for curr view
         if (version == mySnapshotVersion) {
-            System.out.println("RECEIVE SNAP UPDATE");
+           // System.out.println("RECEIVE SNAP UPDATE");
             updateSameSnap(version, sender);
             //System.out.println("receiveexistsupdate size:" + outsideSnapshots.get(version));
             //System.out.println(sender.equals(mPublicKey));
@@ -151,7 +151,7 @@ public class Snapshot {
                 if ( myView == null || !( (float)signedValues.get(client).getObject()  == (float)myView.getObject()) ) {
                     //if some value does match snapshot considered notsame and doesnt count toward "quorum"
                     valid = false;
-                    System.out.println("SNAPSHOT NOT VERIFIED;");
+                    //System.out.println("SNAPSHOT NOT VERIFIED;");
 
                     break;
                 }
@@ -161,12 +161,12 @@ public class Snapshot {
         }
 
         if(valid) {
-            System.out.println("SNAPSHOT VERIFIED;");
+            //System.out.println("SNAPSHOT VERIFIED;");
             sameSnapSignatures++;
-            System.out.println(sameSnapSignatures);
+            //System.out.println(sameSnapSignatures);
             //got enough signatures to prove vailidity of weak read  and cleanup old valid snaps
             if(sameSnapSignatures >= (2*f + 1)) {
-                System.out.println("SNAPSHOT VALID;");
+                //System.out.println("SNAPSHOT VALID;");
                 snapshotVersion =version;
                 Iterator<Map.Entry<Integer, HashMap<PublicKey, HashMap<PublicKey, SignedObject>>>> iterator = outsideSnapshots.entrySet().iterator();
                 while (iterator.hasNext()) {

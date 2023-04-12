@@ -28,7 +28,7 @@ import group13.blockchain.TES.State;
 public class BMember {
 
     protected ArrayList<Address> _serverList = new ArrayList<Address>();
-    private static int SNAPSHOT_PERIOD = 1;
+    protected static int SNAPSHOT_PERIOD = 1;
 
     protected State tesState = new State();
     protected HashMap<PublicKey, HashSet<Integer>> receivedCommands = new HashMap<PublicKey, HashSet<Integer>>();
@@ -47,7 +47,7 @@ public class BMember {
 
     protected IBFT _consensus;
     protected HashMap<Integer, IBFTBlock> _ledger = new HashMap<>();
-    private int lastApplied = -1;
+    protected int lastApplied = -1;
     protected Lock lastAppliedLock = new ReentrantLock();
     protected Lock ledgerLock = new ReentrantLock();
     protected Lock tentativeReadLock = new ReentrantLock();
@@ -56,11 +56,11 @@ public class BMember {
     protected PrivateKey myPrivKey;
 
     protected int _snapShotInstance = -1;
-    private Snapshot snapshot;
+    protected Snapshot snapshot;
 
     private HashMap<Integer, ArrayList<CheckBalanceCommand>> tentativeReads = new HashMap<>();
 
-    private ReentrantLock snapLock = new ReentrantLock();
+    protected ReentrantLock snapLock = new ReentrantLock();
 
 
     public void createBMember(ArrayList<Address> serverList, Integer nrFaulty, Integer nrServers,
@@ -141,74 +141,10 @@ public class BMember {
 
         //IF -> READS;   ELSE -> TRANSFERS/REGISTERS 
         if( bcommand.getType().equals("CHECK_BALANCE")){
-            CheckBalanceCommand readCommand = (CheckBalanceCommand)bcommand;
-            int lastSeenClient = readCommand.getLastViewSeen();
-            PublicKey client = readCommand.getPublicKey();
-            // STRONG READ & WEAK READ
-            if (readCommand.getIsConsistent()) {
-                
-                lastAppliedLock.lock();
-                int lastInstance = _consensus.getMaxSeenValidInstance(); //_nextInstance - 1;
-                
-
-                if (lastInstance >= lastSeenClient && lastInstance == lastApplied) {
-                    float balance = tesState.accounts.get(client).getBalance();
-
-                    System.out.println("STRONG READ @instance " + lastInstance + "client Balance = " + balance );
-                    
-                    List<ClientResponse> responses = new ArrayList<>();
-                    responses.add(new ClientResponse(bcommand, balance, true, lastApplied));
-                    frontend.sendResponses(responses);
-
-                } else if (lastInstance >= lastSeenClient && lastInstance > lastApplied) {
-                    //wait for tentative operations to apply then respond
-                    //tentativeReadLock.lock();
-                    ArrayList<CheckBalanceCommand> waitinReads = tentativeReads.get(lastInstance);
-                    if(waitinReads == null) {
-                        tentativeReads.put(lastInstance, new ArrayList<CheckBalanceCommand>());
-                    }
-                    waitinReads = tentativeReads.get(lastInstance);
-                    //add read to waiting list
-                    waitinReads.add(readCommand);
-
-                    //tentativeReadLock.unlock();
-                } else {
-                    List<ClientResponse> responses = new ArrayList<>();
-                    responses.add(new ClientResponse(bcommand, -1, false));
-                    frontend.sendResponses(responses);
-                }
-
-                lastAppliedLock.unlock();
-
-            } else {
-                //TODO - weak read; snapshots;
-                List<ClientResponse> responses = new ArrayList<>();
-                snapLock.lock();
-                System.out.println("[WEAK READ]");
-                System.out.println(snapshot.isValidSnapshot());
-                System.out.println(snapshot.getValidVersion());
-                if (snapshot.isValidSnapshot() && (lastSeenClient <= snapshot.getValidVersion())) {
-                    System.out.println("WEAK READ BEING PROCESSED @node: " + Base64.getEncoder().encodeToString(myPubKey.getEncoded()));
-                    SnapshotAccount accBalance = snapshot.getBalance(client);
-                    int version = snapshot.getValidVersion();
-                    snapLock.unlock();
-                    
-                    responses.add(new ClientResponse(bcommand, accBalance, true, version));
-                    System.out.println("WR - nr of signatures:" + accBalance.getSignatures().size());
-                } else {
-                    snapLock.unlock();
-                    responses.add(new ClientResponse(bcommand, -1, false));
-
-                }
-
-                System.out.println("WEAK READ SENT BACK TO CLIENT");
-                frontend.sendResponses(responses);
-
-            }
-
+            processReads(bcommand);
         } else {
 
-            System.out.println("Added command of type " + bcommand.getType());
+            //System.out.println("Added command of type " + bcommand.getType());
             if(_isLeader) {
                 addCommand(signedObject);
             } else {
@@ -217,6 +153,74 @@ public class BMember {
         }
 
             
+    }
+
+    public void processReads(BlockchainCommand bcommand){
+        CheckBalanceCommand readCommand = (CheckBalanceCommand)bcommand;
+        int lastSeenClient = readCommand.getLastViewSeen();
+        PublicKey client = readCommand.getPublicKey();
+        // STRONG READ & WEAK READ
+        if (readCommand.getIsConsistent()) {
+           // System.out.println("\n\n\n STRONG \n\n\n client " + client + "\n\n\n " + tesState.accounts.get(client) + "\n\n\n\n");
+            lastAppliedLock.lock();
+            int lastInstance = _consensus.getMaxSeenValidInstance(); //_nextInstance - 1;
+            
+
+            if (lastInstance >= lastSeenClient && lastInstance == lastApplied) {
+                float balance = tesState.accounts.get(client).getBalance();
+
+                //System.out.println("STRONG READ @instance " + lastInstance + " client Balance = " + balance );
+                
+                List<ClientResponse> responses = new ArrayList<>();
+                responses.add(new ClientResponse(bcommand, balance, true, lastApplied));
+                System.out.println("\nxxxxxxxxxxxxxxxxxxxxxxx\n" + responses.get(0)  +"\n@node "+ myPrivKey.hashCode() +"\nxxxxxxxxxxxxxxxxxxxxxxx\n" );
+                frontend.sendResponses(responses);
+
+            } else if (lastInstance >= lastSeenClient && lastInstance > lastApplied) {
+                //wait for tentative operations to apply then respond
+                //tentativeReadLock.lock();
+                ArrayList<CheckBalanceCommand> waitinReads = tentativeReads.get(lastInstance);
+                if(waitinReads == null) {
+                    tentativeReads.put(lastInstance, new ArrayList<CheckBalanceCommand>());
+                }
+                waitinReads = tentativeReads.get(lastInstance);
+                //add read to waiting list
+                waitinReads.add(readCommand);
+
+                //tentativeReadLock.unlock();
+            } else {
+                List<ClientResponse> responses = new ArrayList<>();
+                responses.add(new ClientResponse(bcommand, -1, false));
+                frontend.sendResponses(responses);
+            }
+
+            lastAppliedLock.unlock();
+
+        } else {
+            //TODO - weak read; snapshots;
+            List<ClientResponse> responses = new ArrayList<>();
+            snapLock.lock();
+            System.out.println("[WEAK READ]");
+            System.out.println(snapshot.isValidSnapshot());
+            System.out.println(snapshot.getValidVersion());
+            if (snapshot.isValidSnapshot() && (lastSeenClient <= snapshot.getValidVersion())) {
+                System.out.println("WEAK READ BEING PROCESSED @node: " + Base64.getEncoder().encodeToString(myPubKey.getEncoded()));
+                SnapshotAccount accBalance = snapshot.getBalance(client);
+                int version = snapshot.getValidVersion();
+                snapLock.unlock();
+                
+                responses.add(new ClientResponse(bcommand, accBalance, true, version));
+                System.out.println("WR - nr of signatures:" + accBalance.getSignatures().size());
+            } else {
+                snapLock.unlock();
+                responses.add(new ClientResponse(bcommand, -1, false));
+
+            }
+
+            System.out.println("WEAK READ SENT BACK TO CLIENT");
+            frontend.sendResponses(responses);
+
+        }
     }
 
     // add command to the received list and initiate a new consensus instance if
@@ -284,7 +288,21 @@ public class BMember {
 
             lastAppliedLock.lock();
             List<ClientResponse> responses = this.tesState.applyBlock(nextBlock);
-            lastAppliedLock.unlock();
+            try {
+                BlockchainCommand c = (BlockchainCommand)nextBlock.getCommandsList().get(0).getObject();
+                if(RegisterCommand.constType.equals(c.getType())){
+                    RegisterCommand rc = (RegisterCommand)c;
+                    System.out.println("\n========================\n========================\n========================");
+    
+                    System.out.println("->REGISTERED CLIENT " + rc.getPublicKey().hashCode() + " @NODE " + myPrivKey.hashCode() );
+                    System.out.println(tesState.accounts.size());
+                    System.out.println("\n========================\n========================\n========================");
+                }
+                lastAppliedLock.unlock();
+            } catch (ClassNotFoundException | IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
             frontend.sendResponses(responses);
 
             lastAppliedLock.lock();

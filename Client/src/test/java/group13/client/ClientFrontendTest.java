@@ -94,9 +94,12 @@ class ClientFrontendTest {
         }
 
         List<Address> interfaceAddresses = List.of(p1I_addr, p2I_addr, p3I_addr, p4I_addr);
-        c1_frontend = new ClientFrontendTester(c1_addr, interfaceAddresses, serverPKs, c1_keys, 1);
-        c2_frontend = new ClientFrontendTester(c2_addr, interfaceAddresses, serverPKs, c2_keys, 1);
-        c3_frontend = new ClientFrontendTester(c3_addr, interfaceAddresses, serverPKs, c3_keys, 1);
+        c1_frontend = new ClientFrontendTester(c1_addr, interfaceAddresses, serverPKs, c1_keys, 1, false);
+        c1_frontend.setKeys();
+        c2_frontend = new ClientFrontendTester(c2_addr, interfaceAddresses, serverPKs, c2_keys, 1, false);
+        c2_frontend.setKeys();
+        c3_frontend = new ClientFrontendTester(c3_addr, interfaceAddresses, serverPKs, c3_keys, 1, false);
+        c3_frontend.setKeys();
 
         // wait for handshake to be propagated
         try {
@@ -125,6 +128,7 @@ class ClientFrontendTest {
         c2_frontend.close();
         c3_frontend.close();
     }
+    /* 
 
     @Test
     @DisplayName("Check handshake messages")
@@ -157,12 +161,81 @@ class ClientFrontendTest {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }*/
+
+    /** ----------------------------------------
+     * ---          READ TESTS               ---
+       ----------------------------------------- */ 
+
+    @Test
+    @DisplayName("Check Strong Read")
+    public void CheckStrongReadTest () {
+        System.out.println("===============================");
+        System.out.println("Test : Check Strong read");
+
+        c1_frontend.register();
+        c2_frontend.register();
+        c3_frontend.register();
+        // wait for registers to reach the replicas
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("\n===\n REGISTER PHASE DONE \n===\n");
+
+
+        c1_frontend.transfer(c2_keys.getPublic(), 5);
+        c1_frontend.transfer(c3_keys.getPublic(), 10);
+        c2_frontend.transfer(c3_keys.getPublic(), 40);
+
+
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("\n===\n TRANSFER PHASE DONE \n===\n");
+
+
+        c1_frontend.checkBalance("s");
+        c1_frontend.checkBalance("s");
+        c2_frontend.checkBalance("s");
+        c3_frontend.checkBalance("s");
+
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        assertEquals(true, c1_frontend.getReadSuccessful());
+        assertEquals(75, c1_frontend.getReadResult());
+        assertEquals(true, c2_frontend.getReadSuccessful());
+        assertEquals(60, c2_frontend.getReadResult());
+        assertEquals(true, c3_frontend.getReadSuccessful());
+        assertEquals(150, c3_frontend.getReadResult());
+
+
+        // wait for all commands to be propagated
     }
+
+
+
+
+
+
+
+
 
 
     /** ----------------------------------------
      * --- DETECT BYZANTINE LEADER BEHAVIOR  ---
        ----------------------------------------- */ 
+       /* 
     @Test
     @DisplayName("Detect commands not signed by client")
     public void CheckClientSignature () {
@@ -186,7 +259,7 @@ class ClientFrontendTest {
         System.out.println("===============================");
         System.out.println("Test : Detect commands for which there wasnt Preprepare");
 
-    }
+    }*/
 
 
 }

@@ -82,6 +82,10 @@ public class IBFT implements EventListener{
 
     private int maxSeenValidInstance = -1;
 
+    private int counter_Pre = 0;
+    private int counter_PPre = 0;
+    private int counter_Com = 0;
+
     public IBFT(int n, int f, PublicKey inPublicKey, PrivateKey inPrivateKey, PublicKey leaderPK, BEBroadcast beb, BMember server) {
 
         this.isLeader = leaderPK.equals(inPublicKey);
@@ -169,12 +173,16 @@ public class IBFT implements EventListener{
                 IBFTPrePrepare prePrepare = new IBFTPrePrepare(block, myPubKey, block.getId(), block.getInstance());
                 signature = Signature.getInstance("SHA256withRSA");
                 SignedObject signedObject = new SignedObject(prePrepare, myKey, signature);
-                System.out.print("Generated signedObject of type:"+(IBFTPrePrepare)signedObject.getObject()+
-                            "    with signature:"+signedObject.getSignature());
+              //  System.out.print("Generated signedObject of type:"+(IBFTPrePrepare)signedObject.getObject()+
+              //              "    with signature:"+signedObject.getSignature());
                 this.broadcast.send(new BEBSend(signedObject)); 
-                System.out.println("SENT PREPREPARE MESSAGE");
+                counter_PPre++;
+               // System.out.println("\n\n\n--------------------------");
+               // System.out.println("SENT PREPREPARE MESSAGE N "+ counter_PPre );
+               // System.out.println("\n\n\n--------------------------");
+                
             } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | 
-                    IOException | ClassNotFoundException e) {
+                    IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
@@ -191,7 +199,7 @@ public class IBFT implements EventListener{
 
             // for snapshots
             if ((payload instanceof SnapOperation)) {
-                    System.out.println("SNAPSHOT RECEIVED @IBFT");
+                    //System.out.println("SNAPSHOT RECEIVED @IBFT");
                     SnapOperation operation = ((SnapOperation)payload);
                     _server.deliverSnapShot(operation.GetSignedSnap(), ((BEBDeliver)event).getProcessPK(), operation.getVersion());
                     return;
@@ -230,7 +238,7 @@ public class IBFT implements EventListener{
     }
 
     protected void prePrepare(IBFTBlock block, PublicKey pKey){
-        System.out.println("RECEIVED PREPREPARE");
+        //System.out.println("RECEIVED PREPREPARE");
 
         try {
             lockBlocks.lock();
@@ -325,12 +333,16 @@ public class IBFT implements EventListener{
             // Can deliver if it already has a quorum of commits 
             if(commits.containsKey(blockId) && commits.get(blockId).containsKey(instance) 
                     && commits.get(blockId).get(instance).size() >= quorum) {
+                        System.out.println("EARLY DELIVERY");
                 _server.deliver(instance, block);
             }
 
-            System.out.print("Generated signedObject of type:"+(IBFTPrepare)signedObject.getObject()+
-                        "    with signature:"+signedObject.getSignature());
-            System.out.println("SENT PREPARE MESSAGE");
+//            System.out.print("Generated signedObject of type:"+(IBFTPrepare)signedObject.getObject()+
+           //             "    with signature:"+signedObject.getSignature());
+            counter_Pre++;
+           // System.out.println("\n\n\n--------------------------");
+           // System.out.println("SENT PREPARE MESSAGE N " +counter_Pre);
+           // System.out.println("\n\n\n--------------------------");
 
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | 
                 IOException | ClassNotFoundException e) {
@@ -344,19 +356,19 @@ public class IBFT implements EventListener{
     }
 
     protected void prepare(String id, int instance, PublicKey pKey) {
-        System.out.println("RECEIVED PREPARE with block: " + id);
+        //System.out.println("RECEIVED PREPARE with block: " + id);
         Set<PublicKey> setPrepares;
-        for(String blk : prepares.keySet())
-            System.out.println("List of blocks: "+ blk);
+        //for(String blk : prepares.keySet())
+            //System.out.println("List of blocks: "+ blk);
         lockPrepare.lock();
         if(prepares.containsKey(id) && 
                 !prepares.get(id).containsKey(instance) ) {
-            System.out.println("Contains block but not instance Set");
+          //  System.out.println("Contains block but not instance Set");
             setPrepares = new HashSet<PublicKey>();
             prepares.get(id).put(instance, setPrepares);
             //System.out.println("ADDED KEY: " + key);
         } else if(!prepares.containsKey(id)){
-            System.out.println("Does not contain block");
+           // System.out.println("Does not contain block");
             setPrepares = new HashSet<PublicKey>();
             prepares.put(id, new HashMap<>());
             prepares.get(id).put(instance, setPrepares);
@@ -370,12 +382,12 @@ public class IBFT implements EventListener{
 
             //System.out.println("SIZE BEFORE: " + prepareCount);
             lockPrepare.lock();
-            System.out.println("Before anything setPrepares size: " + setPrepares.size());
+           // System.out.println("Before anything setPrepares size: " + setPrepares.size());
             setPrepares.add(pKey);
             prepareCount = setPrepares.size();
-            System.out.println("setPrepares size: " + setPrepares.size());
+           // System.out.println("setPrepares size: " + setPrepares.size());
             prepares.get(id).put(instance, setPrepares);
-            System.out.println("After add, setPrepares size: " + prepares.get(id).get(instance).size());
+           // System.out.println("After add, setPrepares size: " + prepares.get(id).get(instance).size());
             //System.out.println(prepares.containsKey(block));
             lockPrepare.unlock();
             //System.out.println("SIZE AFTER: " + prepareCount);
@@ -390,12 +402,15 @@ public class IBFT implements EventListener{
                     IBFTCommit prepare = new IBFTCommit(myPubKey, id, instance);
                     Signature signature = Signature.getInstance("SHA256withRSA");
                     SignedObject signedObject = new SignedObject(prepare, myKey, signature);
-                    System.out.print("Generated signedObject of type:"+(IBFTCommit)signedObject.getObject()+
-                                "    with signature:"+signedObject.getSignature());
+                   // System.out.print("Generated signedObject of type:"+(IBFTCommit)signedObject.getObject()+
+               //                 "    with signature:"+signedObject.getSignature());
                     this.broadcast.send(new BEBSend(signedObject)); 
-                    System.out.println("SENT COMMIT MESSAGE");
+                    counter_Com++;
+              //  System.out.println("\n\n\n--------------------------");
+               // System.out.println("SENT COMMIT MESSAGE N " +counter_Com);
+               // System.out.println("\n\n\n--------------------------");
                 } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | 
-                        IOException | ClassNotFoundException e) {
+                        IOException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
@@ -406,7 +421,7 @@ public class IBFT implements EventListener{
     
 
     protected void commit(String id, int instance, PublicKey pKey) {
-        System.out.println("RECEIVED COMMIT");
+        //System.out.println("RECEIVED COMMIT");
         Set<PublicKey> setCommits;
         lockCommit.lock();
         if(commits.containsKey(id) && 
