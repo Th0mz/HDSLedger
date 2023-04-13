@@ -2,7 +2,6 @@ package group13.client;
 
 import group13.blockchain.TES.ClientResponse;
 import group13.blockchain.TES.SnapshotAccount;
-import group13.blockchain.auxiliary.SnapOperation;
 import group13.primitives.Address;
 import group13.primitives.*;
 import group13.blockchain.commands.BlockchainCommand;
@@ -24,8 +23,6 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.swing.UIDefaults.ProxyLazyValue;
-
 public class ClientFrontend implements EventListener {
 
     protected BEBroadcast beb;
@@ -45,7 +42,7 @@ public class ClientFrontend implements EventListener {
     private int lastResponseDelivered = 0;
     private HashSet<Integer> responsesDelivered = new HashSet<>();
     private HashMap<Integer, ReentrantLock> commandLock = new HashMap<>();
-    private HashMap<Integer, HashMap<String, Integer>> responsesReceived = new HashMap<>();
+    private HashMap<Integer, HashMap<String, Set<PublicKey>>> responsesReceived = new HashMap<>();
 
     protected int faulty;
     private ReentrantLock seqNumLock = new ReentrantLock();
@@ -202,7 +199,7 @@ public class ClientFrontend implements EventListener {
             lock.lock();
 
             Boolean readQuorum = false;
-            HashMap<String, Integer> received = null;
+            HashMap<String, Set<PublicKey>> received = null;
             if (!responsesReceived.containsKey(sequenceNumber)) {
                 received = new HashMap<>();
                 this.responsesReceived.put(sequenceNumber, received);
@@ -211,20 +208,30 @@ public class ClientFrontend implements EventListener {
             }
     
             String hash = hashResponse(response);
-            int counter = 1;
+            Set<PublicKey> publicKeys = null;
             if (received.containsKey(hash)) {
-                counter = received.get(hash) + 1;
+                publicKeys = new HashSet<>();
+            } else {
+                publicKeys = received.get(hash);
             }
+
             // update number of times that this response was seen
-            received.put(hash, counter);
+            publicKeys.add(response.getIssuer());
+            received.put(hash, publicKeys);
+            int counter = publicKeys.size();
 
-
-            int sum = received.values().stream().reduce(0, (a,b) -> a + b);
-            OptionalInt max = received.values().stream().mapToInt(v -> v).max();
-
+            int sum = 0;
+            int max = 0;
+            for (Set<PublicKey> set : received.values()) {
+                int size = set.size();
+                sum += size;
+                if (size > max) {
+                    max = size;
+                }
+            }
 
             //IF IMPOSSIBLE TO GET QUORUM
-            if( ((2*faulty + 1) - max.getAsInt()) > ((3*faulty + 1) - sum )) {
+            if( ((2*faulty + 1) - max) > ((3*faulty + 1) - sum )) {
                 System.out.println("[" + response.getCommandType() + "] SN : " + response.getSequenceNumber() 
                 + " NO QUORUM REACHED DUE TO POSSIBLE CONCURRENCY NEW READ REQUEST SENT" );
 
@@ -310,7 +317,7 @@ public class ClientFrontend implements EventListener {
                 return;
             }
 
-            HashMap<String, Integer> received = null;
+            HashMap<String, Set<PublicKey>> received = null;
             if (!responsesReceived.containsKey(sequenceNumber)) {
                 received = new HashMap<>();
                 this.responsesReceived.put(sequenceNumber, received);
@@ -320,13 +327,17 @@ public class ClientFrontend implements EventListener {
             //System.out.println("HERE2");
 
             String id = Integer.toString(sequenceNumber);
-            int responseCounter = 1;
+            Set<PublicKey> publicKeys = null;
             if (received.containsKey(id)) {
-                responseCounter = received.get(id) + 1;
+                publicKeys = new HashSet<>();
+            } else {
+                publicKeys = received.get(id);
             }
-            // update number of times that this response was seen
-            received.put(id, responseCounter);
 
+            // update number of times that this response was seen
+            publicKeys.add(response.getIssuer());
+            received.put(id, publicKeys);
+            int responseCounter = publicKeys.size();
 
             //int sum = received.values().stream().reduce(0, (a,b) -> a + b);
             //System.out.println(response);
@@ -431,7 +442,7 @@ public class ClientFrontend implements EventListener {
                 commandLock.remove(sequenceNumber);
                 responsesDelivered.add(sequenceNumber);
     
-                /*if (sequenceNumber == lastResponseDelivered) {
+                if (sequenceNumber == lastResponseDelivered) {
                     for (int i = sequenceNumber; i < mySeqNum; i++) {
                         if (!responsesDelivered.contains(sequenceNumber)) {
                             break;
@@ -439,11 +450,9 @@ public class ClientFrontend implements EventListener {
     
                         responsesDelivered.remove(sequenceNumber);
                     }
-                }*/
+                }
                 lastResponseDelivered = lastResponseDelivered + 1;
             }
-           // System.out.println("HERE5");
-
 
             lock.unlock();
         }
@@ -454,7 +463,7 @@ public class ClientFrontend implements EventListener {
         ReentrantLock lock = commandLock.get(sequenceNumber);
         lock.lock();
 
-        HashMap<String, Integer> received = null;
+        HashMap<String, Set<PublicKey>> received = null;
         if (!responsesReceived.containsKey(sequenceNumber)) {
             received = new HashMap<>();
             this.responsesReceived.put(sequenceNumber, received);
@@ -463,12 +472,17 @@ public class ClientFrontend implements EventListener {
         }
 
         String hash = hashResponse(response);
-        int counter = 1;
+        Set<PublicKey> publicKeys = null;
         if (received.containsKey(hash)) {
-            counter = received.get(hash) + 1;
+            publicKeys = new HashSet<>();
+        } else {
+            publicKeys = received.get(hash);
         }
+
         // update number of times that this response was seen
-        received.put(hash, counter);
+        publicKeys.add(response.getIssuer());
+        received.put(hash, publicKeys);
+        int counter = publicKeys.size();
 
         // check if a majority of equal responses was reached
         if (counter >= 2 * faulty + 1) {
