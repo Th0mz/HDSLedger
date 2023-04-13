@@ -209,7 +209,7 @@ public class ClientFrontend implements EventListener {
     
             String hash = hashResponse(response);
             Set<PublicKey> publicKeys = null;
-            if (received.containsKey(hash)) {
+            if (!received.containsKey(hash)) {
                 publicKeys = new HashSet<>();
             } else {
                 publicKeys = received.get(hash);
@@ -328,7 +328,7 @@ public class ClientFrontend implements EventListener {
 
             String id = Integer.toString(sequenceNumber);
             Set<PublicKey> publicKeys = null;
-            if (received.containsKey(id)) {
+            if (!received.containsKey(id)) {
                 publicKeys = new HashSet<>();
             } else {
                 publicKeys = received.get(id);
@@ -473,7 +473,7 @@ public class ClientFrontend implements EventListener {
 
         String hash = hashResponse(response);
         Set<PublicKey> publicKeys = null;
-        if (received.containsKey(hash)) {
+        if (!received.containsKey(hash)) {
             publicKeys = new HashSet<>();
         } else {
             publicKeys = received.get(hash);

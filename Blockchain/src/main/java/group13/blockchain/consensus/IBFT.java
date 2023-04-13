@@ -255,9 +255,6 @@ public class IBFT implements EventListener{
                 try {
                     if (!(signedObject.getObject() instanceof BlockchainCommand)) {
                         leaderFailed = true;
-                        lockReceived.unlock();
-                        lockCommit.unlock();
-                        lockBlocks.unlock();
                         return;
                     }
         
@@ -265,9 +262,6 @@ public class IBFT implements EventListener{
                     if (!signedObject.verify(bcommand.getPublicKey(), Signature.getInstance("SHA256withRSA"))) {
                         System.out.println("LEADER FAILED: WRONG SIGNATURE");
                         leaderFailed = true;
-                        lockReceived.unlock();
-                        lockCommit.unlock();
-                        lockBlocks.unlock();
                         return;
                     }
                     
@@ -275,9 +269,6 @@ public class IBFT implements EventListener{
                         receivedCommands.get(bcommand.getPublicKey()).containsKey(bcommand.getSequenceNumber())) {
                         System.out.println("LEADER FAILED: SENT REPEATED COMMANDS");
                         leaderFailed = true;
-                        lockReceived.unlock();
-                        lockCommit.unlock();
-                        lockBlocks.unlock();
                         return;
                     }
                 } catch (ClassNotFoundException | IOException | InvalidKeyException | 
@@ -317,9 +308,6 @@ public class IBFT implements EventListener{
                     BlockchainCommand command = (BlockchainCommand) signedObject.getObject();
                     receivedCommands.get(pKey).remove(command.getSequenceNumber());
                 }
-                lockReceived.unlock();
-                lockCommit.unlock();
-                lockBlocks.unlock();
                 return;
             }
 

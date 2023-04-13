@@ -19,7 +19,7 @@ public class State {
     public final static int FEE = 5;
     public final static int INITIAL_BALANCE = 100;
 
-    public HashMap<PublicKey, Account> accounts = new HashMap<>();
+    private HashMap<PublicKey, Account> accounts = new HashMap<>();
 
     public List<ClientResponse> applyBlock(IBFTBlock block) {
         PublicKey minerPK = block.getMiner();
@@ -52,7 +52,6 @@ public class State {
             }
         }
 
-        this.print();
         return responses;
     }
 
@@ -120,8 +119,12 @@ public class State {
         return response;
     }
 
+    public HashMap<PublicKey, Account> getAccounts() {
+        return accounts;
+    }
+
     public void print() {
-        /* 
+
         System.out.println("==========================================");
         System.out.println("                TES STATE                 ");
         System.out.println("==========================================");
@@ -131,6 +134,6 @@ public class State {
             System.out.println("Id : " + rsaKey.getPublicExponent() + "   Amount = " + account.getBalance());
         }
 
-        System.out.println("==========================================");*/
+        System.out.println("==========================================");
     }
 }

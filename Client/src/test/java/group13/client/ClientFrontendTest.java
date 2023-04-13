@@ -128,7 +128,7 @@ class ClientFrontendTest {
         c2_frontend.close();
         c3_frontend.close();
     }
-    /* 
+
 
     @Test
     @DisplayName("Check handshake messages")
@@ -141,7 +141,7 @@ class ClientFrontendTest {
         c3_frontend.register();
         // wait for registers to reach the replicas
         try {
-            Thread.sleep(100);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -149,23 +149,23 @@ class ClientFrontendTest {
         c1_frontend.transfer(c2_keys.getPublic(), 5);
         c1_frontend.transfer(c3_keys.getPublic(), 10);
         c2_frontend.transfer(c3_keys.getPublic(), 40);
-        c1_frontend.checkBalance("s");
-        c1_frontend.checkBalance("s");
-        c2_frontend.checkBalance("s");
         c3_frontend.checkBalance("s");
 
 
         // wait for all commands to be propagated
         try {
-            Thread.sleep(5000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }*/
+
+        // TODO : Check if the commands delivered are
+        //  the supposed ones in each client
+    }
 
     /** ----------------------------------------
      * ---          READ TESTS               ---
-       ----------------------------------------- */ 
+     * ----------------------------------------- */
 
     @Test
     @DisplayName("Check Strong Read")
@@ -178,14 +178,12 @@ class ClientFrontendTest {
         c3_frontend.register();
         // wait for registers to reach the replicas
         try {
-            Thread.sleep(3000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
         System.out.println("\n===\n REGISTER PHASE DONE \n===\n");
-
-
         c1_frontend.transfer(c2_keys.getPublic(), 5);
         c1_frontend.transfer(c3_keys.getPublic(), 10);
         c2_frontend.transfer(c3_keys.getPublic(), 40);
@@ -193,14 +191,12 @@ class ClientFrontendTest {
 
 
         try {
-            Thread.sleep(3000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
         System.out.println("\n===\n TRANSFER PHASE DONE \n===\n");
-
-
         c1_frontend.checkBalance("s");
         c1_frontend.checkBalance("s");
         c2_frontend.checkBalance("s");
@@ -219,28 +215,45 @@ class ClientFrontendTest {
         assertEquals(true, c3_frontend.getReadSuccessful());
         assertEquals(150, c3_frontend.getReadResult());
 
-
-        // wait for all commands to be propagated
     }
-
-
-
-
-
-
-
-
 
 
     /** ----------------------------------------
      * --- DETECT BYZANTINE LEADER BEHAVIOR  ---
-       ----------------------------------------- */ 
-       /* 
+       ----------------------------------------- */
+
     @Test
     @DisplayName("Detect commands not signed by client")
     public void CheckClientSignature () {
         System.out.println("===============================");
         System.out.println("Test : Detect commands not signed by client");
+
+        // set p1 to alter the client request
+        p1_bMember.alterClientRequest = true;
+
+        c1_frontend.register();
+        c2_frontend.register();
+        c3_frontend.register();
+        // wait for registers to reach the replicas
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.transfer(c2_keys.getPublic(), 5);
+        c1_frontend.transfer(c3_keys.getPublic(), 10);
+        c2_frontend.transfer(c3_keys.getPublic(), 40);
+
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        // TODO : Check if the commands delivered are
+        //  the supposed ones in each client
     }
 
 
@@ -249,6 +262,35 @@ class ClientFrontendTest {
     public void CheckRepeatedCommands () {
         System.out.println("===============================");
         System.out.println("Test : Detect repeated commands");
+
+        // set p1 to repeat commands
+        p1_bMember.sendRepeatedCommands = true;
+
+        c1_frontend.register();
+        c2_frontend.register();
+        c3_frontend.register();
+        // wait for registers to reach the replicas
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.transfer(c2_keys.getPublic(), 5);
+        c1_frontend.transfer(c3_keys.getPublic(), 10);
+        c2_frontend.transfer(c3_keys.getPublic(), 40);
+        c3_frontend.checkBalance("s");
+
+
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        // TODO : Check if the commands delivered are
+        //  the supposed ones in each client
 
     }
 
@@ -259,7 +301,23 @@ class ClientFrontendTest {
         System.out.println("===============================");
         System.out.println("Test : Detect commands for which there wasnt Preprepare");
 
-    }*/
 
+        // set p1 to drop commands
+        p1_bMember.dropCommands = true;
+        c1_frontend.register();
 
+        try {
+            Thread.sleep(11000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        assertTrue(p2_bMember.getConsensusObject().leaderFailed);
+        assertTrue(p3_bMember.getConsensusObject().leaderFailed);
+        assertTrue(p4_bMember.getConsensusObject().leaderFailed);
+
+        // TODO : Check if the commands delivered are
+        //  the supposed ones in each client
+
+    }
 }

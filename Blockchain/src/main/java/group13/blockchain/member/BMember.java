@@ -15,16 +15,15 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import group13.blockchain.TES.AmountSigned;
-import group13.blockchain.TES.ClientResponse;
-import group13.blockchain.TES.Snapshot;
-import group13.blockchain.TES.SnapshotAccount;
+import group13.blockchain.TES.*;
 import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.commands.*;
 import group13.blockchain.consensus.IBFT;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.primitives.Address;
-import group13.blockchain.TES.State;
+
+import javax.swing.plaf.metal.MetalIconFactory;
+
 public class BMember {
 
     protected ArrayList<Address> _serverList = new ArrayList<Address>();
@@ -144,10 +143,10 @@ public class BMember {
             processReads(bcommand);
         } else {
 
-            //System.out.println("Added command of type " + bcommand.getType());
             if(_isLeader) {
                 addCommand(signedObject);
             } else {
+                // to guarantee that the leader doesn't omit commands
                 _consensus.waitForCommand(bcommand);
             }
         }
@@ -167,12 +166,18 @@ public class BMember {
             
 
             if (lastInstance >= lastSeenClient && lastInstance == lastApplied) {
-                float balance = tesState.accounts.get(client).getBalance();
-
-                //System.out.println("STRONG READ @instance " + lastInstance + " client Balance = " + balance );
-                
+                // check if client exists
+                HashMap<PublicKey, Account> accounts = tesState.getAccounts();
                 List<ClientResponse> responses = new ArrayList<>();
-                responses.add(new ClientResponse(bcommand, balance, true, lastApplied));
+                ClientResponse response = null;
+                if (!accounts.containsKey(client)) {
+                    response = new ClientResponse(bcommand, -1, false, lastApplied);
+                } else {
+                    float balance = accounts.get(client).getBalance();
+                    response = new ClientResponse(bcommand, balance, true, lastApplied);
+                }
+
+                responses.add(response);
                 System.out.println("\nxxxxxxxxxxxxxxxxxxxxxxx\n" + responses.get(0)  +"\n@node "+ myPrivKey.hashCode() +"\nxxxxxxxxxxxxxxxxxxxxxxx\n" );
                 frontend.sendResponses(responses);
 
@@ -295,7 +300,7 @@ public class BMember {
                     System.out.println("\n========================\n========================\n========================");
     
                     System.out.println("->REGISTERED CLIENT " + rc.getPublicKey().hashCode() + " @NODE " + myPrivKey.hashCode() );
-                    System.out.println(tesState.accounts.size());
+                    System.out.println(tesState.getAccounts().size());
                     System.out.println("\n========================\n========================\n========================");
                 }
                 lastAppliedLock.unlock();
@@ -316,7 +321,7 @@ public class BMember {
 
             if(lastApplied % SNAPSHOT_PERIOD == 0) { 
                 snapLock.lock();
-                snapshot.takeSnapShot(new ArrayList<>(tesState.accounts.values()), lastApplied);
+                snapshot.takeSnapShot(new ArrayList<>(tesState.getAccounts().values()), lastApplied);
                 snapLock.unlock();
                 _consensus.sendSnapShot(snapshot.getSnapshot(), lastApplied);
             }
@@ -334,12 +339,22 @@ public class BMember {
     }
 
     private void sendWaitingReads(List<CheckBalanceCommand> reads) {
+        HashMap<PublicKey, Account> accounts = tesState.getAccounts();
         List<ClientResponse> responses = new ArrayList<>();
         for (CheckBalanceCommand cmd : reads) {
-            float balance = tesState.accounts.get(cmd.getPublicKey()).getBalance();
+
+            PublicKey client = cmd.getPublicKey();
+            ClientResponse response = null;
+            float balance = -1;
+            if (!accounts.containsKey(client)) {
+                response = new ClientResponse(cmd, -1, false, lastApplied);
+            } else {
+                balance = accounts.get(client).getBalance();
+                response = new ClientResponse(cmd, balance, true, lastApplied);
+            }
+
             System.out.println("STRONG READ (waited) @instance " + lastApplied + "client Balance = " + balance );
-            
-            responses.add(new ClientResponse(cmd, balance, true, lastApplied));
+            responses.add(response);
         }
         frontend.sendResponses(responses);
     }
