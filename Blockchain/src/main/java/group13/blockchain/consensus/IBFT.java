@@ -194,8 +194,6 @@ public class IBFT implements EventListener{
                 return;
 
             SignedObject signedObject = (SignedObject) payload;
-
-
             IBFTOperation op = null;
             try {
                 if (!(signedObject.getObject() instanceof IBFTOperation))
@@ -228,7 +226,7 @@ public class IBFT implements EventListener{
             lockBlocks.lock();
             lockCommit.lock();
 
-            /*
+
             String blockId = null;
             try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                  ObjectOutputStream oos = new ObjectOutputStream(baos)) {
@@ -237,9 +235,12 @@ public class IBFT implements EventListener{
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
                 blockId = new String(Base64.getEncoder().encode(sha256.digest(baos.toByteArray())));
             }
-             */
 
-            String blockId = block.getId();
+            System.out.println("--------- PRE-PREPARE ----------");
+            System.out.println("block :" + block);
+            System.out.println("hash :" + blockId);
+            System.out.println("--------------------------------");
+
             int instance = block.getInstance();
 
             //1ST: CHECK THAT THE COMMANDS INDEED CAME FROM THE CLIENT
