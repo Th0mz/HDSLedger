@@ -61,13 +61,13 @@ public class ClientFrontendTester extends ClientFrontend {
 
     public void transferLogger(PublicKey pKeyDest, int amount, boolean applied){
         int sequenceNumber = super.transfer(pKeyDest, amount);
-        ClientResponse expectedResponse = new ClientResponse(sequenceNumber, myPubKey, RegisterCommand.constType, nullObject, applied);
+        ClientResponse expectedResponse = new ClientResponse(sequenceNumber, myPubKey, TransferCommand.constType, nullObject, applied);
         expectedResponses.put(sequenceNumber, expectedResponse);
     }
 
     public void checkBalanceLogger(String readType, float balance, boolean applied){
         int sequenceNumber = super.checkBalance(readType);
-        ClientResponse expectedResponse = new ClientResponse(sequenceNumber, myPubKey, RegisterCommand.constType, balance, applied);
+        ClientResponse expectedResponse = new ClientResponse(sequenceNumber, myPubKey, CheckBalanceCommand.constType, readType, balance, applied);
         expectedResponses.put(sequenceNumber, expectedResponse);
     }
 

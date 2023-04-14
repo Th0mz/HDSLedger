@@ -25,6 +25,16 @@ public class ClientResponse implements Serializable {
         this.response = response;
         this.applied = applied;
     }
+
+    public ClientResponse(int sequenceNumber, PublicKey issuer, String commandType, String typeRead, Object response, boolean applied) {
+        this.sequenceNumber = sequenceNumber;
+        this.issuer = issuer;
+        this.commandType = commandType;
+        this.typeRead = typeRead;
+        this.response = response;
+        this.applied = applied;
+    }
+
     public ClientResponse(BlockchainCommand command, boolean applied) {
         this.sequenceNumber = command.getSequenceNumber();
         this.issuer = command.getPublicKey();
@@ -97,6 +107,10 @@ public class ClientResponse implements Serializable {
         }
 
         ClientResponse c = (ClientResponse) o;
+
+        if (this.typeRead != null && !this.typeRead.equals(c.typeRead)) {
+            return false;
+        }
 
         if (this.response == null) {
             return this.sequenceNumber == c.getSequenceNumber() && this.issuer.equals(c.getIssuer()) &&

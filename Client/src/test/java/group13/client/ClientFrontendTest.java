@@ -138,10 +138,19 @@ class ClientFrontendTest {
         c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
         c2_frontend.transferLogger(c3_keys.getPublic(), 40, true);
 
-
         // wait for all commands to be propagated
         try {
-            Thread.sleep(2000);
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.checkBalanceLogger("s", 75, true);
+        c2_frontend.checkBalanceLogger("s", 60, true);
+        c3_frontend.checkBalanceLogger("s", 150, true);
+
+        try {
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -163,8 +172,6 @@ class ClientFrontendTest {
 
 
         if (responses.size() != expectedResponses.size()) {
-            System.out.println(responses);
-            System.out.println(expectedResponses);
             System.out.println("not the same responses received");
             return false;
         }
@@ -186,7 +193,9 @@ class ClientFrontendTest {
             ClientResponse received = responses.get(sequenceNumber).get(0);
 
             if (!expected.equals(received)) {
-                System.out.println("not equal responses");
+                System.out.println("for sequence number " + sequenceNumber +  " the expected and received responses weren't the same");
+                System.out.println("Expected : " + expected);
+                System.out.println("Received : " + received);
                 return false;
             }
         }
