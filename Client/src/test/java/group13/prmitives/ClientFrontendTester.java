@@ -1,5 +1,10 @@
 package group13.prmitives;
 
+import group13.blockchain.TES.ClientResponse;
+import group13.blockchain.commands.BlockchainCommand;
+import group13.blockchain.commands.CheckBalanceCommand;
+import group13.blockchain.commands.RegisterCommand;
+import group13.blockchain.commands.TransferCommand;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.client.ClientFrontend;
 import group13.primitives.Address;
@@ -7,17 +12,23 @@ import group13.primitives.Address;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class ClientFrontendTester extends ClientFrontend {
 
     private boolean useDifferentKeys = false;
-    HashMap<PublicKey, String> keysTest = new HashMap<>();
+    private HashMap<PublicKey, String> keysTest = new HashMap<>();
+    private HashMap<Integer, ClientResponse> expectedResponses = new HashMap<>();
+
+    private Object nullObject = null;
 
     public ClientFrontendTester(Address inAddress, List<Address> addresses, List<PublicKey> serversPKs, KeyPair keys, int nrFaulty, boolean diffKeys) {
 
         super();
+        testing = true;
+        responses = new HashMap<>();
 
         useDifferentKeys = diffKeys;
 
@@ -40,6 +51,32 @@ public class ClientFrontendTester extends ClientFrontend {
 
         beb.subscribeDelivery(this);
         beb.send_handshake();
+    }
+
+    public void registerLogger(boolean applied){
+        int sequenceNumber = super.register();
+        ClientResponse expectedResponse = new ClientResponse(sequenceNumber, myPubKey, RegisterCommand.constType, nullObject, applied);
+        expectedResponses.put(sequenceNumber, expectedResponse);
+    }
+
+    public void transferLogger(PublicKey pKeyDest, int amount, boolean applied){
+        int sequenceNumber = super.transfer(pKeyDest, amount);
+        ClientResponse expectedResponse = new ClientResponse(sequenceNumber, myPubKey, RegisterCommand.constType, nullObject, applied);
+        expectedResponses.put(sequenceNumber, expectedResponse);
+    }
+
+    public void checkBalanceLogger(String readType, float balance, boolean applied){
+        int sequenceNumber = super.checkBalance(readType);
+        ClientResponse expectedResponse = new ClientResponse(sequenceNumber, myPubKey, RegisterCommand.constType, balance, applied);
+        expectedResponses.put(sequenceNumber, expectedResponse);
+    }
+
+    public HashMap<Integer, ClientResponse> getExpectedResponses() {
+        return expectedResponses;
+    }
+
+    public HashMap<Integer, ArrayList<ClientResponse>> getDeliveredResponses() {
+        return responses;
     }
 
     public void setKeys() {

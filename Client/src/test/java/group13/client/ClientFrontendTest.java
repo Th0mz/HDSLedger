@@ -1,13 +1,7 @@
 package group13.client;
 
-import group13.blockchain.member.BMember;
-import group13.channel.bestEffortBroadcast.BEBroadcast;
-import group13.channel.bestEffortBroadcast.events.BEBDeliver;
-import group13.channel.bestEffortBroadcast.events.BEBSend;
-import group13.channel.perfectLink.events.Pp2pDeliver;
+import group13.blockchain.TES.ClientResponse;
 import group13.primitives.Address;
-import group13.primitives.Event;
-import group13.prmitives.AboveModuleListener;
 import group13.prmitives.AddressCounter;
 import group13.prmitives.BMemberTester;
 import group13.prmitives.ClientFrontendTester;
@@ -19,6 +13,7 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -115,18 +110,10 @@ class ClientFrontendTest {
 
         // wait for all messages to be propagated
         try {
-            Thread.sleep(5000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
-        p1_bMember.close();
-        p2_bMember.close();
-        p3_bMember.close();
-        p4_bMember.close();
-        c1_frontend.close();
-        c2_frontend.close();
-        c3_frontend.close();
     }
 
 
@@ -136,9 +123,10 @@ class ClientFrontendTest {
         System.out.println("===============================");
         System.out.println("Test : Check handshake messages");
 
-        c1_frontend.register();
-        c2_frontend.register();
-        c3_frontend.register();
+        c1_frontend.registerLogger(true);
+        c1_frontend.registerLogger(false);
+        c2_frontend.registerLogger(true);
+        c3_frontend.registerLogger(true);
         // wait for registers to reach the replicas
         try {
             Thread.sleep(1000);
@@ -146,10 +134,9 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
-        c1_frontend.transfer(c2_keys.getPublic(), 5);
-        c1_frontend.transfer(c3_keys.getPublic(), 10);
-        c2_frontend.transfer(c3_keys.getPublic(), 40);
-        c3_frontend.checkBalance("s");
+        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
+        c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
+        c2_frontend.transferLogger(c3_keys.getPublic(), 40, true);
 
 
         // wait for all commands to be propagated
@@ -159,9 +146,55 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
+        System.out.println("====== CHECK =======");
+        // check if responses were delivered only once
+        assertTrue(receivedAllExpected(c1_frontend));
+        assertTrue(receivedAllExpected(c2_frontend));
+        assertTrue(receivedAllExpected(c3_frontend));
+
         // TODO : Check if the commands delivered are
         //  the supposed ones in each client
     }
+
+
+    public boolean receivedAllExpected(ClientFrontendTester clientFrontend) {
+        HashMap<Integer, ArrayList<ClientResponse>> responses = clientFrontend.getDeliveredResponses();
+        HashMap<Integer, ClientResponse> expectedResponses = clientFrontend.getExpectedResponses();
+
+
+        if (responses.size() != expectedResponses.size()) {
+            System.out.println(responses);
+            System.out.println(expectedResponses);
+            System.out.println("not the same responses received");
+            return false;
+        }
+
+        for (Integer sequenceNumber : expectedResponses.keySet()) {
+            // check if the received responses have the expected one
+            if (!responses.containsKey(sequenceNumber)) {
+                System.out.println("expected response not received");
+                return false;
+            }
+
+            // if it was only delivered once
+            if (responses.get(sequenceNumber).size() != 1) {
+                System.out.println("delivered more than once");
+                return false;
+            }
+
+            ClientResponse expected = expectedResponses.get(sequenceNumber);
+            ClientResponse received = responses.get(sequenceNumber).get(0);
+
+            if (!expected.equals(received)) {
+                System.out.println("not equal responses");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
 
     /** ----------------------------------------
      * ---          READ TESTS               ---

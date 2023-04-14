@@ -1,6 +1,5 @@
 package group13.blockchain.consensus;
 
-import group13.blockchain.TES.AmountSigned;
 import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.auxiliary.IBFTCommit;
 import group13.blockchain.auxiliary.IBFTOperation;
@@ -15,31 +14,16 @@ import group13.channel.bestEffortBroadcast.events.BEBDeliver;
 import group13.channel.bestEffortBroadcast.events.BEBSend;
 import group13.primitives.*;
 
-import javax.swing.plaf.synth.SynthTextAreaUI;
+import java.io.*;
+import java.security.*;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.Signature;
-import java.security.SignatureException;
-import java.security.SignedObject;
-import java.security.spec.X509EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.ArrayList;
 import java.util.Base64;
 
 
@@ -243,6 +227,17 @@ public class IBFT implements EventListener{
         try {
             lockBlocks.lock();
             lockCommit.lock();
+
+            /*
+            String blockId = null;
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                 ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+                oos.writeObject(block);
+
+                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                blockId = new String(Base64.getEncoder().encode(sha256.digest(baos.toByteArray())));
+            }
+             */
 
             String blockId = block.getId();
             int instance = block.getInstance();

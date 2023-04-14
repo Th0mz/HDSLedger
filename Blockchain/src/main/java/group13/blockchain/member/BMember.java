@@ -170,10 +170,11 @@ public class BMember {
                 HashMap<PublicKey, Account> accounts = tesState.getAccounts();
                 List<ClientResponse> responses = new ArrayList<>();
                 ClientResponse response = null;
+                float balance = -1;
                 if (!accounts.containsKey(client)) {
-                    response = new ClientResponse(bcommand, -1, false, lastApplied);
+                    response = new ClientResponse(bcommand, balance, false, lastApplied);
                 } else {
-                    float balance = accounts.get(client).getBalance();
+                    balance = accounts.get(client).getBalance();
                     response = new ClientResponse(bcommand, balance, true, lastApplied);
                 }
 
@@ -195,7 +196,8 @@ public class BMember {
                 //tentativeReadLock.unlock();
             } else {
                 List<ClientResponse> responses = new ArrayList<>();
-                responses.add(new ClientResponse(bcommand, -1, false));
+                float balance = -1;
+                responses.add(new ClientResponse(bcommand, balance, false));
                 frontend.sendResponses(responses);
             }
 
@@ -218,7 +220,8 @@ public class BMember {
                 System.out.println("WR - nr of signatures:" + accBalance.getSignatures().size());
             } else {
                 snapLock.unlock();
-                responses.add(new ClientResponse(bcommand, -1, false));
+                float balance = -1;
+                responses.add(new ClientResponse(bcommand, balance, false));
 
             }
 
@@ -347,7 +350,7 @@ public class BMember {
             ClientResponse response = null;
             float balance = -1;
             if (!accounts.containsKey(client)) {
-                response = new ClientResponse(cmd, -1, false, lastApplied);
+                response = new ClientResponse(cmd, balance, false, lastApplied);
             } else {
                 balance = accounts.get(client).getBalance();
                 response = new ClientResponse(cmd, balance, true, lastApplied);

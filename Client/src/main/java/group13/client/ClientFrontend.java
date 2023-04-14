@@ -33,8 +33,10 @@ public class ClientFrontend implements EventListener {
 
 
     //* FOR TESTING PURPOSES */
+    protected boolean testing = false;
+    protected HashMap<Integer, ArrayList<ClientResponse>> responses;
     protected boolean readRetried = false;
-    protected Float readResult = null;
+    protected float readResult = -100;
     protected boolean readSuccesful = false;
     protected String reasonReadFailed = null;
     //*======================= */
@@ -98,25 +100,33 @@ public class ClientFrontend implements EventListener {
         }
     }
 
-    public void register(){
+    public int register(){
+        int usedSequenceNumber = -1;
         seqNumLock.lock();
         System.out.println("Registering client");
         sendCommand(new RegisterCommand(mySeqNum, myPubKey));
+        usedSequenceNumber = mySeqNum;
         mySeqNum++;
         seqNumLock.unlock();
         //TODO: create Register object and send to server
+        return usedSequenceNumber;
     }
 
-    public void transfer(PublicKey pKeyDest, int amount){
+    public int transfer(PublicKey pKeyDest, int amount){
+        int usedSequenceNumber = -1;
         seqNumLock.lock();
         System.out.println("Sending " + amount);
         sendCommand(new TransferCommand(mySeqNum, myPubKey, pKeyDest, amount));
+        usedSequenceNumber = mySeqNum;
         mySeqNum++;
         seqNumLock.unlock();
         //TODO: create Transfer object and send to server
+        return usedSequenceNumber;
+
     }
 
-    public void checkBalance(String readType){
+    public int checkBalance(String readType){
+        int usedSequenceNumber = -1;
         //System.out.println("HEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
         seqNumLock.lock();
        // System.out.println("Checking balance");
@@ -127,9 +137,11 @@ public class ClientFrontend implements EventListener {
             checkCommand = new CheckBalanceCommand(mySeqNum, myPubKey, latestViewSeen, true);
         }
         sendCommand(checkCommand);
+        usedSequenceNumber = mySeqNum;
         mySeqNum++;
         seqNumLock.unlock();
         //TODO: create Check object and send to server
+        return usedSequenceNumber;
     }
 
     /* when we get responses from servers */
@@ -288,13 +300,24 @@ public class ClientFrontend implements EventListener {
 
                     //for tests
                     readSuccesful = true;
-                    readResult = (Float)response.getResponse();
+                    readResult = (float) response.getResponse();
                 }
                 lockView.unlock();
     
                 responsesReceived.remove(sequenceNumber);
                 commandLock.remove(sequenceNumber);
                 responsesDelivered.add(sequenceNumber);
+                if (testing) {
+                    ArrayList<ClientResponse> deliveredResponses = null;
+                    if (!responses.containsKey(sequenceNumber)) {
+                        deliveredResponses = new ArrayList<>();
+                    } else {
+                        deliveredResponses = responses.get(sequenceNumber);
+                    }
+
+                    deliveredResponses.add(response);
+                    responses.put(sequenceNumber, deliveredResponses);
+                }
                 
                 if (sequenceNumber == lastResponseDelivered) {
                     for (int i = sequenceNumber; i < mySeqNum; i++) {
@@ -449,6 +472,17 @@ public class ClientFrontend implements EventListener {
                 responsesReceived.remove(sequenceNumber);
                 commandLock.remove(sequenceNumber);
                 responsesDelivered.add(sequenceNumber);
+                if (testing) {
+                    ArrayList<ClientResponse> deliveredResponses = null;
+                    if (!responses.containsKey(sequenceNumber)) {
+                        deliveredResponses = new ArrayList<>();
+                    } else {
+                        deliveredResponses = responses.get(sequenceNumber);
+                    }
+
+                    deliveredResponses.add(response);
+                    responses.put(sequenceNumber, deliveredResponses);
+                }
     
                 if (sequenceNumber == lastResponseDelivered) {
                     for (int i = sequenceNumber; i < mySeqNum; i++) {
@@ -502,6 +536,18 @@ public class ClientFrontend implements EventListener {
                 responsesReceived.remove(sequenceNumber);
                 commandLock.remove(sequenceNumber);
                 responsesDelivered.add(sequenceNumber);
+
+                if (testing) {
+                    ArrayList<ClientResponse> deliveredResponses = null;
+                    if (!responses.containsKey(sequenceNumber)) {
+                        deliveredResponses = new ArrayList<>();
+                    } else {
+                        deliveredResponses = responses.get(sequenceNumber);
+                    }
+
+                    deliveredResponses.add(response);
+                    responses.put(sequenceNumber, deliveredResponses);
+                }
     
                 if (sequenceNumber == lastResponseDelivered) {
                     for (int i = sequenceNumber; i < mySeqNum; i++) {

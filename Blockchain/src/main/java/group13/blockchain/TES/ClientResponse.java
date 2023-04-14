@@ -18,6 +18,13 @@ public class ClientResponse implements Serializable {
     private String typeRead = null;
     private Integer view = null;
 
+    public ClientResponse(int sequenceNumber, PublicKey issuer, String commandType, Object response, boolean applied) {
+        this.sequenceNumber = sequenceNumber;
+        this.issuer = issuer;
+        this.commandType = commandType;
+        this.response = response;
+        this.applied = applied;
+    }
     public ClientResponse(BlockchainCommand command, boolean applied) {
         this.sequenceNumber = command.getSequenceNumber();
         this.issuer = command.getPublicKey();
@@ -73,6 +80,33 @@ public class ClientResponse implements Serializable {
 
     public boolean wasApplied() {
         return applied;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+        // If the object is compared with itself then return true
+        if (o == this) {
+            return true;
+        }
+
+        /* Check if o is an instance of ClientResponse or not
+          "null instanceof [type]" also returns false */
+        if (!(o instanceof ClientResponse)) {
+            return false;
+        }
+
+        ClientResponse c = (ClientResponse) o;
+
+        if (this.response == null) {
+            return this.sequenceNumber == c.getSequenceNumber() && this.issuer.equals(c.getIssuer()) &&
+                    this.commandType.equals(c.getCommandType()) && this.response == c.getResponse() &&
+                    this.applied == c.wasApplied();
+        }
+
+        return this.sequenceNumber == c.getSequenceNumber() && this.issuer.equals(c.getIssuer()) &&
+                this.commandType.equals(c.getCommandType()) && this.response.equals(c.getResponse()) &&
+                this.applied == c.wasApplied();
     }
 
     @Override
