@@ -15,6 +15,7 @@ import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ClientFrontendTester extends ClientFrontend {
 
@@ -69,6 +70,20 @@ public class ClientFrontendTester extends ClientFrontend {
         int sequenceNumber = super.checkBalance(readType);
         ClientResponse expectedResponse = new ClientResponse(sequenceNumber, myPubKey, CheckBalanceCommand.constType, readType, balance, applied);
         expectedResponses.put(sequenceNumber, expectedResponse);
+    }
+
+    public void setSequenceNumber(int newSequenceNumber) {
+        mySeqNum = newSequenceNumber;
+    }
+
+    public void addCommandLock(int sequenceNumber) {
+        commandLock.put(sequenceNumber, new ReentrantLock());
+
+    }
+
+    public void fakeCommandSend(int sequenceNumber) {
+        addCommandLock(sequenceNumber);
+        setSequenceNumber(sequenceNumber + 1);
     }
 
     public HashMap<Integer, ClientResponse> getExpectedResponses() {

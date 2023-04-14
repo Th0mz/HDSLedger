@@ -43,7 +43,7 @@ public class ClientFrontend implements EventListener {
 
     private int lastResponseDelivered = 0;
     private HashSet<Integer> responsesDelivered = new HashSet<>();
-    private HashMap<Integer, ReentrantLock> commandLock = new HashMap<>();
+    protected HashMap<Integer, ReentrantLock> commandLock = new HashMap<>();
     private HashMap<Integer, HashMap<String, Set<PublicKey>>> responsesReceived = new HashMap<>();
 
     protected int faulty;
@@ -169,7 +169,6 @@ public class ClientFrontend implements EventListener {
         // commands that weren't sent by the client yet
         seqNumLock.lock();
         if (sequenceNumber >= mySeqNum) {
-            System.out.println (sequenceNumber + "   " + mySeqNum);
             System.err.println("Error : Server is responding to commands that weren't yet sent");
             seqNumLock.unlock();
             return;

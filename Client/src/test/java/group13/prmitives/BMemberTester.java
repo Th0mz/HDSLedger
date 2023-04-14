@@ -122,4 +122,14 @@ public class BMemberTester extends BMember {
         }
             
     }
+
+    public void forceClientResponse(ClientResponse response) {
+        // craft 2f + 2 equal responses and send them to the client
+        ArrayList<ClientResponse> craftedResponses = new ArrayList<>();
+        for (int i = 0; i < 2 * _nrFaulty + 2; i++) {
+            craftedResponses.add(response);
+        }
+
+        frontend.sendResponses(craftedResponses);
+    }
 }

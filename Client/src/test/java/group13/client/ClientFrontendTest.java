@@ -1,6 +1,9 @@
 package group13.client;
 
 import group13.blockchain.TES.ClientResponse;
+import group13.blockchain.commands.CheckBalanceCommand;
+import group13.blockchain.commands.RegisterCommand;
+import group13.blockchain.commands.TransferCommand;
 import group13.primitives.Address;
 import group13.prmitives.AddressCounter;
 import group13.prmitives.BMemberTester;
@@ -303,6 +306,12 @@ class ClientFrontendTest {
         // set p1 to drop commands
         p1_bMember.dropCommands = true;
         c1_frontend.register();
+        c2_frontend.register();
+
+        c1_frontend.checkBalance("s");
+        c2_frontend.checkBalance("s");
+        c1_frontend.checkBalance("w");
+        c2_frontend.checkBalance("w");
 
         try {
             Thread.sleep(11000);
@@ -313,9 +322,39 @@ class ClientFrontendTest {
         assertTrue(p2_bMember.getConsensusObject().leaderFailed);
         assertTrue(p3_bMember.getConsensusObject().leaderFailed);
         assertTrue(p4_bMember.getConsensusObject().leaderFailed);
+    }
 
-        // TODO : Check if the commands delivered are
-        //  the supposed ones in each client
+    /** ----------------------------------------
+     * ---          CLIENT TESTS               ---
+     * ----------------------------------------- */
+    @Test
+    @DisplayName("Byzantine replica tries to force client delivery by sending 2f+1 equal responses")
+    public void ReplicaForcesClientDelivery() {
+
+        // client sends a check balance command with sequence number 0
+        c1_frontend.fakeCommandSend(0);
+
+        // try to deliver fake check balance to the client
+        float fakeBalance = 10000;
+        CheckBalanceCommand balanceCommand = new CheckBalanceCommand(0, c1_keys.getPublic(), 1, true);
+        ClientResponse response = new ClientResponse(balanceCommand, fakeBalance, true);
+        p1_bMember.forceClientResponse(response);
+
+        // wait for responses to be propagated
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("====== CHECK =======");
+        HashMap<Integer, ArrayList<ClientResponse>> deliveredResponses =  c1_frontend.getDeliveredResponses();
+        assertEquals(0, deliveredResponses.size());
+    }
+
+    @Test
+    @DisplayName("Byzantine replica floods client with replies for not yet send responses")
+    public void FloodWithUnwantedReplies() {
 
     }
 }
