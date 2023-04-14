@@ -143,6 +143,7 @@ public class ClientFrontend implements EventListener {
 
         BEBDeliver typed_event = (BEBDeliver) event;
         Object object = typed_event.getPayload();
+        PublicKey sender = typed_event.getProcessPK();
 
         if (!(object instanceof ClientResponse)) {
             System.err.println("Error : Client received a response that was not an instance of ClientResponse");
@@ -177,23 +178,20 @@ public class ClientFrontend implements EventListener {
 
         if(response.getCommandType().equals("CHECK_BALANCE")) {
             if (response.getTypeRead().equals("s")) {
-                processStrongReadResponse(response, sequenceNumber);
+                processStrongReadResponse(response, sequenceNumber, sender);
             } else if (response.getTypeRead().equals("w")) {
-                processWeakReadResponse(response, sequenceNumber);
+                processWeakReadResponse(response, sequenceNumber, sender);
             }
 
         } else  {
-            processNonReadResponse(response, sequenceNumber);
+            processNonReadResponse(response, sequenceNumber, sender);
         }
         
     }
 
-    private void processStrongReadResponse(ClientResponse response, int sequenceNumber) {
+    private void processStrongReadResponse(ClientResponse response, int sequenceNumber, PublicKey sender) {
         ReentrantLock lock = commandLock.get(sequenceNumber);
-        System.out.println("\n========================\n========================\n========================");
-        System.out.println("TENTATIVE RESPONSE @client: " + myPubKey.hashCode());
-        System.out.println(response);
-        System.out.println("\n========================\n========================\n========================");
+        
         if (lock != null) {
 
             lock.lock();
@@ -216,9 +214,19 @@ public class ClientFrontend implements EventListener {
             }
 
             // update number of times that this response was seen
-            publicKeys.add(response.getIssuer());
+            publicKeys.add(sender);
             received.put(hash, publicKeys);
             int counter = publicKeys.size();
+
+            System.out.println("\n========================\n========================\n========================");
+            System.out.println("TENTATIVE RESPONSE @client: " + myPubKey.hashCode());
+            System.out.println(response);
+            System.out.println("COUNTER " + counter);
+            //System.out.println(response.getIssuer());
+            //System.out.println(myPubKey);
+
+
+            System.out.println("\n========================\n========================\n========================");
 
             int sum = 0;
             int max = 0;
@@ -304,7 +312,7 @@ public class ClientFrontend implements EventListener {
         }
     }
     
-    private void processWeakReadResponse(ClientResponse response, int sequenceNumber) {
+    private void processWeakReadResponse(ClientResponse response, int sequenceNumber, PublicKey sender) {
         ReentrantLock lock = commandLock.get(sequenceNumber);
         //System.out.println("HERE " + response.getIssuer().toString());
         if (lock != null) {
@@ -335,7 +343,7 @@ public class ClientFrontend implements EventListener {
             }
 
             // update number of times that this response was seen
-            publicKeys.add(response.getIssuer());
+            publicKeys.add(sender);
             received.put(id, publicKeys);
             int responseCounter = publicKeys.size();
 
@@ -459,7 +467,7 @@ public class ClientFrontend implements EventListener {
     }
 
 
-    private void processNonReadResponse(ClientResponse response, int sequenceNumber) {
+    private void processNonReadResponse(ClientResponse response, int sequenceNumber, PublicKey sender) {
         ReentrantLock lock = commandLock.get(sequenceNumber);
         lock.lock();
 
@@ -480,7 +488,7 @@ public class ClientFrontend implements EventListener {
         }
 
         // update number of times that this response was seen
-        publicKeys.add(response.getIssuer());
+        publicKeys.add(sender);
         received.put(hash, publicKeys);
         int counter = publicKeys.size();
 
