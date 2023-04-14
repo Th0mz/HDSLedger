@@ -363,8 +363,8 @@ class ClientFrontendTest {
         System.out.println("===============================");
         System.out.println("Test : Detect repeated commands");
 
-        base += 50;
-        clientBase += 50;
+        base += 444;
+        clientBase += 444;
         p1_addr = new Address(base+4);
         p2_addr = new Address(base+5);
         p3_addr = new Address(base+6);

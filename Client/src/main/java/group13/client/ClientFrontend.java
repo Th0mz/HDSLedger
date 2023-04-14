@@ -469,51 +469,54 @@ public class ClientFrontend implements EventListener {
 
     private void processNonReadResponse(ClientResponse response, int sequenceNumber, PublicKey sender) {
         ReentrantLock lock = commandLock.get(sequenceNumber);
-        lock.lock();
+        if(lock != null){
 
-        HashMap<String, Set<PublicKey>> received = null;
-        if (!responsesReceived.containsKey(sequenceNumber)) {
-            received = new HashMap<>();
-            this.responsesReceived.put(sequenceNumber, received);
-        } else {
-            received = responsesReceived.get(sequenceNumber);
-        }
-
-        String hash = hashResponse(response);
-        Set<PublicKey> publicKeys = null;
-        if (!received.containsKey(hash)) {
-            publicKeys = new HashSet<>();
-        } else {
-            publicKeys = received.get(hash);
-        }
-
-        // update number of times that this response was seen
-        publicKeys.add(sender);
-        received.put(hash, publicKeys);
-        int counter = publicKeys.size();
-
-        // check if a majority of equal responses was reached
-        if (counter >= 2 * faulty + 1) {
-            // deliver response to the client
-            System.out.println(response);
-
-            responsesReceived.remove(sequenceNumber);
-            commandLock.remove(sequenceNumber);
-            responsesDelivered.add(sequenceNumber);
-
-            if (sequenceNumber == lastResponseDelivered) {
-                for (int i = sequenceNumber; i < mySeqNum; i++) {
-                    if (!responsesDelivered.contains(sequenceNumber)) {
-                        break;
+            lock.lock();
+    
+            HashMap<String, Set<PublicKey>> received = null;
+            if (!responsesReceived.containsKey(sequenceNumber)) {
+                received = new HashMap<>();
+                this.responsesReceived.put(sequenceNumber, received);
+            } else {
+                received = responsesReceived.get(sequenceNumber);
+            }
+    
+            String hash = hashResponse(response);
+            Set<PublicKey> publicKeys = null;
+            if (!received.containsKey(hash)) {
+                publicKeys = new HashSet<>();
+            } else {
+                publicKeys = received.get(hash);
+            }
+    
+            // update number of times that this response was seen
+            publicKeys.add(sender);
+            received.put(hash, publicKeys);
+            int counter = publicKeys.size();
+    
+            // check if a majority of equal responses was reached
+            if (counter >= 2 * faulty + 1) {
+                // deliver response to the client
+                System.out.println(response);
+    
+                responsesReceived.remove(sequenceNumber);
+                commandLock.remove(sequenceNumber);
+                responsesDelivered.add(sequenceNumber);
+    
+                if (sequenceNumber == lastResponseDelivered) {
+                    for (int i = sequenceNumber; i < mySeqNum; i++) {
+                        if (!responsesDelivered.contains(sequenceNumber)) {
+                            break;
+                        }
+    
+                        responsesDelivered.remove(sequenceNumber);
+                        lastResponseDelivered = lastResponseDelivered + 1;
                     }
-
-                    responsesDelivered.remove(sequenceNumber);
-                    lastResponseDelivered = lastResponseDelivered + 1;
                 }
             }
+    
+            lock.unlock();
         }
-
-        lock.unlock();
     }
 
 
