@@ -236,13 +236,7 @@ public class IBFT implements EventListener{
                 blockId = new String(Base64.getEncoder().encode(sha256.digest(baos.toByteArray())));
             }
 
-            System.out.println("--------- PRE-PREPARE ----------");
-            System.out.println("block :" + block);
-            System.out.println("hash :" + blockId);
-            System.out.println("--------------------------------");
-
             int instance = block.getInstance();
-
             //1ST: CHECK THAT THE COMMANDS INDEED CAME FROM THE CLIENT
             //2ND: CHECK THAT THE LEADER DIDNT SEND REPEATED COMMANDS
             //3RD: CHECK THAT THE LEADER DIDNT SEND REPEATED COMMANDS WITHIN BLOCK

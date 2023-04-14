@@ -117,55 +117,6 @@ class ClientFrontendTest {
     }
 
 
-    @Test
-    @DisplayName("Check handshake messages")
-    public void CheckHandshakeMessagesTest () {
-        System.out.println("===============================");
-        System.out.println("Test : Check handshake messages");
-
-        c1_frontend.registerLogger(true);
-        c1_frontend.registerLogger(false);
-        c2_frontend.registerLogger(true);
-        c3_frontend.registerLogger(true);
-        // wait for registers to reach the replicas
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
-        c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
-        c2_frontend.transferLogger(c3_keys.getPublic(), 40, true);
-
-        // wait for all commands to be propagated
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        c1_frontend.checkBalanceLogger("s", 75, true);
-        c2_frontend.checkBalanceLogger("s", 60, true);
-        c3_frontend.checkBalanceLogger("s", 150, true);
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        System.out.println("====== CHECK =======");
-        // check if responses were delivered only once
-        assertTrue(receivedAllExpected(c1_frontend));
-        assertTrue(receivedAllExpected(c2_frontend));
-        assertTrue(receivedAllExpected(c3_frontend));
-
-        // TODO : Check if the commands delivered are
-        //  the supposed ones in each client
-    }
-
-
     public boolean receivedAllExpected(ClientFrontendTester clientFrontend) {
         HashMap<Integer, ArrayList<ClientResponse>> responses = clientFrontend.getDeliveredResponses();
         HashMap<Integer, ClientResponse> expectedResponses = clientFrontend.getExpectedResponses();
@@ -210,53 +161,48 @@ class ClientFrontendTest {
      * ----------------------------------------- */
 
     @Test
-    @DisplayName("Check Strong Read")
+    @DisplayName("Check Strong read")
     public void CheckStrongReadTest () {
         System.out.println("===============================");
         System.out.println("Test : Check Strong read");
 
-        c1_frontend.register();
-        c2_frontend.register();
-        c3_frontend.register();
+        c1_frontend.registerLogger(true);
+        c1_frontend.registerLogger(false);
+        c2_frontend.registerLogger(true);
+        c3_frontend.registerLogger(true);
         // wait for registers to reach the replicas
         try {
-            Thread.sleep(2000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        System.out.println("\n===\n REGISTER PHASE DONE \n===\n");
-        c1_frontend.transfer(c2_keys.getPublic(), 5);
-        c1_frontend.transfer(c3_keys.getPublic(), 10);
-        c2_frontend.transfer(c3_keys.getPublic(), 40);
+        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
+        c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
+        c2_frontend.transferLogger(c3_keys.getPublic(), 40, true);
 
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
+        c1_frontend.checkBalanceLogger("s", 75, true);
+        c2_frontend.checkBalanceLogger("s", 60, true);
+        c3_frontend.checkBalanceLogger("s", 150, true);
 
         try {
-            Thread.sleep(2000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        System.out.println("\n===\n TRANSFER PHASE DONE \n===\n");
-        c1_frontend.checkBalance("s");
-        c1_frontend.checkBalance("s");
-        c2_frontend.checkBalance("s");
-        c3_frontend.checkBalance("s");
-
-        try {
-            Thread.sleep(4000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        assertEquals(true, c1_frontend.getReadSuccessful());
-        assertEquals(75, c1_frontend.getReadResult());
-        assertEquals(true, c2_frontend.getReadSuccessful());
-        assertEquals(60, c2_frontend.getReadResult());
-        assertEquals(true, c3_frontend.getReadSuccessful());
-        assertEquals(150, c3_frontend.getReadResult());
-
+        System.out.println("====== CHECK =======");
+        // check if responses were delivered only once
+        assertTrue(receivedAllExpected(c1_frontend));
+        assertTrue(receivedAllExpected(c2_frontend));
+        assertTrue(receivedAllExpected(c3_frontend));
     }
 
 
@@ -294,8 +240,6 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
-        // TODO : Check if the commands delivered are
-        //  the supposed ones in each client
     }
 
 
@@ -308,9 +252,9 @@ class ClientFrontendTest {
         // set p1 to repeat commands
         p1_bMember.sendRepeatedCommands = true;
 
-        c1_frontend.register();
-        c2_frontend.register();
-        c3_frontend.register();
+        c1_frontend.registerLogger(true);
+        c2_frontend.registerLogger(true);
+        c3_frontend.registerLogger(true);
         // wait for registers to reach the replicas
         try {
             Thread.sleep(1000);
@@ -318,21 +262,34 @@ class ClientFrontendTest {
             throw new RuntimeException(e);
         }
 
-        c1_frontend.transfer(c2_keys.getPublic(), 5);
-        c1_frontend.transfer(c3_keys.getPublic(), 10);
-        c2_frontend.transfer(c3_keys.getPublic(), 40);
-        c3_frontend.checkBalance("s");
-
+        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
+        c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
+        c2_frontend.transferLogger(c3_keys.getPublic(), 40, true);
 
         // wait for all commands to be propagated
         try {
-            Thread.sleep(2000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        // TODO : Check if the commands delivered are
-        //  the supposed ones in each client
+        c1_frontend.checkBalanceLogger("s", 75, true);
+        c2_frontend.checkBalanceLogger("s", 60, true);
+        c3_frontend.checkBalanceLogger("s", 150, true);
+
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        System.out.println("====== CHECK =======");
+        // check if responses were delivered only once
+        assertTrue(receivedAllExpected(c1_frontend));
+        assertTrue(receivedAllExpected(c2_frontend));
+        assertTrue(receivedAllExpected(c3_frontend));
 
     }
 
