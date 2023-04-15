@@ -67,6 +67,8 @@ public class BMemberTester extends BMember {
 
     public float getClientBalance(PublicKey pKey) { return tesState.getAccounts().get(pKey).getBalance();}
 
+    public int getNumberClients() { return tesState.getAccounts().size();}
+
     @Override
     public void processCommand(Object command) {
 
