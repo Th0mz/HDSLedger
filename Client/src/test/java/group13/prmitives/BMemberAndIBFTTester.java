@@ -23,11 +23,14 @@ import java.security.SignedObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BMemberTester extends BMember {
+public class BMemberAndIBFTTester extends BMemberTester {
 
     public boolean alterClientRequest = false;
     public boolean sendRepeatedCommands = false;
     public boolean dropCommands = false;
+
+    public void setByzantineRepeatedCommands() {((IBFTByzantine)_consensus).setByzantineRepeatedCommands();}
+    public void setByzantineSuppressCommands() {((IBFTByzantine)_consensus).setByzantineSuppressCommands();}
 
     public void createBMemberTester(ArrayList<Address> serverList, List<PublicKey> serverPKs, Integer nrFaulty, Integer nrServers,
                               Address interfaceAddress, Address myInfo, KeyPair myKeys, Address leaderAddress) {
@@ -59,13 +62,9 @@ public class BMemberTester extends BMember {
         }
         snapshot = new Snapshot(myPubKey, myPrivKey, _nrFaulty);
 
-        _consensus = new IBFT(_nrServers, _nrFaulty, myPubKey, myPrivKey, leaderPK, beb, this);
+        _consensus = new IBFTByzantine(_nrServers, _nrFaulty, myPubKey, myPrivKey, leaderPK, beb, this);
         frontend = new BMemberInterfaceTester(myPubKey, myPrivKey, interfaceAddress, this);
     }
-
-    public int getLedgerSize(){return _ledger.size();}
-
-    public float getClientBalance(PublicKey pKey) { return tesState.getAccounts().get(pKey).getBalance();}
 
     @Override
     public void processCommand(Object command) {

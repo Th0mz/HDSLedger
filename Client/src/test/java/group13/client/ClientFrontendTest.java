@@ -6,6 +6,7 @@ import group13.blockchain.commands.RegisterCommand;
 import group13.blockchain.commands.TransferCommand;
 import group13.primitives.Address;
 import group13.prmitives.AddressCounter;
+import group13.prmitives.BMemberAndIBFTTester;
 import group13.prmitives.BMemberTester;
 import group13.prmitives.ClientFrontendTester;
 import org.junit.jupiter.api.*;
@@ -186,7 +187,7 @@ class ClientFrontendTest {
 
         // wait for all commands to be propagated
         try {
-            Thread.sleep(1000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -196,7 +197,7 @@ class ClientFrontendTest {
         c3_frontend.checkBalanceLogger("s", 150, true);
 
         try {
-            Thread.sleep(1000);
+            Thread.sleep(4500);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -242,6 +243,10 @@ class ClientFrontendTest {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+        assertTrue(p2_bMember.getConsensusObject().leaderFailed);
+        assertTrue(p3_bMember.getConsensusObject().leaderFailed);
+        assertTrue(p4_bMember.getConsensusObject().leaderFailed);
 
     }
 
@@ -323,6 +328,171 @@ class ClientFrontendTest {
         assertTrue(p3_bMember.getConsensusObject().leaderFailed);
         assertTrue(p4_bMember.getConsensusObject().leaderFailed);
     }
+
+
+    /** ----------------------------------------
+     * ---         BYZANTINE REPLICAS        ---
+     * ----------------------------------------- */
+
+    @Test
+    @DisplayName("Test when replica sends repeated commands")
+    public void EndureRepeatedCommands () {
+        System.out.println("===============================");
+        System.out.println("Test : Test when replica sends repeated commands");
+
+        addressCounter.generateNewAddresses(10);
+        // set p1 to drop commands
+        int base = addressCounter.getReplicaAddress();
+        p1_addr = new Address(base+4);
+        p2_addr = new Address(base+5);
+        p3_addr = new Address(base+6);
+        p4_addr = new Address(base+7);
+
+        p1I_addr = new Address(base);
+        p2I_addr = new Address(base+1);
+        p3I_addr = new Address(base+2);
+        p4I_addr = new Address(base+3);
+
+        int clientBase = addressCounter.getClientAddress();
+        c1_addr = new Address(clientBase);
+        c2_addr = new Address(clientBase+1);
+        c3_addr = new Address(clientBase+2);
+
+        addressCounter.generateNewAddresses(10);
+
+        List<Address> addresses = List.of(p1_addr, p2_addr, p3_addr, p4_addr);
+        List<PublicKey> serverPKs = List.of(
+                p1_keys.getPublic(), p2_keys.getPublic(), p3_keys.getPublic(), p4_keys.getPublic()
+        );
+
+        ArrayList<Address> serverList = new ArrayList<>(addresses);
+        p1_bMember = new BMemberAndIBFTTester(); p1_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p1I_addr, p1_addr, p1_keys, p1_addr);
+        p2_bMember = new BMemberTester(); p2_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p2I_addr, p2_addr, p2_keys, p1_addr);
+        p3_bMember = new BMemberTester(); p3_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p3I_addr, p3_addr, p3_keys, p1_addr);
+        p4_bMember = new BMemberTester(); p4_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p4I_addr, p4_addr, p4_keys, p1_addr);
+        ((BMemberAndIBFTTester)p1_bMember).setByzantineRepeatedCommands();
+        try {
+            Thread.sleep(400);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        List<Address> interfaceAddresses = List.of(p1I_addr, p2I_addr, p3I_addr, p4I_addr);
+        c1_frontend = new ClientFrontendTester(c1_addr, interfaceAddresses, serverPKs, c1_keys, 1, false);
+        c1_frontend.setKeys();
+        c2_frontend = new ClientFrontendTester(c2_addr, interfaceAddresses, serverPKs, c2_keys, 1, false);
+        c2_frontend.setKeys();
+        c3_frontend = new ClientFrontendTester(c3_addr, interfaceAddresses, serverPKs, c3_keys, 1, false);
+        c3_frontend.setKeys();
+        
+        c1_frontend.register();
+        c2_frontend.register();
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        c1_frontend.transfer(c2_keys.getPublic(), 10);
+
+        c1_frontend.checkBalance("s");
+        c2_frontend.checkBalance("s");
+        c1_frontend.checkBalance("w");
+        c2_frontend.checkBalance("w");
+
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        assertEquals(110, p2_bMember.getClientBalance(c2_keys.getPublic()));
+        assertEquals(85, p2_bMember.getClientBalance(c1_keys.getPublic()));
+        //assertEquals(2, p3_bMember.getLedgerSize());
+        //assertEquals(2, p4_bMember.getLedgerSize());
+    }
+
+
+    @Test
+    @DisplayName("Test when replica supresses commands")
+    public void EndureSuppressedCommands () {
+        System.out.println("===============================");
+        System.out.println("Test : Test when replica supresses commands");
+
+        addressCounter.generateNewAddresses(10);
+        // set p1 to drop commands
+        int base = addressCounter.getReplicaAddress();
+        p1_addr = new Address(base+4);
+        p2_addr = new Address(base+5);
+        p3_addr = new Address(base+6);
+        p4_addr = new Address(base+7);
+
+        p1I_addr = new Address(base);
+        p2I_addr = new Address(base+1);
+        p3I_addr = new Address(base+2);
+        p4I_addr = new Address(base+3);
+
+        int clientBase = addressCounter.getClientAddress();
+        c1_addr = new Address(clientBase);
+        c2_addr = new Address(clientBase+1);
+        c3_addr = new Address(clientBase+2);
+
+        addressCounter.generateNewAddresses(10);
+
+        List<Address> addresses = List.of(p1_addr, p2_addr, p3_addr, p4_addr);
+        List<PublicKey> serverPKs = List.of(
+                p1_keys.getPublic(), p2_keys.getPublic(), p3_keys.getPublic(), p4_keys.getPublic()
+        );
+
+        ArrayList<Address> serverList = new ArrayList<>(addresses);
+        p1_bMember = new BMemberAndIBFTTester(); p1_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p1I_addr, p1_addr, p1_keys, p1_addr);
+        p2_bMember = new BMemberTester(); p2_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p2I_addr, p2_addr, p2_keys, p1_addr);
+        p3_bMember = new BMemberTester(); p3_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p3I_addr, p3_addr, p3_keys, p1_addr);
+        p4_bMember = new BMemberTester(); p4_bMember.createBMemberTester(serverList, serverPKs, 1, 4, p4I_addr, p4_addr, p4_keys, p1_addr);
+        ((BMemberAndIBFTTester)p1_bMember).setByzantineSuppressCommands();
+        try {
+            Thread.sleep(400);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        List<Address> interfaceAddresses = List.of(p1I_addr, p2I_addr, p3I_addr, p4I_addr);
+        c1_frontend = new ClientFrontendTester(c1_addr, interfaceAddresses, serverPKs, c1_keys, 1, false);
+        c1_frontend.setKeys();
+        c2_frontend = new ClientFrontendTester(c2_addr, interfaceAddresses, serverPKs, c2_keys, 1, false);
+        c2_frontend.setKeys();
+        c3_frontend = new ClientFrontendTester(c3_addr, interfaceAddresses, serverPKs, c3_keys, 1, false);
+        c3_frontend.setKeys();
+        
+        c1_frontend.register();
+        c2_frontend.register();
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        c1_frontend.transfer(c2_keys.getPublic(), 10);
+
+        c1_frontend.checkBalance("s");
+        c2_frontend.checkBalance("s");
+        c1_frontend.checkBalance("w");
+        c2_frontend.checkBalance("w");
+
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        assertEquals(110, p2_bMember.getClientBalance(c2_keys.getPublic()));
+        assertEquals(85, p2_bMember.getClientBalance(c1_keys.getPublic()));
+        //assertEquals(2, p3_bMember.getLedgerSize());
+        //assertEquals(2, p4_bMember.getLedgerSize());
+    }
+    
+
+
+
+
 
     /** ----------------------------------------
      * ---          CLIENT TESTS               ---

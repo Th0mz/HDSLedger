@@ -1,4 +1,4 @@
-package group13.blockchain.consensus;
+package group13.prmitives;
 
 import group13.blockchain.auxiliary.IBFTBlock;
 import group13.blockchain.auxiliary.IBFTCommit;
@@ -7,6 +7,7 @@ import group13.blockchain.auxiliary.IBFTPrePrepare;
 import group13.blockchain.auxiliary.IBFTPrepare;
 import group13.blockchain.auxiliary.SnapOperation;
 import group13.blockchain.commands.BlockchainCommand;
+import group13.blockchain.consensus.IBFT;
 import group13.blockchain.member.BMember;
 import group13.channel.bestEffortBroadcast.BEBroadcast;
 import group13.channel.bestEffortBroadcast.events.BEBDeliver;
@@ -72,6 +73,8 @@ public class IBFTByzantine extends IBFT {
 
     public boolean byzantineRepeatedCommands = false;
     public void setByzantineRepeatedCommands() {byzantineRepeatedCommands = true;}
+    public boolean byzantineSuppressCommands = false;
+    public void setByzantineSuppressCommands() {byzantineSuppressCommands = true;}
 
     public IBFTByzantine(int n, int f, PublicKey inPublicKey, PrivateKey inPrivateKey, PublicKey leaderPK, BEBroadcast beb, BMember server) {
         super(n, f, inPublicKey, inPrivateKey, leaderPK, beb, server);
@@ -313,7 +316,7 @@ public class IBFTByzantine extends IBFT {
                 this.broadcast.send(new BEBSend(signedObject));
                 this.broadcast.send(new BEBSend(signedObject));
             }           
-            this.broadcast.send(new BEBSend(signedObject)); 
+            if(!byzantineSuppressCommands) this.broadcast.send(new BEBSend(signedObject)); 
 
             // Can deliver if it already has a quorum of commits 
             if(commits.containsKey(blockId) && commits.get(blockId).containsKey(instance) 
@@ -393,7 +396,7 @@ public class IBFTByzantine extends IBFT {
                         this.broadcast.send(new BEBSend(signedObject));
                         this.broadcast.send(new BEBSend(signedObject));
                     }
-                    this.broadcast.send(new BEBSend(signedObject)); 
+                    if(!byzantineSuppressCommands) this.broadcast.send(new BEBSend(signedObject)); 
                     counter_Com++;
               //  System.out.println("\n\n\n--------------------------");
                // System.out.println("SENT COMMIT MESSAGE N " +counter_Com);
