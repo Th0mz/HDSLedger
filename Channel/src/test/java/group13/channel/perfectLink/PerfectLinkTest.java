@@ -513,4 +513,19 @@ class PerfectLinkTest {
 
         return timeout;
     }
+
+    /** ----------------------------------------
+     * ---         BYZANTINE BEHAVIOUR        ---
+     * ----------------------------------------- */
+    @Test
+    @DisplayName("Sender tries to replay not fresh message")
+    public void NotFreshMessageTest() {
+
+    }
+
+    @Test
+    @DisplayName("Sender tries to send wrongfully signed message")
+    public void WrongfullySignedMessage() {
+
+    }
 }

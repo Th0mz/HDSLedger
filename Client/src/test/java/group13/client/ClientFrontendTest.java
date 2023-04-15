@@ -601,10 +601,4 @@ class ClientFrontendTest {
         HashMap<Integer, ArrayList<ClientResponse>> deliveredResponses =  c1_frontend.getDeliveredResponses();
         assertEquals(0, deliveredResponses.size());
     }
-
-    @Test
-    @DisplayName("Byzantine replica floods client with replies for not yet send responses")
-    public void FloodWithUnwantedReplies() {
-
-    }
 }
