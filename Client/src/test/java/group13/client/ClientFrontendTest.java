@@ -163,7 +163,7 @@ class ClientFrontendTest {
     /** ----------------------------------------
      * ---          READ TESTS               ---
      * ----------------------------------------- */
-
+ 
     @Test
     @DisplayName("Check Strong read")
     public void CheckStrongReadTest () {
@@ -209,11 +209,346 @@ class ClientFrontendTest {
         assertTrue(receivedAllExpected(c3_frontend));
     }
 
+    @Test
+    @DisplayName("Check Strong read Retry after no quorum")
+    public void CheckStrongReadRetryTest () {
+        System.out.println("===============================");
+        System.out.println("Test : Check Strong read Retry after no quorum");
+        
+        //setting flag for fake random reads to be sent
+        p1_bMember.setRead(true);
+        p2_bMember.setRead(true);
+
+        c1_frontend.registerLogger(true);
+        c1_frontend.registerLogger(false);
+        c2_frontend.registerLogger(true);
+        c3_frontend.registerLogger(true);
+        // wait for registers to reach the replicas
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
+        c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
+        
+
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }   
+
+        
+
+        c1_frontend.checkBalance("s");
+        c2_frontend.checkBalance("s");
+        c3_frontend.checkBalance("s");
+
+        
+        
+        try {
+            Thread.sleep(2500);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        
+        boolean read_r1 = c1_frontend.retryStrongRead();
+        boolean read_r2 = c2_frontend.retryStrongRead();
+        boolean read_r3 = c3_frontend.retryStrongRead();
+
+        String reason_1 = c1_frontend.getReasonFailed();
+        String reason_2 = c2_frontend.getReasonFailed();
+        String reason_3 = c3_frontend.getReasonFailed();
+
+        //allow for real reads to be sent again
+        p1_bMember.setRead(false);
+        p2_bMember.setRead(false);
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        
+        System.out.println("====== CHECK =======");
+        assertEquals("NO_QUORUM", reason_1);
+        assertEquals("NO_QUORUM", reason_2);
+        assertEquals("NO_QUORUM", reason_3);
+        assertEquals(true, read_r1);
+        assertEquals(true, read_r1 == read_r2 == read_r3);
+        assertEquals(75, c1_frontend.getReadResult());
+        assertEquals(105, c2_frontend.getReadResult());
+        assertEquals(110, c3_frontend.getReadResult());
+        
+    }
+    
+
+    @Test
+    @DisplayName("Check Strong read waits for blocks in consenus")
+    public void CheckStrongReadAwaitsTest () {
+        System.out.println("===============================");
+        System.out.println("Test : Check Strong read waits for blocks in consenus");
+        
+        //setting flag for fake read function to work
+        p1_bMember.setRead(true);
+        p2_bMember.setRead(true);
+        p3_bMember.setRead(true);
+        p4_bMember.setRead(true);
+
+        c1_frontend.registerLogger(true);
+        c1_frontend.registerLogger(false);
+        c2_frontend.registerLogger(true);
+
+        // wait for registers to reach the replicas
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
+        
+        
+
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }   
+
+        //Artificially decrease last applied to simulate block in consensus when read received
+        p1_bMember.decreaseLastApplied();
+        p2_bMember.decreaseLastApplied();
+        p3_bMember.decreaseLastApplied();
+        p4_bMember.decreaseLastApplied();
+        
+
+        c1_frontend.checkBalance("s");
+        c2_frontend.checkBalance("s");
+        
+        //time for reads to be processed (put on wait)
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        //trigger the reads that were awaiting 
+        p1_bMember.deliver(p1_bMember.getLastApplied() + 1);
+        p2_bMember.deliver(p2_bMember.getLastApplied() + 1);
+        p3_bMember.deliver(p3_bMember.getLastApplied() + 1);
+        p4_bMember.deliver(p4_bMember.getLastApplied() + 1);
+
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        
+        
+        System.out.println("====== CHECK =======");
+        assertEquals(true, c1_frontend.getReadSuccessful());
+        assertEquals(true, c2_frontend.getReadSuccessful());
+        assertEquals(null, c1_frontend.getReasonFailed());
+        assertEquals(null, c2_frontend.getReasonFailed());
+        assertEquals(90, c1_frontend.getReadResult());
+        assertEquals(105, c2_frontend.getReadResult());
+      
+        
+    }
+
+
+    @Test
+    @DisplayName("Check Weak read")
+    public void CheckWeakReadTest () {
+        System.out.println("===============================");
+        System.out.println("Test : Check Weak read");
+
+        c1_frontend.registerLogger(true);
+        c1_frontend.registerLogger(false);
+        c2_frontend.registerLogger(true);
+        c3_frontend.registerLogger(true);
+        // wait for registers to reach the replicas
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
+        c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
+        c2_frontend.transferLogger(c3_keys.getPublic(), 40, true);
+
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.checkBalance("w");
+        c2_frontend.checkBalance("w");
+        c3_frontend.checkBalance("w");
+
+        try {
+            Thread.sleep(3500);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("====== CHECK =======");
+        assertEquals(null, c1_frontend.getReasonFailed());
+        assertEquals(null, c2_frontend.getReasonFailed());
+        assertEquals(null, c3_frontend.getReasonFailed());
+
+        assertEquals(75, c1_frontend.getReadResult());
+        assertEquals(60, c2_frontend.getReadResult());
+        assertEquals(150, c3_frontend.getReadResult());
+    }
+
+
+    @Test
+    @DisplayName("Check Weak read - Only 1 Node Responds")
+    public void CheckWeakReadOneNodeTest () {
+        System.out.println("===============================");
+        System.out.println("Test : Check Weak read - Only 1 Node Responds");
+
+        //setting flag for fake read function to work
+        p1_bMember.setRead(true);
+        p2_bMember.setRead(true);
+        p3_bMember.setRead(true);
+        p4_bMember.setRead(true);
+
+        c1_frontend.registerLogger(true);
+        c1_frontend.registerLogger(false);
+        c2_frontend.registerLogger(true);
+        c3_frontend.registerLogger(true);
+        // wait for registers to reach the replicas
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
+        c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
+        c2_frontend.transferLogger(c3_keys.getPublic(), 40, true);
+
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        p1_bMember.respondWeakRead(false);
+        p2_bMember.respondWeakRead(false);
+        p4_bMember.respondWeakRead(false);
+
+        c1_frontend.checkBalance("w");
+        c2_frontend.checkBalance("w");
+        c3_frontend.checkBalance("w");
+
+        try {
+            Thread.sleep(3500);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("====== CHECK =======");
+        assertEquals(null, c1_frontend.getReasonFailed());
+        assertEquals(null, c2_frontend.getReasonFailed());
+        assertEquals(null, c3_frontend.getReasonFailed());
+        assertEquals(1, c1_frontend.getNrResponsesWeakRead());
+        assertEquals(1, c2_frontend.getNrResponsesWeakRead());
+        assertEquals(1, c3_frontend.getNrResponsesWeakRead());
+        assertEquals(75, c1_frontend.getReadResult());
+        assertEquals(60, c2_frontend.getReadResult());
+        assertEquals(150, c3_frontend.getReadResult());
+    } 
+
+    @Test
+    @DisplayName("Check Weak read 1 node - False Signatures ")
+    public void CheckWeakReadOneNodeFalseSignaturesTest () {
+        System.out.println("===============================");
+        System.out.println("Test : Check Weak read 1 node - False Signatures ");
+
+        //setting flag for fake read function to work
+        p1_bMember.setRead(true);
+        p2_bMember.setRead(true);
+        p3_bMember.setRead(true);
+        p4_bMember.setRead(true);
+
+        c1_frontend.registerLogger(true);
+        c1_frontend.registerLogger(false);
+        c2_frontend.registerLogger(true);
+        c3_frontend.registerLogger(true);
+        // wait for registers to reach the replicas
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        c1_frontend.transferLogger(c2_keys.getPublic(), 5, true);
+        c1_frontend.transferLogger(c3_keys.getPublic(), 10, true);
+        c2_frontend.transferLogger(c3_keys.getPublic(), 40, true);
+
+        // wait for all commands to be propagated
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Only 1 node will respond but with fake signatures so no valid read
+        p1_bMember.respondWeakRead(false);
+        p2_bMember.respondWeakRead(false);
+        p4_bMember.respondWeakRead(false);
+
+        p3_bMember.falsify_signatures(true);
+
+        c1_frontend.checkBalance("w");
+        c2_frontend.checkBalance("w");
+        c3_frontend.checkBalance("w");
+
+        try {
+            Thread.sleep(3500);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("====== CHECK =======");
+        
+
+        //will receive 1 response but invalid
+        assertEquals(1, c1_frontend.getNrResponsesWeakRead());
+        assertEquals(1, c2_frontend.getNrResponsesWeakRead());
+        assertEquals(1, c3_frontend.getNrResponsesWeakRead());
+
+        assertEquals(false, c1_frontend.getReadSuccessful());
+        assertEquals(false, c2_frontend.getReadSuccessful());
+        assertEquals(false, c3_frontend.getReadSuccessful());
+
+        assertEquals("FAILED_SIGNATURES", c1_frontend.getReasonFailed());
+        assertEquals("FAILED_SIGNATURES", c2_frontend.getReasonFailed());
+        assertEquals("FAILED_SIGNATURES", c3_frontend.getReasonFailed());
+
+        // -100 means invalid read
+        assertEquals(-100, c1_frontend.getReadResult());
+        assertEquals(-100, c2_frontend.getReadResult());
+        assertEquals(-100, c3_frontend.getReadResult());
+    } 
+
 
     /** ----------------------------------------
      * --- DETECT BYZANTINE LEADER BEHAVIOR  ---
        ----------------------------------------- */
 
+       
     @Test
     @DisplayName("Detect commands not signed by client")
     public void CheckClientSignature () {
@@ -328,12 +663,13 @@ class ClientFrontendTest {
         assertTrue(p3_bMember.getConsensusObject().leaderFailed);
         assertTrue(p4_bMember.getConsensusObject().leaderFailed);
     }
-
+    
 
     /** ----------------------------------------
      * ---         BYZANTINE REPLICAS        ---
      * ----------------------------------------- */
 
+     
     @Test
     @DisplayName("Test when replica sends repeated commands")
     public void EndureRepeatedCommands () {
@@ -577,6 +913,7 @@ class ClientFrontendTest {
     /** ----------------------------------------
      * ---          CLIENT TESTS               ---
      * ----------------------------------------- */
+    
     @Test
     @DisplayName("Byzantine replica tries to force client delivery by sending 2f+1 equal responses")
     public void ReplicaForcesClientDelivery() {
@@ -602,9 +939,5 @@ class ClientFrontendTest {
         assertEquals(0, deliveredResponses.size());
     }
 
-    @Test
-    @DisplayName("Byzantine replica floods client with replies for not yet send responses")
-    public void FloodWithUnwantedReplies() {
-
-    }
+    
 }

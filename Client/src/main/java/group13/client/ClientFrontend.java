@@ -39,6 +39,7 @@ public class ClientFrontend implements EventListener {
     protected float readResult = -100;
     protected boolean readSuccesful = false;
     protected String reasonReadFailed = null;
+    protected int responsesWeakRead = 0;
     //*======================= */
 
     private int lastResponseDelivered = 0;
@@ -368,6 +369,7 @@ public class ClientFrontend implements EventListener {
             publicKeys.add(sender);
             received.put(id, publicKeys);
             int responseCounter = publicKeys.size();
+            responsesWeakRead = responseCounter;
 
             //int sum = received.values().stream().reduce(0, (a,b) -> a + b);
             //System.out.println(response);
@@ -499,6 +501,9 @@ public class ClientFrontend implements EventListener {
         }
     }
 
+    public int getNrResponsesWeakRead(){
+        return responsesWeakRead;
+    }
 
     private void processNonReadResponse(ClientResponse response, int sequenceNumber, PublicKey sender) {
         ReentrantLock lock = commandLock.get(sequenceNumber);

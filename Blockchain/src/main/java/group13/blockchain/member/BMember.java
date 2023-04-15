@@ -57,7 +57,7 @@ public class BMember {
     protected int _snapShotInstance = -1;
     protected Snapshot snapshot;
 
-    private HashMap<Integer, ArrayList<CheckBalanceCommand>> tentativeReads = new HashMap<>();
+    protected HashMap<Integer, ArrayList<CheckBalanceCommand>> tentativeReads = new HashMap<>();
 
     protected ReentrantLock snapLock = new ReentrantLock();
 
@@ -341,7 +341,7 @@ public class BMember {
         ledgerLock.unlock();
     }
 
-    private void sendWaitingReads(List<CheckBalanceCommand> reads) {
+    protected void sendWaitingReads(List<CheckBalanceCommand> reads) {
         HashMap<PublicKey, Account> accounts = tesState.getAccounts();
         List<ClientResponse> responses = new ArrayList<>();
         for (CheckBalanceCommand cmd : reads) {
