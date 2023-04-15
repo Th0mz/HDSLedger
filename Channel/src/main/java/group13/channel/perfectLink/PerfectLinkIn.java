@@ -50,8 +50,10 @@ public class PerfectLinkIn {
 
             freshObject = (FreshObject) signedObject.getObject();
             // signature check
-            if (!signedObject.verify(this.outPublicKey, Signature.getInstance("SHA256withRSA")))
+            if (!signedObject.verify(this.outPublicKey, Signature.getInstance("SHA256withRSA"))) {
+                System.err.println("Error : Wrongfully signed object");
                 return;
+            }
 
         } catch (ClassNotFoundException | IOException | InvalidKeyException |
                  SignatureException | NoSuchAlgorithmException  e) {

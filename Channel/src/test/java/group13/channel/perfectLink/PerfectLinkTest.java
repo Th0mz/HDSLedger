@@ -408,6 +408,60 @@ class PerfectLinkTest {
         }
     }
 
+    public SignedObject generateSignedObject(KeyPair inKeys, int sequenceNumber, Object data) {
+        // sign fresh object
+        FreshObject freshObject = new FreshObject(sequenceNumber, data);
+        SignedObject signedObject = null;
+        try {
+            Signature signature = Signature.getInstance("SHA256withRSA");
+            signedObject = new SignedObject(freshObject, inKeys.getPrivate(), signature);
+        } catch (IOException | InvalidKeyException | SignatureException |
+                 NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        return signedObject;
+    }
+
+    public void perfectLinkSend(KeyPair inKeys, Address outAddress, DatagramSocket outSocket, SignedObject signedObject, int sequenceNumber) {
+
+        // sign fresh object
+        NetworkMessage message = new NetworkMessage(inKeys.getPublic(), sequenceNumber, signedObject, NetworkMessage.messageTypes.SEND);
+
+        // Convert message object to byte stream
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = null;
+        try {
+            objectOutputStream = new ObjectOutputStream(outputStream);
+            objectOutputStream.writeObject(message);
+            objectOutputStream.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] packetData = outputStream.toByteArray();
+        DatagramPacket packet = new DatagramPacket(packetData, packetData.length,
+                outAddress.getInetAddress(), outAddress.getPort());
+
+        try {
+            outSocket.send(packet);
+        } catch (SocketException e) {
+            // socket closed
+        } catch (IOException e) {
+            // TODO : must die? or just retry?
+            System.out.println("Error : Unable to send packet (must die? or just retry?)");
+            throw new RuntimeException(e);
+        }
+
+        // close open fd
+        try {
+            outputStream.close();
+            objectOutputStream.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test
     @DisplayName("Sliding window test")
     public void SlidingWindowTest () {
@@ -521,11 +575,49 @@ class PerfectLinkTest {
     @DisplayName("Sender tries to replay not fresh message")
     public void NotFreshMessageTest() {
 
+        // process 3 message sent
+        SignedObject message = generateSignedObject(p3_keys, 0, MESSAGE);
+
+        // setup simple process 3 perfect link
+        Address p3_addr = new Address(4321);
+        DatagramSocket p3OutSocket = null;
+        try {
+            p3OutSocket = new DatagramSocket();
+        } catch (SocketException e) {
+            throw new RuntimeException(e);
+        }
+        PerfectLink p2_to_p3 =  p2_network.createAuthenticatedLink(p3_addr, p2_keys.getPublic(), p2_keys.getPrivate(), p3_keys.getPublic());
+        p2_to_p3.subscribeDelivery(am_process2.getEventListner());
+
+        perfectLinkSend(p3_keys, p2_addr, p3OutSocket, message, 0);
+        perfectLinkSend(p3_keys, p2_addr, p3OutSocket, message, 1);
+
+        p3OutSocket.close();
     }
 
     @Test
     @DisplayName("Sender tries to send wrongfully signed message")
     public void WrongfullySignedMessage() {
 
+        // process 3 sniffed this message over the network from p4
+        SignedObject sniffedMessage = generateSignedObject(p4_keys, 0, MESSAGE);
+
+        // setup simple process 3 perfect link
+        Address p3_addr = new Address(4322);
+        DatagramSocket p3OutSocket = null;
+        try {
+            p3OutSocket = new DatagramSocket();
+        } catch (SocketException e) {
+            throw new RuntimeException(e);
+        }
+        PerfectLink p2_to_p3 =  p2_network.createAuthenticatedLink(p3_addr, p2_keys.getPublic(), p2_keys.getPrivate(), p3_keys.getPublic());
+        p2_to_p3.subscribeDelivery(am_process2.getEventListner());
+
+        perfectLinkSend(p3_keys, p2_addr, p3OutSocket, sniffedMessage, 0);
+
+        // check if process 2 didn't deliver
+        assertEquals(0, el_process2.get_all_events_num());
+
+        p3OutSocket.close();
     }
 }
